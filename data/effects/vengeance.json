@@ -1,0 +1,9 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "vengeance",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Spell", "line": 1,
+      "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] }
+  ]
+}

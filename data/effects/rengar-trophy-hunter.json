@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "rengar-trophy-hunter",
+  "status": "Full",
+  "keywords": [ { "keyword": "Ambush" } ],
+  "abilities": [
+    { "kind": "Passive", "line": 2,
+      "modifiers": [ { "type": "Permission", "permission": "PlayToBattlefieldWithEnemyUnits", "appliesTo": { "ref": "Self" } } ] }
+  ]
+}

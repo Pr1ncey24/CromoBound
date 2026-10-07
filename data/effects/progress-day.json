@@ -1,0 +1,9 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "progress-day",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Spell", "line": 1,
+      "steps": [ { "action": "Draw", "player": "You", "amount": 4 } ] }
+  ]
+}

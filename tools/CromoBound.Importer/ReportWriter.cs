@@ -17,9 +17,6 @@ public static class ReportWriter
         md.AppendLine("| Status | Cards |").AppendLine("|---|---|");
         foreach (var (status, count) in report.StatusCounts) md.AppendLine($"| {status} | {count} |");
 
-        md.AppendLine().AppendLine($"## Multi-domain cards missing power domains ({report.MissingPowerDomains.Count})").AppendLine();
-        foreach (var id in report.MissingPowerDomains) md.AppendLine($"- `{id}`");
-
         md.AppendLine().AppendLine($"## Token prints without a token card ({report.MissingTokens.Count})").AppendLine();
         foreach (var id in report.MissingTokens) md.AppendLine($"- `{id}`");
 

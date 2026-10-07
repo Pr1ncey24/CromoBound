@@ -1,0 +1,9 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "noxus-hopeful",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Passive", "line": 1, "condition": { "legion": true },
+      "modifiers": [ { "type": "CostReduction", "energy": 2, "appliesTo": { "ref": "Self" } } ] }
+  ]
+}

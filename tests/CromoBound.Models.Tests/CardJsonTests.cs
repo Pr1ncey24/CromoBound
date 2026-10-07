@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CromoBound.Models.Cards;
+using CromoBound.Models.Effects;
 using CromoBound.Models.Json;
 
 namespace CromoBound.Models.Tests;
@@ -28,7 +29,7 @@ public class CardJsonTests
         Assert.Null(card.Supertype);
         Assert.Equal(new[] { Domain.Fury }, card.Domains);
         Assert.Equal(2, card.Cost!.Energy);
-        Assert.Equal(new[] { Domain.Fury, Domain.Fury }, card.Cost.Power!);
+        Assert.Equal(new[] { PowerSymbol.Fury, PowerSymbol.Fury }, card.Cost.Power);
         Assert.Empty(card.Tags);
         Assert.Empty(card.Keywords);
         Assert.Equal("69bc5bc8d308c64675ca86d4", card.DefaultPrintingId);
@@ -53,13 +54,17 @@ public class CardJsonTests
     }
 
     [Fact]
-    public void Unknown_power_is_omitted_and_reads_back_as_null()
+    public void Self_power_round_trips()
     {
-        var card = new Card { Id = "x", Name = "X", Type = CardType.Spell, Cost = new CardCost { Energy = 1, Power = null }, Text = new CardText() };
+        var card = new Card
+        {
+            Id = "x", Name = "X", Type = CardType.Spell, Domains = [Domain.Calm, Domain.Body],
+            Cost = new CardCost { Energy = 3, Power = [PowerSymbol.Self] }, Text = new CardText(),
+        };
 
         var back = CromoJson.Deserialize<Card>(CromoJson.Serialize(card));
 
-        Assert.Null(back.Cost!.Power);
+        Assert.Equal(new[] { PowerSymbol.Self }, back.Cost!.Power);
     }
 
     [Fact]

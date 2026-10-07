@@ -15,60 +15,15 @@
 
 | Status | Cards |
 |---|---|
-| Full | 39 |
-| Unmapped | 896 |
-
-## Multi-domain cards missing power domains (41)
-
-- `acceleration-gate`
-- `alpha-strike`
-- `arcane-shift`
-- `arise`
-- `counter-strike`
-- `daisy`
-- `danger-zone`
-- `death-from-below`
-- `death-mark`
-- `decisive-strike`
-- `defiant-dance`
-- `dragons-rage`
-- `forgefire-cape`
-- `guerilla-warfare`
-- `hostile-takeover`
-- `icathian-rain`
-- `keepers-verdict`
-- `last-breath`
-- `lilting-lullaby`
-- `mirror-image`
-- `moonfall`
-- `noxian-guillotine`
-- `on-the-hunt`
-- `public-execution`
-- `rabadons-deathcrown`
-- `rebuttal`
-- `relentless-pursuit`
-- `riposte`
-- `shadow-dash`
-- `showstopper`
-- `shurelyas-requiem`
-- `shuriken-flip`
-- `siphon-power`
-- `spinning-axe`
-- `stormbringer`
-- `super-mega-death-rocket`
-- `thrill-of-the-hunt`
-- `tibbers`
-- `void-assault`
-- `void-rush`
-- `zenith-blade`
+| Full | 49 |
+| Unmapped | 886 |
 
 ## Token prints without a token card (0)
 
 
-## Unknown keywords (2)
+## Unknown keywords (1)
 
 - `ADD` (first seen on `renata-glasc-chem-baroness`)
-- `Predict` (first seen on `diana-lunari`)
 
 ## Text conflicts between printings (81)
 

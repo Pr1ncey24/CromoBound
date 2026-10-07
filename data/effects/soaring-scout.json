@@ -1,0 +1,8 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "soaring-scout",
+  "status": "Full",
+  "keywords": [
+    { "keyword": "Deathknell", "steps": [ { "action": "Channel", "count": 1, "exhausted": true } ] }
+  ]
+}

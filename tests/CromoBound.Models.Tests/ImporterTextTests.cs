@@ -48,6 +48,17 @@ public class ImporterTextTests
     }
 
     [Fact]
+    public void ExtractDisplay_finds_predict_with_and_without_amount()
+    {
+        var unknown = new List<string>();
+
+        var keywords = KeywordText.ExtractDisplay("<p>[Predict]. [Predict 2]</p>", unknown);
+
+        Assert.Equal(new[] { DisplayKeyword.Predict }, keywords);
+        Assert.Empty(unknown);
+    }
+
+    [Fact]
     public void KeywordOnly_parses_single_keyword_with_reminder()
     {
         var entries = KeywordText.TryParseKeywordOnly("<p>[Vision] (When you play me, look at the top card of your Main Deck.)</p>");

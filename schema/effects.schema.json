@@ -37,10 +37,7 @@
               ]
             },
             "power": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "enum": [
                   "Fury",
@@ -49,7 +46,8 @@
                   "Body",
                   "Chaos",
                   "Order",
-                  "Colorless"
+                  "Any",
+                  "Self"
                 ]
               }
             }

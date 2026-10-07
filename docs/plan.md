@@ -4486,7 +4486,7 @@ Open `data/import-report.md` and check:
 - The cards-per-type table adds up to ~930.
 - "Token prints without a token card" is empty (Gold, Sprite and Recruit are in `tokens.json`).
 - "Unknown keywords" may list a few terms. Note them for the user; don't change code for them.
-- "Text conflicts" lists roughly 87 cards.
+- "Text conflicts" lists 81 cards.
 - "Multi-domain cards missing power domains" lists the cards that need overrides later.
 
 - [ ] **Step 3: Verify the sample card ids exist**

@@ -1,5 +1,6 @@
 using CromoBound.Importer;
 using CromoBound.Models.Cards;
+using CromoBound.Models.Effects;
 
 namespace CromoBound.Models.Tests;
 
@@ -48,16 +49,22 @@ public class NormalizerTests
     public void Power_is_derived_for_single_domain_cards()
     {
         var (result, _) = Run(RawFixtures.Card("a", "Falling Star", type: "Spell", energy: 2, might: null, power: 2));
-        Assert.Equal(new[] { Domain.Fury, Domain.Fury }, result.Cards[0].Cost!.Power!);
+        Assert.Equal(new[] { PowerSymbol.Fury, PowerSymbol.Fury }, result.Cards[0].Cost!.Power);
     }
 
     [Fact]
-    public void Power_is_unknown_for_multi_domain_cards()
+    public void Power_is_self_for_multi_domain_cards()
     {
-        var (result, report) = Run(RawFixtures.Card("a", "Showstopper", type: "Spell", domains: ["Body", "Order"], energy: 1, might: null, power: 1));
+        var (result, _) = Run(RawFixtures.Card("a", "Showstopper", type: "Spell", domains: ["Body", "Order"], energy: 1, might: null, power: 2));
 
-        Assert.Null(result.Cards[0].Cost!.Power);
-        Assert.Contains("showstopper", report.MissingPowerDomains);
+        Assert.Equal(new[] { PowerSymbol.Self, PowerSymbol.Self }, result.Cards[0].Cost!.Power);
+    }
+
+    [Fact]
+    public void Power_without_a_domain_fails()
+    {
+        var error = Assert.Throws<ImportException>(() => Run(RawFixtures.Card("a", "Odd Gear", type: "Gear", domains: ["Colorless"], energy: 1, might: null, power: 1)));
+        Assert.Contains("Odd Gear", error.Message);
     }
 
     [Fact]
@@ -67,7 +74,7 @@ public class NormalizerTests
             RawFixtures.Card("a", "Vanguard Sergeant", energy: 4),
             RawFixtures.Card("b", "Fury Rune", type: "Rune", supertype: "Basic", energy: null, might: null));
 
-        Assert.Empty(result.Cards.Single(c => c.Id == "vanguard-sergeant").Cost!.Power!);
+        Assert.Empty(result.Cards.Single(c => c.Id == "vanguard-sergeant").Cost!.Power);
         Assert.Null(result.Cards.Single(c => c.Id == "fury-rune").Cost);
     }
 

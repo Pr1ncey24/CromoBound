@@ -31,8 +31,12 @@ public class ScaffolderTests
         Assert.Null(Scaffolder.Classify(Card("vengeance", "<p>Kill a unit.</p>")));
 
     [Fact]
-    public void Cards_with_unknown_power_are_not_scaffolded() =>
-        Assert.Null(Scaffolder.Classify(Card("odd-signature", "<p>[Tank]</p>") with { Cost = new CardCost { Energy = 3, Power = null } }));
+    public void Multi_domain_keyword_only_card_is_scaffolded() =>
+        Assert.NotNull(Scaffolder.Classify(Card("odd-signature", "<p>[Tank]</p>") with
+        {
+            Domains = [Domain.Calm, Domain.Body],
+            Cost = new CardCost { Energy = 3, Power = [PowerSymbol.Self] },
+        }));
 
     [Fact]
     public void Scaffolder_never_overwrites_existing_files()
@@ -59,7 +63,6 @@ public class ScaffolderTests
         var report = new ImportReport();
         report.TypeCounts[CardType.Unit] = 2;
         report.StatusCounts[MappingStatus.Full] = 1;
-        report.MissingPowerDomains.Add("showstopper");
         report.MissingTokens.Add("token-mech");
         report.UnknownKeywords["Bogus"] = "odd-knight";
         report.TextConflicts.Add(new TextConflict("ahri-inquisitive", ConflictKind.Wording, ["<p>Old</p>", "<p>New</p>"]));
@@ -68,7 +71,6 @@ public class ScaffolderTests
 
         Assert.Contains("| Unit | 2 |", markdown);
         Assert.Contains("| Full | 1 |", markdown);
-        Assert.Contains("`showstopper`", markdown);
         Assert.Contains("`token-mech`", markdown);
         Assert.Contains("`Bogus` (first seen on `odd-knight`)", markdown);
         Assert.Contains("`ahri-inquisitive` (Wording)", markdown);

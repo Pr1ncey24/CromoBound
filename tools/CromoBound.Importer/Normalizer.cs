@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using CromoBound.Models.Cards;
+using CromoBound.Models.Effects;
 
 namespace CromoBound.Importer;
 
@@ -133,7 +134,7 @@ public static partial class Normalizer
             Type = canonical.Type,
             Supertype = canonical.Supertype,
             Domains = canonical.Domains,
-            Cost = BuildCost(id, canonical, report),
+            Cost = BuildCost(canonical),
             Might = raw.Attributes.Might,
             Tags = raw.Tags,
             Keywords = keywords,
@@ -142,28 +143,22 @@ public static partial class Normalizer
         };
     }
 
-    private static CardCost? BuildCost(string id, Parsed card, ImportReport report)
+    private static CardCost? BuildCost(Parsed card)
     {
         var energy = card.Raw.Attributes.Energy;
         var powerCount = card.Raw.Attributes.Power ?? 0;
         if (energy is null && powerCount == 0) return null;
+        if (powerCount == 0) return new CardCost { Energy = energy };
 
+        // A multi-domain card's power symbols can be paid with any of its domains.
         var colored = card.Domains.Where(d => d != Domain.Colorless).ToList();
-        IReadOnlyList<Domain>? power;
-        if (powerCount == 0)
+        var symbol = colored.Count switch
         {
-            power = [];
-        }
-        else if (colored.Count == 1)
-        {
-            power = Enumerable.Repeat(colored[0], powerCount).ToList();
-        }
-        else
-        {
-            power = null;
-            report.MissingPowerDomains.Add(id);
-        }
-        return new CardCost { Energy = energy, Power = power };
+            0 => throw new ImportException($"Card '{card.Raw.Name}' ({card.Raw.Id}) has a power cost but no domain."),
+            1 => Enum.Parse<PowerSymbol>(colored[0].ToString()),
+            _ => PowerSymbol.Self,
+        };
+        return new CardCost { Energy = energy, Power = Enumerable.Repeat(symbol, powerCount).ToList() };
     }
 
     private static void RecordTextConflict(string id, IReadOnlyList<Parsed> ordered, ImportReport report)

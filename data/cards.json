@@ -11,7 +11,8 @@
       "power": []
     },
     "keywords": [
-      "Reaction"
+      "Reaction",
+      "Predict"
     ],
     "text": {
       "rich": "<p>[Reaction] (Play any time, even before spells and abilities resolve.)<br />Counter a spell. Return it to its owner's hand instead of putting it in their trash.<br />[Predict]. (Look at the top card of your Main Deck. You may recycle it.)</p>",
@@ -42,7 +43,10 @@
       "Body"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Jayce"
@@ -361,7 +365,10 @@
       "Body"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Master Yi"
@@ -782,7 +789,8 @@
     ],
     "keywords": [
       "Empower",
-      "Empowered"
+      "Empowered",
+      "Predict"
     ],
     "text": {
       "rich": "<p>[Empower] :rb_energy_2: (:rb_energy_2:: Empower me. Use only if not Empowered.)<br />When I become [Empowered], [Predict 2]. (Look at the top 2 cards of your Main Deck. Recycle any of them and put the rest back in any order.)<br />[Empowered][&gt;] I have +1 :rb_might:.</p>",
@@ -848,7 +856,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Ezreal"
@@ -911,7 +922,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 6
+      "energy": 6,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Azir"
@@ -2796,7 +2810,8 @@
       "power": []
     },
     "keywords": [
-      "Reaction"
+      "Reaction",
+      "Predict"
     ],
     "text": {
       "rich": "<p>[Reaction] (Play any time, even before spells and abilities resolve.)<br />[Predict 5]. (Look at the top 5 cards of your Main Deck. Recycle any of them and put the rest back in any order.)<br />Draw 2.</p>",
@@ -3197,7 +3212,10 @@
       "Body"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Jax"
@@ -3489,7 +3507,11 @@
       "Order"
     ],
     "cost": {
-      "energy": 9
+      "energy": 9,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "might": 8,
     "tags": [
@@ -3559,7 +3581,10 @@
       "Mind"
     ],
     "cost": {
-      "energy": 1
+      "energy": 1,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Rumble"
@@ -3799,7 +3824,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Pyke"
@@ -3820,7 +3848,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Zed"
@@ -3866,7 +3897,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 5
+      "energy": 5,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Garen"
@@ -4008,7 +4042,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 1
+      "energy": 1,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Irelia"
@@ -4142,6 +4179,9 @@
     "tags": [
       "Diana",
       "Mount Targon"
+    ],
+    "keywords": [
+      "Predict"
     ],
     "text": {
       "rich": "<p>When a showdown begins here, you may pay :rb_energy_1:. If you do, [Predict], then reveal the top card of your Main Deck. If it's a spell, draw it. (To Predict, look at the top card of your Main Deck. You may recycle it.)</p>",
@@ -4614,7 +4654,10 @@
       "Body"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Lee Sin"
@@ -4665,7 +4708,8 @@
       "Ionia"
     ],
     "keywords": [
-      "Deathknell"
+      "Deathknell",
+      "Predict"
     ],
     "text": {
       "rich": "<p>[Deathknell][&gt;] [Predict 2]. (When I die, look at the top two cards of your Main Deck. Recycle any of them and put the rest back in any order.)</p>",
@@ -4946,7 +4990,8 @@
       "power": []
     },
     "keywords": [
-      "Reaction"
+      "Reaction",
+      "Predict"
     ],
     "text": {
       "rich": "<p>[Reaction] (Play any time, even before spells and abilities resolve.)<br />Give a unit -4 :rb_might: this turn.<br />[Predict]. (Look at the top card of your Main Deck. You may recycle it.)</p>",
@@ -6196,7 +6241,11 @@
       "Mind"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Ornn",
@@ -6218,6 +6267,9 @@
     "type": "Battlefield",
     "domains": [
       "Colorless"
+    ],
+    "keywords": [
+      "Predict"
     ],
     "text": {
       "rich": "<p>While you control this battlefield, when you play a spell, if you spent :rb_energy_4: or more, [Predict]. (Look at the top card of your Main Deck. You may recycle it.)</p>",
@@ -7095,7 +7147,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Teemo"
@@ -7797,7 +7852,11 @@
       "Order"
     ],
     "cost": {
-      "energy": 5
+      "energy": 5,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Renata Glasc"
@@ -7914,7 +7973,12 @@
       "Mind"
     ],
     "cost": {
-      "energy": 7
+      "energy": 7,
+      "power": [
+        "Self",
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Kai'Sa"
@@ -9127,7 +9191,11 @@
       "Order"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Poppy"
@@ -9520,7 +9588,11 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Yasuo"
@@ -10049,7 +10121,11 @@
       "Mind"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Lillia"
@@ -11083,7 +11159,11 @@
       "Order"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "LeBlanc"
@@ -11323,7 +11403,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Diana"
@@ -11944,7 +12027,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Darius"
@@ -12103,7 +12189,11 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 1
+      "energy": 1,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Sivir"
@@ -13184,7 +13274,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Ambessa"
@@ -13380,7 +13473,11 @@
       "Mind"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Ornn",
@@ -13624,7 +13721,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 1
+      "energy": 1,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Mel"
@@ -13817,7 +13917,10 @@
       "Body"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Lucian"
@@ -14364,7 +14467,11 @@
       "Order"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Fiora"
@@ -15052,6 +15159,9 @@
       "energy": 1,
       "power": []
     },
+    "keywords": [
+      "Predict"
+    ],
     "text": {
       "rich": "<p>This enters exhausted.<br />Kill this, :rb_energy_1:, :rb_exhaust:: [Predict 2], then draw 1. Gain 1 XP.  (To Predict 2, look at the top two cards of your Main Deck. Recycle any of them and put the rest back in any order.)</p>",
       "plain": "This enters exhausted.Kill this, :rb_energy_1:, :rb_exhaust:: [Predict 2], then draw 1. Gain 1 XP.  (To Predict 2, look at the top two cards of your Main Deck. Recycle any of them and put the rest back in any order.)"
@@ -15453,7 +15563,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Shen"
@@ -15908,7 +16021,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 1
+      "energy": 1,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Sett"
@@ -15929,7 +16045,11 @@
       "Mind"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Ornn",
@@ -15955,7 +16075,10 @@
       "Calm"
     ],
     "cost": {
-      "energy": 1
+      "energy": 1,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Akali"
@@ -16059,7 +16182,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Viktor"
@@ -16708,7 +16834,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Draven",
@@ -17241,7 +17370,11 @@
       "Body"
     ],
     "cost": {
-      "energy": 6
+      "energy": 6,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Volibear"
@@ -17430,7 +17563,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 4
+      "energy": 4,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Jinx"
@@ -18089,7 +18225,10 @@
       "Body"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Rengar"
@@ -18162,7 +18301,11 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 8
+      "energy": 8,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "might": 7,
     "tags": [
@@ -19570,7 +19713,10 @@
       "Chaos"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Kha'Zix"
@@ -19646,7 +19792,10 @@
       "Order"
     ],
     "cost": {
-      "energy": 2
+      "energy": 2,
+      "power": [
+        "Self"
+      ]
     },
     "tags": [
       "Rek'Sai"
@@ -20612,7 +20761,11 @@
       "Order"
     ],
     "cost": {
-      "energy": 3
+      "energy": 3,
+      "power": [
+        "Self",
+        "Self"
+      ]
     },
     "tags": [
       "Leona"

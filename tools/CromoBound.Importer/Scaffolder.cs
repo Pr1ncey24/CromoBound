@@ -11,8 +11,6 @@ public static class Scaffolder
 
     public static EffectsFile? Classify(Card card)
     {
-        // Unknown power domains need a hand-written override first, so such cards stay Unmapped.
-        if (card.Cost is { Power: null }) return null;
         if (RichText.Lines(card.Text.Rich).Count == 0)
             return new EffectsFile { Schema = SchemaRef, CardId = card.Id, Status = MappingStatus.Full };
         var keywords = KeywordText.TryParseKeywordOnly(card.Text.Rich);

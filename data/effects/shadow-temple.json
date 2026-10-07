@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "shadow-temple",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Triggered", "line": 1,
+      "trigger": { "event": "Hold", "by": "You", "where": { "ref": "Here" } },
+      "steps": [ { "action": "Burn", "player": "You", "amount": 3 } ] }
+  ]
+}

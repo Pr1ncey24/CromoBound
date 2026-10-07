@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "garbage-grabber",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Activated", "line": 1,
+      "cost": {
+        "energy": 1,
+        "exhaustSelf": true,
+        "actions": [ { "action": "Recycle", "from": { "zone": "Trash", "owner": "You" }, "count": 3 } ]
+      },
+      "steps": [ { "action": "Draw", "player": "You", "amount": 1 } ] }
+  ]
+}

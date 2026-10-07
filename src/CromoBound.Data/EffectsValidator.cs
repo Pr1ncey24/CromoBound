@@ -44,9 +44,6 @@ internal sealed class FileValidator(CardDatabase db, LoadedEffects loaded, List<
         }
         _lineCount = RichText.Lines(card.Text.Rich).Count;
 
-        if (File.Status != MappingStatus.Unmapped && card.Cost is { Power: null } && File.Overrides?.Cost?.Power is null)
-            Error("overrides", "the card's power domains are unknown; add overrides.cost.power.");
-
         foreach (var cost in File.AdditionalCosts)
             if (!_costIds.Add(cost.Id))
                 Error("additionalCosts", $"additional cost id '{cost.Id}' is duplicated.");

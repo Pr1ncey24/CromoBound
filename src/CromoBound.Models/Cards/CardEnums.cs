@@ -18,7 +18,7 @@ public enum Orientation { Portrait, Landscape }
 public enum DisplayKeyword
 {
     Accelerate, Action, Ambush, Assault, Backline, Buff, Burn, Deathknell, Deflect, Empower, Empowered,
-    Equip, Flow, Ganking, Hidden, Hunt, Legion, Level, Mighty,
+    Equip, Flow, Ganking, Hidden, Hunt, Legion, Level, Mighty, Predict,
     [JsonStringEnumMemberName("Quick-Draw")] QuickDraw,
     Reaction, Repeat, Shield, Stun, Tank, Temporary, Unique, Vision, Weaponmaster,
 }

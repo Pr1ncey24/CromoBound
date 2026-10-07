@@ -1,0 +1,12 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "falling-star",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Spell", "line": [1, 2],
+      "steps": [
+        { "action": "Deal", "amount": 3, "target": { "select": "Unit", "count": 1 } },
+        { "action": "Deal", "amount": 3, "target": { "select": "Unit", "count": 1 } }
+      ] }
+  ]
+}

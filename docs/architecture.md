@@ -64,13 +64,14 @@ Base URL: `https://api.riftcodex.com` (OpenAPI at `/openapi.json`).
    - Some Legend prints carry only the title (`Matriarch of War` next to `Ambessa - Matriarch of War`). A Legend name without `", "` takes the full name of the one Legend that ends with `", <title>"`. If several match, the import stops.
    - Result: **924 distinct gameplay cards** (49 Legends) out of 1451 prints.
 2. **`riftbound_id` is not unique** (e.g. `ven-sp3-006` appears twice). The Riftcodex `id` (an ObjectId) is the printing identity.
-3. **Text differs between printings of the same name** (87 names). It's mostly reminder text being present or absent, plus a few real wording changes.
+3. **Text differs between printings of the same name** (81 names). It's mostly reminder text being present or absent, plus a few real wording changes.
    - Rule: same name = same card (Core Rules 103.2.b).
    - The **newest printing's** text is canonical (by set `publishedOn`).
    - Every conflict is listed in the import report for manual review.
 4. **`attributes.power` is only a count.**
    - Single-domain card: the power list is derived (`count × domain`).
-   - Multi-domain card: the domains can't be derived. `cost.power` stays `null` until an effects-file override supplies them. These cards are listed in the report.
+   - Multi-domain card: each power symbol can be paid with a rune of any of the card's domains, so the power list is `count × "Self"`.
+   - A power cost on a card with no colored domain stops the import.
 5. **`text.plain` joins abilities with no separator** (`[Ganking]Recycle 1…`). `text.rich` keeps the `<br />` line breaks and is the source for line splitting and for the `line` references (§7.1).
 6. **Inline icons in rich text:**
    - `:rb_might:`, `:rb_exhaust:`
@@ -165,7 +166,7 @@ data/
 | `type` | enum `CardType` | `Unit`, `Spell`, `Gear`, `Rune`, `Battlefield`, `Legend` |
 | `supertype` | enum `Supertype?` | `Champion`, `Signature`, `Basic`, `Token`, or null |
 | `domains` | `Domain[]` | `Fury`, `Calm`, `Mind`, `Body`, `Chaos`, `Order`, `Colorless` |
-| `cost` | `Cost?` | `energy` (int?) + `power` (`Domain[]?`). Null for cards with no cost (runes, battlefields, legends). `power: null` means "unknown, override required". |
+| `cost` | `Cost?` | `energy` (int?) + `power` (`PowerSymbol[]`, one entry per symbol: a domain, or `"Self"` on multi-domain cards = any of the card's domains). Null for cards with no cost (runes, battlefields, legends). |
 | `might` | int? | Units only. |
 | `tags` | string[] | Validated against the tags index. |
 | `keywords` | `DisplayKeyword[]` | **Display/filter keywords** (§5.2). Not used by the rules. |
@@ -178,7 +179,7 @@ There are two separate concepts:
 
 - **Display keywords** (`cards.json` → `keywords`): every bracketed term on the card, the way card websites filter them. It includes action and condition terms such as `Buff`, `Stun`, `Mighty`, `Burn`, `Level`.
   - Extracted by the importer from the `[...]` in the rich text.
-  - The enum is the keyword index minus noise (`ADD`, `11`, `TEXT`) plus missing ones (`Level`, `Burn`).
+  - The enum is the keyword index minus noise (`ADD`, `11`, `TEXT`) plus missing ones (`Level`, `Burn`, `Predict`).
   - Search and filter only.
 - **Mechanical keywords** (effects file → `keywords`, §7.2): only the keywords that are *abilities an object has*, per the Core Rules (800–829).
   - In the DSL, `Buff` and `Stun` are **actions** (rules 426, 423).
@@ -285,7 +286,7 @@ Token definitions use the card shape (§5.1) with `supertype: "Token"`, no cost,
 |---|---|
 | `cardId` | Must exist in `cards.json` or `tokens.json`. |
 | `status` | `Full` (fully automated), `Partial` (some lines automated), `Unmapped` (manual). **A missing file means `Unmapped`.** |
-| `overrides` | Corrections to static data. Currently only `cost` (e.g. the power domains of multi-domain cards). |
+| `overrides` | Corrections to static data. Currently only `cost` (e.g. fixing a wrong API cost). |
 | `additionalCosts` | Additional costs to play the card (§7.5). |
 | `asYouPlay` | Choices made while playing (step 2), e.g. naming a tag. Steps whose results are saved with `store`. |
 | `keywords` | Mechanical keywords with their parameters (§7.2). |
@@ -366,7 +367,7 @@ The engine expands each keyword into its rules-defined ability:
 }
 ```
 
-- `power` entries are a `Domain` or `"Any"` (`[A]`, `:rb_rune_rainbow:`) or `"Self"` (`[C]`, the card's own domain).
+- `power` entries are a `Domain` or `"Any"` (`[A]`, `:rb_rune_rainbow:`) or `"Self"` (`[C]`, the card's own domain; on a multi-domain card, any of its domains).
 - **Non-standard costs** (recycle, discard, kill, spend buff, pay XP, banish/kill this) go in `actions`. They use the step vocabulary of §7.6.
 - The engine runs them in **cost mode**: they must be fully possible, otherwise the play or activation is illegal (rules 416, 422).
 
@@ -782,7 +783,6 @@ Commands: `dotnet run --project tools/CromoBound.Importer -- <fetch|normalize|sc
    - Everything else: no file (counts as `Unmapped`).
 4. **Report** (`data/import-report.md`), written by `normalize` and `scaffold`:
    - text conflicts between printings;
-   - multi-domain cards missing `power`;
    - unknown keywords (from the index or from the text);
    - card counts per type and per mapping status.
 
@@ -799,7 +799,6 @@ Commands: `dotnet run --project tools/CromoBound.Importer -- <fetch|normalize|sc
    - `line` is within the card's rich-text line count;
    - `PlayToken.token` is a `token-*` id;
    - `paid` refers to an existing `additionalCosts.id`;
-   - a multi-domain card with `power: null` has a cost override;
    - every printing's `cardId` exists.
 3. **Sample-card assertions:** one test per §9 card checking its structure (e.g. Kharox has one `BecameEmpowered` trigger with 3 steps, the last being a reflexive `Optional`).
 4. **Round-trip:** deserialize then serialize each sample file; the result must be semantically equal.
@@ -819,6 +818,7 @@ Commands: `dotnet run --project tools/CromoBound.Importer -- <fetch|normalize|sc
 | Effects storage | One hand-authored file per card, separate from generated data | Re-import safety, small diffs, parallel mapping |
 | Keywords | Display keywords (cards.json) separate from mechanical keywords (effects) | Website-style filters plus rules-accurate DSL |
 | Tokens | Hand-authored `tokens.json` | API lacks most rule-defined tokens |
+| Multi-domain power cost | `"Self"` symbol, same as ability costs | Any of the card's domains pays it, so the cost is always derivable |
 | Source of truth | C# models; schema generated | No drift between schema and code |
 | Target framework | net10.0 | Installed LTS SDK |
 | Test framework | xUnit | Approved |

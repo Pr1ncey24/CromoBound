@@ -1,3 +1,4 @@
+using CromoBound.Models.Effects;
 using CromoBound.Models.Json;
 
 namespace CromoBound.Models.Cards;
@@ -22,9 +23,9 @@ public sealed record CardCost
 {
     public int? Energy { get; init; }
 
-    /// <summary>One entry per power symbol. <c>null</c> means unknown (multi-domain card without an override).</summary>
+    /// <summary>One entry per power symbol. Multi-domain cards use <c>Self</c>: any of the card's domains pays it.</summary>
     [KeepEmpty]
-    public IReadOnlyList<Domain>? Power { get; init; }
+    public IReadOnlyList<PowerSymbol> Power { get; init; } = [];
 }
 
 public sealed record CardText

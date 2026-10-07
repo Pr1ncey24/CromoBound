@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "kharox",
+  "status": "Full",
+  "keywords": [
+    { "keyword": "Empower", "cost": { "energy": 6, "power": ["Chaos", "Chaos"] } }
+  ],
+  "abilities": [
+    {
+      "kind": "Triggered", "line": 2,
+      "trigger": { "event": "BecameEmpowered", "subject": { "ref": "Self" } },
+      "steps": [
+        { "action": "ChoosePlayer", "filter": { "relation": "Opponent" }, "store": "victim" },
+        { "action": "Burn", "player": { "var": "victim" }, "amount": 3 },
+        { "action": "Optional", "reflexive": true, "steps": [
+          { "action": "ChooseCard",
+            "from": { "zone": "Trash", "owner": { "var": "victim" } },
+            "filter": { "type": "Unit" }, "count": 1, "store": "picked" },
+          { "action": "Play", "card": { "var": "picked" }, "cost": "IgnoreAll" }
+        ] }
+      ]
+    }
+  ]
+}

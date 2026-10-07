@@ -105,18 +105,6 @@ public class EffectsValidatorTests
     }
 
     [Fact]
-    public void Unknown_power_needs_override_unless_unmapped()
-    {
-        var showstopper = TestDb.Card("showstopper", "<p>Buff a friendly unit.</p>", new CardCost { Energy = 1, Power = null });
-
-        Assert.NotEmpty(Validate(showstopper, """{ "cardId": "showstopper", "status": "Full" }"""));
-        Assert.Empty(Validate(showstopper, """{ "cardId": "showstopper", "status": "Unmapped" }"""));
-        Assert.Empty(Validate(showstopper, """
-            { "cardId": "showstopper", "status": "Full", "overrides": { "cost": { "energy": 1, "power": ["Body"] } } }
-            """));
-    }
-
-    [Fact]
     public void Script_step_needs_a_script_name()
     {
         var issues = Validate(Kharox, Spell("""[ { "action": "Script" } ]"""));
