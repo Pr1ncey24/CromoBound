@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "armed-assailant",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Accelerate"
+    },
+    {
+      "keyword": "Weaponmaster"
+    }
+  ]
+}

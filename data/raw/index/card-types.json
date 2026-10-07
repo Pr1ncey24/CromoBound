@@ -1,0 +1,12 @@
+{
+  "total": 6,
+  "type": "card_types",
+  "values": [
+    "Battlefield",
+    "Gear",
+    "Legend",
+    "Rune",
+    "Spell",
+    "Unit"
+  ]
+}

@@ -61,7 +61,8 @@ Base URL: `https://api.riftcodex.com` (OpenAPI at `/openapi.json`).
 
 1. **Inconsistent names.** `Ahri - Inquisitive` vs `Ahri, Inquisitive`. Suffixes occur: `(Alternate Art)`, `(Overnumbered)`, `(Signature)`, `(Metal)`, `(Starter)`, `(Ultimate)`, `(Launch Exclusive)`, `(GG EZ)`, and numeric ones such as `Recruit (273)`. Token prints are named `X // Buff`, because a Buff counter is printed on the back.
    - Normalization: strip a trailing `(...)`, strip `// Buff`, and replace `" - "` with `", "`.
-   - Result: **~938 distinct gameplay cards** out of 1451 prints.
+   - Some Legend prints carry only the title (`Matriarch of War` next to `Ambessa - Matriarch of War`). A Legend name without `", "` takes the full name of the one Legend that ends with `", <title>"`. If several match, the import stops.
+   - Result: **924 distinct gameplay cards** (49 Legends) out of 1451 prints.
 2. **`riftbound_id` is not unique** (e.g. `ven-sp3-006` appears twice). The Riftcodex `id` (an ObjectId) is the printing identity.
 3. **Text differs between printings of the same name** (87 names). It's mostly reminder text being present or absent, plus a few real wording changes.
    - Rule: same name = same card (Core Rules 103.2.b).

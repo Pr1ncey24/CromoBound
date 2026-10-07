@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "token-bird",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Deflect"
+    }
+  ]
+}

@@ -116,6 +116,39 @@ public class NormalizerTests
     }
 
     [Fact]
+    public void Title_only_legend_merges_into_full_name_legend()
+    {
+        var (result, _) = Run(
+            RawFixtures.Card("full", "Ambessa - Matriarch of War", set: "VEN", type: "Legend", energy: null, might: null),
+            RawFixtures.Card("short", "Matriarch of War", set: "VEN", type: "Legend", energy: null, might: null, number: 2));
+
+        var card = Assert.Single(result.Cards);
+        Assert.Equal("ambessa-matriarch-of-war", card.Id);
+        Assert.Equal("Ambessa, Matriarch of War", card.Name);
+        Assert.All(result.Printings, p => Assert.Equal("ambessa-matriarch-of-war", p.CardId));
+    }
+
+    [Fact]
+    public void Title_only_non_legend_is_not_merged()
+    {
+        var (result, _) = Run(
+            RawFixtures.Card("full", "Ambessa - Matriarch of War", type: "Legend", energy: null, might: null),
+            RawFixtures.Card("unit", "Matriarch of War"));
+
+        Assert.Equal(new[] { "ambessa-matriarch-of-war", "matriarch-of-war" }, result.Cards.Select(c => c.Id));
+    }
+
+    [Fact]
+    public void Title_only_legend_matching_several_full_names_fails()
+    {
+        var error = Assert.Throws<ImportException>(() => Run(
+            RawFixtures.Card("a", "Ambessa - Hero", type: "Legend", energy: null, might: null),
+            RawFixtures.Card("b", "Akali - Hero", type: "Legend", energy: null, might: null),
+            RawFixtures.Card("c", "Hero", type: "Legend", energy: null, might: null)));
+        Assert.Contains("'Hero'", error.Message);
+    }
+
+    [Fact]
     public void Sets_are_mapped_and_type_counts_recorded()
     {
         var (result, report) = Run(RawFixtures.Card("a", "Vanguard Sergeant"));

@@ -1,0 +1,20 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "rengar-unseen",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Accelerate"
+    },
+    {
+      "keyword": "Assault",
+      "value": 2
+    },
+    {
+      "keyword": "Deflect"
+    },
+    {
+      "keyword": "Ganking"
+    }
+  ]
+}

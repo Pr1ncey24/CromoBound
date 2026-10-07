@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "sharkling",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Accelerate"
+    },
+    {
+      "keyword": "Assault",
+      "value": 4
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "legion-rearguard",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Accelerate"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "token-sprite",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Temporary"
+    }
+  ]
+}

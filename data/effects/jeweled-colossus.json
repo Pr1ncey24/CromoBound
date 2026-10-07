@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "jeweled-colossus",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Vision"
+    },
+    {
+      "keyword": "Shield"
+    }
+  ]
+}

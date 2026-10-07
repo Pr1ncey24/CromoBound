@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "pakaa-cub",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Hidden"
+    }
+  ]
+}

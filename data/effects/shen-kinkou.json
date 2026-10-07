@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "shen-kinkou",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Reaction"
+    },
+    {
+      "keyword": "Shield",
+      "value": 2
+    },
+    {
+      "keyword": "Tank"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "inferna",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Ambush"
+    },
+    {
+      "keyword": "Assault",
+      "value": 2
+    }
+  ]
+}

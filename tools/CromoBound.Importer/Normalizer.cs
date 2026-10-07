@@ -18,7 +18,7 @@ public static partial class Normalizer
         var sets = rawSets.Select(ToSet).OrderBy(s => s.Id, StringComparer.Ordinal).ToList();
         var published = sets.ToDictionary(s => s.Id, s => s.PublishedOn ?? DateOnly.MinValue, StringComparer.Ordinal);
         var tokenIds = tokens.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
-        var parsed = rawCards.Select(Parse).ToList();
+        var parsed = ResolveLegendTitles(rawCards.Select(Parse).ToList());
 
         var cards = new List<Card>();
         var printings = new List<Printing>();
@@ -68,6 +68,28 @@ public static partial class Normalizer
             raw.Classification.Rarity is null ? null : ParseEnum<Rarity>(raw.Classification.Rarity, "rarity", raw),
             raw.Classification.Domain.Select(d => ParseEnum<Domain>(d, "domain", raw)).ToList(),
             VariantOf(suffix, raw.Metadata));
+    }
+
+    /// <summary>Some legend prints carry only the title ("Matriarch of War"); they get the full name ("Ambessa, Matriarch of War").</summary>
+    private static List<Parsed> ResolveLegendTitles(List<Parsed> parsed)
+    {
+        var fullNames = parsed
+            .Where(p => p.Type == CardType.Legend && p.Name.Contains(", ", StringComparison.Ordinal))
+            .Select(p => p.Name)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        return parsed.Select(p =>
+        {
+            if (p.Type != CardType.Legend || p.Name.Contains(", ", StringComparison.Ordinal)) return p;
+            var matches = fullNames.Where(n => n.EndsWith(", " + p.Name, StringComparison.Ordinal)).ToList();
+            return matches.Count switch
+            {
+                0 => p,
+                1 => p with { Name = matches[0] },
+                _ => throw new ImportException($"Legend '{p.Raw.Name}' ({p.Raw.Id}) matches several full names: {string.Join(" | ", matches)}."),
+            };
+        }).ToList();
     }
 
     private static T ParseEnum<T>(string? value, string field, RawCard raw) where T : struct, Enum =>

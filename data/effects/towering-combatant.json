@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "towering-combatant",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Shield",
+      "value": 2
+    },
+    {
+      "keyword": "Tank"
+    }
+  ]
+}

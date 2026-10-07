@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "daring-poro",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Assault"
+    }
+  ]
+}

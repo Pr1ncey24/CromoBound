@@ -1,0 +1,12 @@
+{
+  "total": 6,
+  "type": "rarities",
+  "values": [
+    "Common",
+    "Epic",
+    "Promo",
+    "Rare",
+    "Showcase",
+    "Uncommon"
+  ]
+}

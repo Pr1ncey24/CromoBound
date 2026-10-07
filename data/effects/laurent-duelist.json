@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "laurent-duelist",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Assault",
+      "value": 2
+    }
+  ]
+}

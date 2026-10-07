@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "petty-officer",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Assault"
+    }
+  ]
+}

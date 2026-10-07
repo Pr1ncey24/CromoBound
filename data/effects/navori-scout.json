@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "navori-scout",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Deflect"
+    }
+  ]
+}

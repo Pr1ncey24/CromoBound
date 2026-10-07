@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "horns-of-the-dragon",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Tank"
+    }
+  ]
+}

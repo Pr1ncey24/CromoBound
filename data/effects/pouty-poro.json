@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "pouty-poro",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Deflect"
+    }
+  ]
+}

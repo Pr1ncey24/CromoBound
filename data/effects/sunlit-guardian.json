@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "sunlit-guardian",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Shield"
+    },
+    {
+      "keyword": "Tank"
+    }
+  ]
+}

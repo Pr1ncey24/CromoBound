@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "voracious-gromp",
+  "status": "Full",
+  "keywords": [
+    {
+      "keyword": "Hunt",
+      "value": 3
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "token-reflection",
+  "status": "Full"
+}
