@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "Unit",
+        "Spell",
+        "Gear",
+        "Rune",
+        "Battlefield",
+        "Legend"
+      ]
+    },
+    "supertype": {
+      "enum": [
+        "Champion",
+        "Signature",
+        "Basic",
+        "Token",
+        null
+      ]
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "Fury",
+          "Calm",
+          "Mind",
+          "Body",
+          "Chaos",
+          "Order",
+          "Colorless"
+        ]
+      }
+    },
+    "cost": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "energy": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "power": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "enum": [
+              "Fury",
+              "Calm",
+              "Mind",
+              "Body",
+              "Chaos",
+              "Order",
+              "Colorless"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "might": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "Accelerate",
+          "Action",
+          "Ambush",
+          "Assault",
+          "Backline",
+          "Buff",
+          "Burn",
+          "Deathknell",
+          "Deflect",
+          "Empower",
+          "Empowered",
+          "Equip",
+          "Flow",
+          "Ganking",
+          "Hidden",
+          "Hunt",
+          "Legion",
+          "Level",
+          "Mighty",
+          "Quick-Draw",
+          "Reaction",
+          "Repeat",
+          "Shield",
+          "Stun",
+          "Tank",
+          "Temporary",
+          "Unique",
+          "Vision",
+          "Weaponmaster"
+        ]
+      }
+    },
+    "text": {
+      "type": "object",
+      "properties": {
+        "rich": {
+          "type": "string"
+        },
+        "plain": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "defaultPrintingId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "type",
+    "text"
+  ],
+  "additionalProperties": false
+}

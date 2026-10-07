@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "legend": {
+      "type": "string"
+    },
+    "champion": {
+      "type": "string"
+    },
+    "main": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "printing": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "printing",
+          "count"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "runes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/properties/main/items"
+      }
+    },
+    "battlefields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "name",
+    "legend",
+    "champion"
+  ],
+  "additionalProperties": false
+}

@@ -1,1 +1,3 @@
-﻿Console.WriteLine("Hello, World!");
+using CromoBound.Importer;
+
+return await ImporterApp.RunAsync(args);
