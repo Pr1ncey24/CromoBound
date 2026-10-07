@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CromoBound.Data/CromoBound.Data.csproj" />
+    <Project Path="src/CromoBound.Models/CromoBound.Models.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CromoBound.Models.Tests/CromoBound.Models.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/CromoBound.Importer/CromoBound.Importer.csproj" />
+  </Folder>
+</Solution>
