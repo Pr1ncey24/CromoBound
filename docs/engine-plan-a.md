@@ -96,7 +96,7 @@ schema/deck.schema.json                             (regenerated)
 **Interfaces:**
 - Produces: `Deck.Sideboard : IReadOnlyList<DeckEntry>` (default empty; omitted from JSON when empty).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to the `CardJsonTests` class in `tests/CromoBound.Models.Tests/CardJsonTests.cs`:
 ```csharp
@@ -122,12 +122,12 @@ Add to the `CardJsonTests` class in `tests/CromoBound.Models.Tests/CardJsonTests
     }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~Deck_sideboard_round_trips_and_is_optional"`
 Expected: FAIL (compilation error: `Deck` has no `Sideboard`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/CromoBound.Models/Cards/Deck.cs`, add the property after `Battlefields`:
 ```csharp
@@ -135,7 +135,7 @@ In `src/CromoBound.Models/Cards/Deck.cs`, add the property after `Battlefields`:
     public IReadOnlyList<DeckEntry> Sideboard { get; init; } = [];
 ```
 
-- [ ] **Step 4: Regenerate the schema and run all tests**
+- [x] **Step 4: Regenerate the schema and run all tests**
 
 Run: `dotnet run --project tools/CromoBound.Importer -- schema`
 Expected: `Wrote schema/*.json.`; `git diff --stat schema` shows only `schema/deck.schema.json`.
@@ -143,7 +143,7 @@ Expected: `Wrote schema/*.json.`; `git diff --stat schema` shows only `schema/de
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (including `Generated_schemas_match_committed_files`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CromoBound.Models/Cards/Deck.cs schema/deck.schema.json tests/CromoBound.Models.Tests/CardJsonTests.cs
@@ -169,7 +169,7 @@ git commit -m "feat(models): add deck sideboard"
   - `DeckValidator.Validate(Deck deck, CardDatabase db) : DeckReport`
   - Constants `DeckValidator.MainDeckSize` (40), `RuneDeckSize` (12), `BattlefieldCount` (3), `MaxSideboardSize` (10), `MaxCopies` (3), `MaxSignatureCards` (3)
 
-- [ ] **Step 1: Write the test fixtures**
+- [x] **Step 1: Write the test fixtures**
 
 Create `tests/CromoBound.Models.Tests/DeckFixtures.cs`:
 ```csharp
@@ -230,7 +230,7 @@ internal static class DeckFixtures
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Models.Tests/DeckValidatorTests.cs`:
 ```csharp
@@ -389,12 +389,12 @@ public class DeckValidatorTests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~DeckValidatorTests"`
 Expected: FAIL (compilation errors: `DeckValidator`, `DeckReport`, `DeckIssueCode` not found).
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 Create `src/CromoBound.Data/DeckValidator.cs`:
 ```csharp
@@ -581,12 +581,12 @@ public static class DeckValidator
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CromoBound.Data/DeckValidator.cs tests/CromoBound.Models.Tests/DeckFixtures.cs tests/CromoBound.Models.Tests/DeckValidatorTests.cs
@@ -604,7 +604,7 @@ git commit -m "feat(data): add deck validator with structured report"
 **Interfaces:**
 - Produces: `CardDatabase.Fingerprint : string`. Lowercase hex SHA-256 (64 characters) when loaded by `CardRepository.Load`; `""` for databases built in memory.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to the `CardRepositoryTests` class (it already has `Cards` and `CreateData()`):
 ```csharp
@@ -635,12 +635,12 @@ Add to the `CardRepositoryTests` class (it already has `Cards` and `CreateData()
     }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~Fingerprint"`
 Expected: FAIL (compilation error: `CardDatabase` has no `Fingerprint`).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/CromoBound.Data/CardDatabase.cs`, add after `Effects`:
 ```csharp
@@ -737,12 +737,12 @@ public static class CardRepository
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests, including the existing `CardRepositoryTests` and `DataIntegrationTests`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CromoBound.Data/CardDatabase.cs src/CromoBound.Data/CardRepository.cs tests/CromoBound.Models.Tests/CardRepositoryTests.cs
@@ -761,7 +761,7 @@ git commit -m "feat(data): fingerprint loaded card data"
 **Interfaces:**
 - Produces: `CromoBound.Engine.EngineInfo.Version : string`, the engine assembly's informational version (the SDK appends `+<git commit>` when built from the repository).
 
-- [ ] **Step 1: Create the projects**
+- [x] **Step 1: Create the projects**
 
 Run from the repo root:
 ```bash
@@ -775,7 +775,7 @@ dotnet remove tests/CromoBound.Engine.Tests package coverlet.collector
 ```
 Expected: `CromoBound.slnx` lists both projects. `tests/CromoBound.Engine.Tests/CromoBound.Engine.Tests.csproj` lists only `Microsoft.NET.Test.Sdk` 17.14.1, `xunit` 2.9.3 and `xunit.runner.visualstudio` 3.1.4. If the template produced other versions, set these exact versions.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `tests/CromoBound.Engine.Tests/EngineInfoTests.cs`:
 ```csharp
@@ -792,12 +792,12 @@ public class EngineInfoTests
 }
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~EngineInfoTests"`
 Expected: FAIL (compilation error: `EngineInfo` not found).
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 Create `src/CromoBound.Engine/EngineInfo.cs`:
 ```csharp
@@ -813,7 +813,7 @@ public static class EngineInfo
 }
 ```
 
-- [ ] **Step 5: Run the tests and check the version format**
+- [x] **Step 5: Run the tests and check the version format**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
@@ -822,7 +822,7 @@ Then check that the version carries the commit: build, and print the attribute w
 `dotnet build src/CromoBound.Engine && grep -a -o "1\.0\.0+[0-9a-f]\{7,40\}" src/CromoBound.Engine/bin/Debug/net10.0/CromoBound.Engine.dll | head -1`
 Expected: a line like `1.0.0+3f2c…`. If there's no `+<sha>`, report it to the project owner before continuing: the version would then not change between commits.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add CromoBound.slnx src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -843,7 +843,7 @@ git commit -m "chore(engine): add engine and engine test projects"
   - `SeededRandom(ulong seed)`, `SeededRandom(RandomState state)`, `RandomState State`
   - `ulong NextUInt64()`, `int NextInt(int maxExclusive)`, `int RollD20()`, `void Shuffle<T>(IList<T> items)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The expected values come from a reference implementation of SplitMix64 seeding + xoshiro256**, with rejection sampling for bounded integers and Fisher–Yates from the last index down.
 
@@ -918,12 +918,12 @@ public class SeededRandomTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~SeededRandomTests"`
 Expected: FAIL (compilation error: namespace `CromoBound.Engine.Random` not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/CromoBound.Engine/Random/SeededRandom.cs`:
 ```csharp
@@ -1001,12 +1001,12 @@ public sealed class SeededRandom
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CromoBound.Engine/Random tests/CromoBound.Engine.Tests/SeededRandomTests.cs
@@ -1042,7 +1042,7 @@ git commit -m "feat(engine): add seeded random generator"
     - lookups: `this[ObjectId]`, `Exists(ObjectId)`, `At(Place)`, `Player(PlayerId)`, `Opponent(PlayerId)`, `NextChainItemId()`;
     - mutations: `Create(cardId, printingId, owner, place, isToken = false) : ObjectId`, `Move(id, to, position = DeckPosition.Top) : ObjectId?`, `Shuffle(Place)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/GameStateTests.cs`:
 ```csharp
@@ -1204,12 +1204,12 @@ public class GameStateTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~GameStateTests"`
 Expected: FAIL (compilation errors: namespace `CromoBound.Engine.State` not found).
 
-- [ ] **Step 3: Implement the value types**
+- [x] **Step 3: Implement the value types**
 
 Create `src/CromoBound.Engine/State/Ids.cs`:
 ```csharp
@@ -1445,7 +1445,7 @@ public sealed class ChainItem
 }
 ```
 
-- [ ] **Step 4: Implement GameState**
+- [x] **Step 4: Implement GameState**
 
 Create `src/CromoBound.Engine/State/GameState.cs`:
 ```csharp
@@ -1544,12 +1544,12 @@ public sealed class GameState
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CromoBound.Engine/State tests/CromoBound.Engine.Tests/GameStateTests.cs
@@ -1579,7 +1579,7 @@ git commit -m "feat(engine): add game state model with zone-change rules"
   - `TestGame(ulong seed = 1)`: `Db`, `State`, static `P1`/`P2`. It starts with battlefield 0 = `bf-a` (owned by P1) and battlefield 1 = `bf-b` (owned by P2).
   - `TestGame.Put(string cardId, Place place, PlayerId? owner = null) : ObjectId`. The owner defaults to the place's player, else P1. A Token-supertype card is created as a token.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/CromoBound.Engine.Tests/TestGameTests.cs`:
 ```csharp
@@ -1626,12 +1626,12 @@ public class TestGameTests
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~TestGameTests"`
 Expected: FAIL (compilation errors: `TestGame`, `EngineTestDb` not found).
 
-- [ ] **Step 3: Implement the helpers**
+- [x] **Step 3: Implement the helpers**
 
 Create `tests/CromoBound.Engine.Tests/EngineTestDb.cs`:
 ```csharp
@@ -1740,12 +1740,12 @@ internal sealed class TestGame
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/CromoBound.Engine.Tests/EngineTestDb.cs tests/CromoBound.Engine.Tests/TestGame.cs tests/CromoBound.Engine.Tests/TestGameTests.cs
@@ -1756,11 +1756,11 @@ git commit -m "test(engine): add rules test helpers"
 
 ## Done criteria
 
-- [ ] `Deck` has an optional `sideboard`, and `schema/deck.schema.json` is regenerated (Task 1).
-- [ ] `DeckValidator` reports every spec §9.2 issue code with severity, cards and numbers (Task 2).
-- [ ] `CardDatabase.Fingerprint` is stable across loads and line endings and changes with the data (Task 3).
-- [ ] `CromoBound.Engine` and `CromoBound.Engine.Tests` exist; `EngineInfo.Version` carries the build's commit (Task 4).
-- [ ] `SeededRandom` matches the reference values (Task 5).
-- [ ] The game state applies CR 124 (new objects), CR 186.1 (tokens) and CR 056 (owner's piles) (Task 6).
-- [ ] `TestGame` and `EngineTestDb` are ready for Plans B and C (Task 7).
-- [ ] `dotnet test CromoBound.slnx` passes.
+- [x] `Deck` has an optional `sideboard`, and `schema/deck.schema.json` is regenerated (Task 1).
+- [x] `DeckValidator` reports every spec §9.2 issue code with severity, cards and numbers (Task 2).
+- [x] `CardDatabase.Fingerprint` is stable across loads and line endings and changes with the data (Task 3).
+- [x] `CromoBound.Engine` and `CromoBound.Engine.Tests` exist; `EngineInfo.Version` carries the build's commit (Task 4).
+- [x] `SeededRandom` matches the reference values (Task 5).
+- [x] The game state applies CR 124 (new objects), CR 186.1 (tokens) and CR 056 (owner's piles) (Task 6).
+- [x] `TestGame` and `EngineTestDb` are ready for Plans B and C (Task 7).
+- [x] `dotnet test CromoBound.slnx` passes.

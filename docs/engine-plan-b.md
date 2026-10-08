@@ -90,7 +90,7 @@ tests/CromoBound.Engine.Tests/
 - Consumes: `PlayerId`, `ObjectId`, `Place`, `Phase` (Models), `TurnStep`, `Domain`, `PowerSymbol`.
 - Produces: every type listed in the code below. Later tasks use these exact names.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/CromoBound.Engine.Tests/ActionJsonTests.cs`:
 ```csharp
@@ -128,12 +128,12 @@ public class ActionJsonTests
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~ActionJsonTests"`
 Expected: FAIL (compilation error: namespace `CromoBound.Engine.Actions` not found).
 
-- [ ] **Step 3: Hide Place's computed properties from JSON**
+- [x] **Step 3: Hide Place's computed properties from JSON**
 
 In `src/CromoBound.Engine/State/Place.cs`, add `using System.Text.Json.Serialization;` at the top. Then put `[JsonIgnore]` on the line above each of the four computed properties `IsBoard`, `IsLocation`, `IsOrdered` and `IsPlayerPile`. For example:
 ```csharp
@@ -142,7 +142,7 @@ In `src/CromoBound.Engine/State/Place.cs`, add `using System.Text.Json.Serializa
     public bool IsBoard => Kind is PlaceKind.LegendZone or PlaceKind.Base or PlaceKind.Battlefield or PlaceKind.Facedown or PlaceKind.BattlefieldCard;
 ```
 
-- [ ] **Step 4: Create the types**
+- [x] **Step 4: Create the types**
 
 Create `src/CromoBound.Engine/Results.cs`:
 ```csharp
@@ -378,12 +378,12 @@ public sealed record BurnedOut(PlayerId Player, PlayerId PointTo) : GameEvent;
 public sealed record GameEnded(PlayerId? Winner, GameEndReason Reason) : GameEvent;
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/ActionJsonTests.cs
@@ -416,7 +416,7 @@ git commit -m "feat(engine): add actions, decisions, events and results"
     - `CombatDamage.Suggest(IReadOnlyList<DamageTarget>, int total) : IReadOnlyList<DamageAssignment>`
   - `CardKeywords.Own(Card) : IReadOnlySet<DisplayKeyword>`: the card's own keywords, read from the starts of its text lines.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/PaymentTests.cs`:
 ```csharp
@@ -614,12 +614,12 @@ public class CardKeywordsTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~PaymentTests|FullyQualifiedName~CombatDamageTests|FullyQualifiedName~CardKeywordsTests"`
 Expected: FAIL (compilation errors: `Payment`, `CombatDamage`, `CardKeywords`, `RuneInfo`, `RunePool.AddPower` not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/CromoBound.Engine/State/PlayerState.cs`, add these members to `RunePool` after `Clear()`:
 ```csharp
@@ -857,12 +857,12 @@ public static partial class CardKeywords
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/PaymentTests.cs tests/CromoBound.Engine.Tests/CombatDamageTests.cs tests/CromoBound.Engine.Tests/CardKeywordsTests.cs
@@ -898,7 +898,7 @@ git commit -m "feat(engine): add payment, combat damage and own-keyword rules"
     - `TestGame.Start(PlayerId? first = null, int filler = 10) : Game` (adds `filler` × `unit-2` to each Main Deck), `TestGame.StartEvents`, `TestGame.Runes(player, runeId, count)`, `TestGame.First(place, cardId)`;
     - extensions `game.Accept(player, action) : SubmitResult`, `game.Decision<T>() : T`, `game.PayWithSuggestion(player)`.
 
-- [ ] **Step 1: Extend the test helpers**
+- [x] **Step 1: Extend the test helpers**
 
 Replace all of `tests/CromoBound.Engine.Tests/TestGame.cs` with:
 ```csharp
@@ -1001,7 +1001,7 @@ In `Spell`, replace `Cost = new CardCost { Energy = 1 }, Text = new CardText { R
         Cost = new CardCost { Energy = 1 }, Text = new CardText { Rich = RichWith($"{id} text", keywords) },
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/TurnTests.cs`:
 ```csharp
@@ -1175,12 +1175,12 @@ public class TurnTests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~TurnTests"`
 Expected: FAIL (compilation errors: `Game` not found).
 
-- [ ] **Step 4: Add showdown state**
+- [x] **Step 4: Add showdown state**
 
 Create `src/CromoBound.Engine/State/ShowdownState.cs`:
 ```csharp
@@ -1209,7 +1209,7 @@ In `src/CromoBound.Engine/State/GameState.cs`, add after the `Chain` property:
     public SortedSet<int> StagedCombats { get; } = [];
 ```
 
-- [ ] **Step 5: Implement the task queue and the core**
+- [x] **Step 5: Implement the task queue and the core**
 
 Create `src/CromoBound.Engine/Rules/GameTask.cs`:
 ```csharp
@@ -1411,7 +1411,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 6: Implement the mutations**
+- [x] **Step 6: Implement the mutations**
 
 Create `src/CromoBound.Engine/Rules/Game.Mutations.cs`:
 ```csharp
@@ -1603,7 +1603,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 7: Implement the turn structure**
+- [x] **Step 7: Implement the turn structure**
 
 Create `src/CromoBound.Engine/Rules/Game.Turn.cs`:
 ```csharp
@@ -1696,7 +1696,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 8: Implement priority, dispatch and the first cleanup**
+- [x] **Step 8: Implement priority, dispatch and the first cleanup**
 
 Create `src/CromoBound.Engine/Rules/Game.Priority.cs`:
 ```csharp
@@ -1905,12 +1905,12 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 9: Run the tests to verify they pass**
+- [x] **Step 9: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -1937,7 +1937,7 @@ git commit -m "feat(engine): add game loop and turn structure"
     - `PassPriority(player)`, `AfterResolution()`, `ChainEmptied()`;
     - properties `ChainPasses`, `ChainStartedByTrigger`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/PlayTests.cs`:
 ```csharp
@@ -2160,12 +2160,12 @@ public class PlayTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~PlayTests"`
 Expected: the project compiles (the actions exist since Task 1), and the tests FAIL: `PlayCard` is rejected with `UnexpectedAction`.
 
-- [ ] **Step 3: Extend ChainItem**
+- [x] **Step 3: Extend ChainItem**
 
 In `src/CromoBound.Engine/State/ChainItem.cs`, add to `ChainItem` after `AbilityKind`:
 ```csharp
@@ -2178,7 +2178,7 @@ In `src/CromoBound.Engine/State/ChainItem.cs`, add to `ChainItem` after `Ability
     public string? Text { get; init; }
 ```
 
-- [ ] **Step 4: Implement playing and paying**
+- [x] **Step 4: Implement playing and paying**
 
 Create `src/CromoBound.Engine/Rules/Game.Play.cs`:
 ```csharp
@@ -2388,7 +2388,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 5: Implement passing and resolving by hand**
+- [x] **Step 5: Implement passing and resolving by hand**
 
 Create `src/CromoBound.Engine/Rules/Game.Chain.cs`:
 ```csharp
@@ -2474,7 +2474,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 6: Dispatch PlayCard and Pass**
+- [x] **Step 6: Dispatch PlayCard and Pass**
 
 Replace all of `src/CromoBound.Engine/Rules/Game.Dispatch.cs` with:
 ```csharp
@@ -2509,12 +2509,12 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/PlayTests.cs
@@ -2538,7 +2538,7 @@ git commit -m "feat(engine): play cards, pay costs and resolve the chain"
   - combat: `StartCombat`, `ConvertToCombat`, `CombatDamageTask`, `CombatResolutionTask`.
   - The full `RunCleanup` (CR 323 steps 1–10, plus the Ending and Combat special cleanups).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/BattlefieldTests.cs`:
 ```csharp
@@ -2772,12 +2772,12 @@ public class BattlefieldTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~BattlefieldTests"`
 Expected: FAIL (`StandardMove` is rejected with `UnexpectedAction`).
 
-- [ ] **Step 3: Implement movement**
+- [x] **Step 3: Implement movement**
 
 Create `src/CromoBound.Engine/Rules/Game.Movement.cs`:
 ```csharp
@@ -2822,7 +2822,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 4: Implement showdowns**
+- [x] **Step 4: Implement showdowns**
 
 Create `src/CromoBound.Engine/Rules/Game.Showdown.cs`:
 ```csharp
@@ -2885,7 +2885,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 5: Implement combat**
+- [x] **Step 5: Implement combat**
 
 Create `src/CromoBound.Engine/Rules/Game.Combat.cs`:
 ```csharp
@@ -3034,7 +3034,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 6: Replace the cleanup with the full version**
+- [x] **Step 6: Replace the cleanup with the full version**
 
 Replace all of `src/CromoBound.Engine/Rules/Game.Cleanup.cs` with:
 ```csharp
@@ -3244,7 +3244,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 7: Dispatch StandardMove and showdown passes**
+- [x] **Step 7: Dispatch StandardMove and showdown passes**
 
 Replace all of `src/CromoBound.Engine/Rules/Game.Dispatch.cs` with:
 ```csharp
@@ -3284,12 +3284,12 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 8: Run the tests to verify they pass**
+- [x] **Step 8: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests, including Tasks 3 and 4).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/BattlefieldTests.cs
@@ -3309,7 +3309,7 @@ git commit -m "feat(engine): add movement, full cleanup, showdowns and combat"
 - Consumes: `AskPay` (Task 4); `HideOptions` (Task 3); play from facedown (`PlayCardTask.FromHidden`, Task 4); facedown removal in cleanup step 5 (Task 5).
 - Produces: `HideTask`, `StartHide(player, card, battlefield)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/HiddenTests.cs`:
 ```csharp
@@ -3406,12 +3406,12 @@ public class HiddenTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~HiddenTests"`
 Expected: FAIL (`Hide` is rejected with `UnexpectedAction`). `Hide_is_not_offered_without_a_controlled_battlefield` already passes.
 
-- [ ] **Step 3: Implement hiding**
+- [x] **Step 3: Implement hiding**
 
 Create `src/CromoBound.Engine/Rules/Game.Hidden.cs`:
 ```csharp
@@ -3459,7 +3459,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 4: Dispatch Hide**
+- [x] **Step 4: Dispatch Hide**
 
 In `src/CromoBound.Engine/Rules/Game.Dispatch.cs`, add this case after the `StandardMove` case:
 ```csharp
@@ -3468,12 +3468,12 @@ In `src/CromoBound.Engine/Rules/Game.Dispatch.cs`, add this case after the `Stan
                 return null;
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CromoBound.Engine/Rules tests/CromoBound.Engine.Tests/HiddenTests.cs
@@ -3508,7 +3508,7 @@ About 26 real cards act "at the start of your Beginning phase", "at the start of
 - **"your":** if the matched text contains "your", it counts only on its controller's turn. Otherwise ("each player's", "at end of turn") it counts every turn.
 - **Who decides:** the card's controller. For a battlefield card, its controller, or the turn player if nobody controls it (CR 190.6). The turn player goes first, then the opponent. Each answers with `ContinueTurn`.
 
-- [ ] **Step 1: Add test cards**
+- [x] **Step 1: Add test cards**
 
 In `tests/CromoBound.Engine.Tests/EngineTestDb.cs`:
 
@@ -3534,7 +3534,7 @@ Add this helper next to `Simple`:
         Simple(id, CardType.Gear, [Domain.Fury]) with { Cost = new CardCost { Energy = 1 }, Text = new CardText { Rich = rich } };
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/TurnPointTests.cs`:
 ```csharp
@@ -3635,12 +3635,12 @@ public class TurnPointTests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~TurnPointTests"`
 Expected: FAIL. The pause tests get a `PriorityDecision` instead of a `TurnPointDecision`. `No_pause_without_cards_for_that_moment` already passes.
 
-- [ ] **Step 4: Implement the turn points**
+- [x] **Step 4: Implement the turn points**
 
 Create `src/CromoBound.Engine/Rules/Game.TurnPoints.cs`:
 ```csharp
@@ -3730,7 +3730,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 5: Queue the turn points**
+- [x] **Step 5: Queue the turn points**
 
 In `src/CromoBound.Engine/Rules/Game.Turn.cs`:
 
@@ -3752,12 +3752,12 @@ In `EndTheTurn`, insert this line after the first `Enqueue` (the Ending step):
 
 Add `using CromoBound.Engine.Decisions;` to the top of `Game.Turn.cs` (for `TurnPoint`).
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 7: Check the real cards once**
+- [x] **Step 7: Check the real cards once**
 
 The pattern is a heuristic, so check it against the real data once. Run:
 ```bash
@@ -3765,7 +3765,7 @@ python -c "import json,re; cards=json.load(open('data/cards.json',encoding='utf-
 ```
 Expected: about 26 ids (cards whose text, not their reminder text, acts at these points). Report the list to the project owner, and say if any card looks wrong (missed or matched by mistake).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/CromoBound.Engine/Rules tests/CromoBound.Engine.Tests
@@ -3784,7 +3784,7 @@ git commit -m "feat(engine): pause at start/end of turn for card effects"
 - Consumes: the whole public `Game` API (Tasks 1–7).
 - Produces: `Bot` (test helper). It answers any pending decision with a simple, deterministic policy. Plan C reuses it for full matches.
 
-- [ ] **Step 1: Write the test and the scripted player**
+- [x] **Step 1: Write the test and the scripted player**
 
 Create `tests/CromoBound.Engine.Tests/Bot.cs`:
 ```csharp
@@ -3901,19 +3901,19 @@ public class ScriptedGameTests
 }
 ```
 
-- [ ] **Step 2: Run the test**
+- [x] **Step 2: Run the test**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~ScriptedGameTests"`
 Expected: PASS. The game ends with a winner well before the 5000-decision cap.
 
 If it fails, find the first decision where the game stops progressing (for example, the same `PriorityDecision` repeating with no way forward). Fix the engine, not the test, unless the bot's policy is clearly wrong.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/CromoBound.Engine.Tests/Bot.cs tests/CromoBound.Engine.Tests/ScriptedGameTests.cs
@@ -3924,12 +3924,12 @@ git commit -m "test(engine): play a scripted full game"
 
 ## Done criteria
 
-- [ ] Engine types exist and actions round-trip through JSON (Task 1).
-- [ ] Payment matching and combat damage rules are covered by unit tests (Task 2).
-- [ ] Turns run: Awaken, Beginning (Temporary, Hold), Channel (+1 on turn 2), Draw (Burn Out), Main, Ending (heal, expire, empty pools) (Task 3).
-- [ ] Cards are played and paid for; cancel and cost adjustment work; the chain resolves newest first and by hand; players can stack their own Reactions (Task 4).
-- [ ] Standard moves, Contested, the full cleanup, showdowns, combat with Tank/Backline, conquer, the Final Point and control loss work (Task 5).
-- [ ] Hide and play from face down work; facedown cards go to the trash on control loss (Task 6).
-- [ ] The engine pauses at start/end-of-turn points only when a card in play has an effect there (Task 7).
-- [ ] A scripted game reaches a winner and replays identically (Task 8).
-- [ ] `dotnet test CromoBound.slnx` passes.
+- [x] Engine types exist and actions round-trip through JSON (Task 1).
+- [x] Payment matching and combat damage rules are covered by unit tests (Task 2).
+- [x] Turns run: Awaken, Beginning (Temporary, Hold), Channel (+1 on turn 2), Draw (Burn Out), Main, Ending (heal, expire, empty pools) (Task 3).
+- [x] Cards are played and paid for; cancel and cost adjustment work; the chain resolves newest first and by hand; players can stack their own Reactions (Task 4).
+- [x] Standard moves, Contested, the full cleanup, showdowns, combat with Tank/Backline, conquer, the Final Point and control loss work (Task 5).
+- [x] Hide and play from face down work; facedown cards go to the trash on control loss (Task 6).
+- [x] The engine pauses at start/end-of-turn points only when a card in play has an effect there (Task 7).
+- [x] A scripted game reaches a winner and replays identically (Task 8).
+- [x] `dotnet test CromoBound.slnx` passes.
