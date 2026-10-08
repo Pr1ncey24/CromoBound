@@ -49,10 +49,13 @@ public class TargetTests
         var choose = engine.Decision<ChooseTargetsDecision>();
         Assert.Equal((P1, 0, 1, 1), (choose.Player, choose.Slot, choose.Min, choose.Max));
         Assert.Equal(2, choose.Options.Count);
-        engine.Accept(P1, new ChooseTargets { Targets = [enemy] });
+        var chosen = engine.Accept(P1, new ChooseTargets { Targets = [enemy] });
 
         Assert.IsType<PayCostDecision>(engine.Pending);
         Assert.Equal(new[] { enemy }, Assert.Single(game.State.Chain).Effect!.Targets[0]);
+        var announced = Assert.Single(chosen.Events.OfType<TargetsChosen>());
+        Assert.Equal((game.State.Chain[0].Id, 0), (announced.ItemId, announced.Slot));
+        Assert.Equal(new[] { enemy }, announced.Targets);
     }
 
     [Fact]
@@ -82,6 +85,7 @@ public class TargetTests
         var result = engine.Accept(P1, new PlayCard(Spell(game)));
 
         Assert.Contains(result.Events, e => e is ChoiceMade { Kind: "Targets" } made && made.Chosen.SequenceEqual(new[] { enemy }));
+        Assert.Contains(result.Events, e => e is TargetsChosen { Slot: 0 } chosen && chosen.Targets.SequenceEqual(new[] { enemy }));
         Assert.IsType<PayCostDecision>(engine.Pending);
     }
 

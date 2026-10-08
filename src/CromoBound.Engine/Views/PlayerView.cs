@@ -30,7 +30,7 @@ public sealed record BattlefieldView(
 
 public sealed record ChainItemView(
     int Id, ChainItemKind Kind, PlayerId Controller, ChainItemStatus Status, CardView? Card, string? SourceCardId, string? Text,
-    Place? Location, bool Accelerate);
+    Place? Location, bool Accelerate, IReadOnlyList<IReadOnlyList<ObjectId>> Targets);
 
 /// <summary>Turn state; <see cref="Scored"/> lists, per player index, the battlefields scored this turn.</summary>
 public sealed record TurnView(

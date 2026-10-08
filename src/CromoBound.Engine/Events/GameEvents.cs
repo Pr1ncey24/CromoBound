@@ -50,6 +50,7 @@ namespace CromoBound.Engine.Events;
 [JsonDerivedType(typeof(CardRevealed), "CardRevealed")]
 [JsonDerivedType(typeof(ChainItemCountered), "ChainItemCountered")]
 [JsonDerivedType(typeof(ChoiceMade), "ChoiceMade")]
+[JsonDerivedType(typeof(TargetsChosen), "TargetsChosen")]
 /// <summary>Something that happened. <see cref="VisibleTo"/> null means public; otherwise only that player may see it.</summary>
 public abstract record GameEvent
 {
@@ -109,3 +110,6 @@ public sealed record GameEnded(PlayerId? Winner, GameEndReason Reason) : GameEve
 
 /// <summary>The engine made a forced choice for the player (exactly one legal answer, nothing to decline; spec §6.2).</summary>
 public sealed record ChoiceMade(PlayerId Player, string Kind, IReadOnlyList<ObjectId> Chosen) : GameEvent;
+
+/// <summary>Public: the targets of one target slot of a chain item, whether chosen or forced (spec §6.4).</summary>
+public sealed record TargetsChosen(int ItemId, int Slot, IReadOnlyList<ObjectId> Targets) : GameEvent;

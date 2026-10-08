@@ -1,5 +1,6 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Events;
 using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -65,6 +66,23 @@ public class MatchEffectsTests
         var loaded = Match.Load(CromoJson.Deserialize<MatchRecord>(json), EngineTestDb.Create(("spell", DealOne)));
 
         Assert.Equal(match.Snapshot(), loaded.Snapshot());
+        var expected = match.Game!.State.Chain[0].Effect!.Targets;
+        var actual = loaded.Game!.State.Chain[0].Effect!.Targets;
+        Assert.Equal(expected.Count, actual.Count);
+        for (var i = 0; i < expected.Count; i++) Assert.Equal(expected[i], actual[i]);
+    }
+
+    [Fact]
+    public void The_opponent_sees_the_chosen_targets()
+    {
+        var (match, player) = SpellAtTargetChoice();
+        var chosen = match.Decision<ChooseTargetsDecision>().Options[1];
+        match.Accept(player, new ChooseTargets { Targets = [chosen] });
+
+        var theirs = match.ViewFor(Other(player));
+
+        Assert.Equal(new[] { chosen }, Assert.Single(theirs.Chain).Targets[0]);
+        Assert.Contains(theirs.Log, e => e is TargetsChosen { Slot: 0 } t && t.Targets.SequenceEqual(new[] { chosen }));
     }
 
     [Fact]

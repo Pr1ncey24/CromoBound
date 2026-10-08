@@ -52,6 +52,7 @@ public sealed partial class Game
             {
                 context.Targets.Add(options);
                 Emit(new ChoiceMade(task.Player, "Targets", options));
+                Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, options));
                 continue;
             }
             Ask(new ChooseTargetsDecision(task.Player, card.Id, context.Targets.Count, options, min, max), (_, action) =>
@@ -66,6 +67,7 @@ public sealed partial class Game
                 if (chosen.Distinct().Count() != chosen.Count || chosen.Count < min || chosen.Count > max || !chosen.All(options.Contains))
                     return Reject(RejectionCode.InvalidTarget, $"Choose between {min} and {max} different targets among the offered ones.");
                 context.Targets.Add([.. chosen]);
+                Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, [.. chosen]));
                 return null;
             });
             return true;

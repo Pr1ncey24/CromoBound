@@ -80,7 +80,8 @@ internal static class ViewBuilder
     private static ChainItemView ChainItem(Game game, ChainItem item) => new(
         item.Id, item.Kind, item.Controller, item.Status,
         item.Card is { } card && game.State.Exists(card) ? Card(game, game.State[card]) : null,
-        item.SourceCardId, item.Text, item.Location, item.Accelerate);
+        item.SourceCardId, item.Text, item.Location, item.Accelerate,
+        item.Effect is { } effect ? [.. effect.Targets.Select(t => (IReadOnlyList<ObjectId>)[.. t])] : []);
 
     private static TurnView Turn(Game game)
     {
