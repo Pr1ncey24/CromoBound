@@ -19,6 +19,23 @@ public sealed class RunePool
         UniversalPower = 0;
         Power.Clear();
     }
+
+    public void AddPower(Domain domain, int amount = 1) => Power[domain] = Power.GetValueOrDefault(domain) + amount;
+
+    public RunePool Clone()
+    {
+        var copy = new RunePool { Energy = Energy, UniversalPower = UniversalPower };
+        foreach (var (domain, amount) in Power) copy.Power[domain] = amount;
+        return copy;
+    }
+
+    public void CopyFrom(RunePool other)
+    {
+        Energy = other.Energy;
+        UniversalPower = other.UniversalPower;
+        Power.Clear();
+        foreach (var (domain, amount) in other.Power) Power[domain] = amount;
+    }
 }
 
 public sealed class PlayerState(PlayerId id)
