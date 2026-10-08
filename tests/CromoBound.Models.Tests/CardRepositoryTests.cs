@@ -89,6 +89,32 @@ public class CardRepositoryTests
     }
 
     [Fact]
+    public void Fingerprint_is_stable_and_ignores_line_endings()
+    {
+        using var lf = CreateData();
+        using var crlf = CreateData();
+        lf.Write("cards.json", Cards.ReplaceLineEndings("\n"));
+        crlf.Write("cards.json", Cards.ReplaceLineEndings("\r\n"));
+
+        var fingerprint = CardRepository.Load(lf.Root).Fingerprint;
+
+        Assert.Equal(64, fingerprint.Length);
+        Assert.Equal(fingerprint, CardRepository.Load(lf.Root).Fingerprint);
+        Assert.Equal(fingerprint, CardRepository.Load(crlf.Root).Fingerprint);
+    }
+
+    [Fact]
+    public void Fingerprint_changes_when_an_effects_file_changes()
+    {
+        using var temp = CreateData();
+        var before = CardRepository.Load(temp.Root).Fingerprint;
+
+        temp.Write("effects/kharox.json", """{ "cardId": "kharox", "status": "Full" }""");
+
+        Assert.NotEqual(before, CardRepository.Load(temp.Root).Fingerprint);
+    }
+
+    [Fact]
     public void Duplicate_effects_card_id_throws()
     {
         using var temp = CreateData();
