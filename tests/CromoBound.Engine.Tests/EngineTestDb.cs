@@ -84,7 +84,7 @@ internal static class EngineTestDb
 /// <summary>Legal decks built from <see cref="EngineTestDb"/>.</summary>
 internal static class TestDecks
 {
-    /// <summary>Jinx legend and champion, filler-1..13 × 3, 6 + 6 runes, the given battlefields, filler-14 × 3 in the sideboard.</summary>
+    /// <summary>Jinx legend and champion, filler-1..13 Ã— 3, 6 + 6 runes, the given battlefields, filler-14 Ã— 3 in the sideboard.</summary>
     public static Deck Jinx(params string[] battlefields) => new()
     {
         Name = "Jinx",
