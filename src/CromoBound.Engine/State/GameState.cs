@@ -21,6 +21,13 @@ public sealed class GameState
     public List<BattlefieldState> Battlefields { get; } = [];
     public TurnState Turn { get; } = new();
     public List<ChainItem> Chain { get; } = [];
+
+    /// <summary>The showdown or combat in progress, if any.</summary>
+    public ShowdownState? Showdown { get; set; }
+
+    /// <summary>Battlefields with a staged, not yet started showdown or combat (cleanup steps 6-7).</summary>
+    public SortedSet<int> StagedShowdowns { get; } = [];
+    public SortedSet<int> StagedCombats { get; } = [];
     public SeededRandom Rng { get; }
 
     public CardInstance this[ObjectId id] => _objects[id];

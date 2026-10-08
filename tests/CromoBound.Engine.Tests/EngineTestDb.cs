@@ -7,17 +7,21 @@ namespace CromoBound.Engine.Tests;
 /// <summary>A small, hand-made card pool for rules tests. Printing ids are "p-" + card id.</summary>
 internal static class EngineTestDb
 {
+    /// <summary>"<p>[Tank]<br />body</p>": keywords on their own lines first, as on real cards.</summary>
+    private static string RichWith(string body, DisplayKeyword[]? keywords) =>
+        $"<p>{string.Concat((keywords ?? []).Select(k => $"[{k}]<br />"))}{body}</p>";
+
     private static Card Unit(string id, Domain domain, int energy, int might, DisplayKeyword[]? keywords = null, int power = 0) => new()
     {
         Id = id, Name = id, Type = CardType.Unit, Domains = [domain], Might = might, Keywords = keywords ?? [],
         Cost = new CardCost { Energy = energy, Power = [.. Enumerable.Repeat(Symbol(domain), power)] },
-        Text = new CardText { Rich = $"<p>{id}</p>" },
+        Text = new CardText { Rich = RichWith(id, keywords) },
     };
 
     private static Card Spell(string id, DisplayKeyword[]? keywords = null) => new()
     {
         Id = id, Name = id, Type = CardType.Spell, Domains = [Domain.Fury], Keywords = keywords ?? [],
-        Cost = new CardCost { Energy = 1 }, Text = new CardText { Rich = $"<p>{id} text</p>" },
+        Cost = new CardCost { Energy = 1 }, Text = new CardText { Rich = RichWith($"{id} text", keywords) },
     };
 
     private static Card Simple(string id, CardType type, Domain[] domains, Supertype? supertype = null, string[]? tags = null) => new()
