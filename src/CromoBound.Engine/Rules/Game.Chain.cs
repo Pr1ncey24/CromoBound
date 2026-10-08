@@ -1,7 +1,9 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Effects;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
+using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
@@ -22,12 +24,25 @@ public sealed partial class Game
         else State.Turn.Priority = State.Opponent(player);
     }
 
-    /// <summary>2a: the newest finalized item is resolved by hand by its controller (spec §8).</summary>
+    /// <summary>The newest finalized item resolves. A spell the engine runs (Full or Partial) resolves automatically (spec §5.1);
+    /// anything else is resolved by hand by its controller (spec §8).</summary>
     private void ResolveTop()
     {
         var item = State.Chain.Last(i => i.Status == ChainItemStatus.Finalized);
+        if (item.Card is { } card && Effects.For(State[card].CardId) is { Status: not MappingStatus.Unmapped } effects)
+        {
+            var context = item.Effect ?? new EffectContext { Controller = item.Controller, Source = card, SourceCardId = State[card].CardId };
+            Push(new ResolveEffectTask(context, SpellSteps(context.SourceCardId), g => g.AfterAutomatedResolution(item, effects)));
+            return;
+        }
+        ResolveByHand(item, null);
+    }
+
+    /// <summary>2a hand resolution of the item, or of just the lines in <paramref name="text"/> (a Partial spell's manual lines).</summary>
+    private void ResolveByHand(ChainItem item, string? text)
+    {
         var cardId = item.Card is { } card ? State[card].CardId : item.SourceCardId ?? "";
-        var text = item.Text ?? (item.Card is { } c ? CardOf(c).Text.Rich : "");
+        text ??= item.Text ?? (item.Card is { } c ? CardOf(c).Text.Rich : "");
         ResolvingManually = true;
         Ask(new ResolveManuallyDecision(item.Controller, item.Id, cardId, text), (_, action) =>
         {
@@ -36,6 +51,24 @@ public sealed partial class Game
             FinishResolution(item);
             return null;
         });
+    }
+
+    /// <summary>After the automated part: a Partial spell's manual lines are resolved by hand; then it finishes like any spell.</summary>
+    private void AfterAutomatedResolution(ChainItem item, CardEffectInfo effects)
+    {
+        if (!State.Chain.Contains(item)) return;
+        if (effects.ManualLines.Count > 0)
+        {
+            ResolveByHand(item, ManualText(item.Card!.Value, effects.ManualLines));
+            return;
+        }
+        FinishResolution(item);
+    }
+
+    private string ManualText(ObjectId card, IReadOnlyList<int> lines)
+    {
+        var all = RichText.Lines(CardOf(card).Text.Rich);
+        return $"<p>{string.Join("<br />", lines.Select(n => all[n - 1]))}</p>";
     }
 
     /// <summary>A resolved spell goes to its owner's trash; an ability is just removed.</summary>
