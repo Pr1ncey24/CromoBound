@@ -162,6 +162,11 @@ public sealed partial class Game
             if (_tasks.Count > 0)
             {
                 var task = _tasks[0];
+                if (!task.Started && task.WaitsForNeutralOpen && (IsClosed || State.Showdown is not null))
+                {
+                    AskPriority();
+                    continue;
+                }
                 task.Started = true;
                 if (task.Run(this)) _tasks.Remove(task);
                 continue;

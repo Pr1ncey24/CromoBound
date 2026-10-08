@@ -92,4 +92,68 @@ public class TurnPointTests
         Assert.True(game.State.Player(P1).Pool.IsEmpty);
         Assert.Equal(P2, engine.Decision<PriorityDecision>().Player);
     }
+
+    [Fact]
+    public void A_showdown_started_during_an_end_of_turn_pause_finishes_before_the_next_turn()
+    {
+        var game = new TestGame();
+        game.Put("dusk-relic", Place.Base(P1));
+        var unit = game.Put("unit-2", Place.Base(P1));
+        var engine = game.Start();
+        engine.Accept(P1, new EndTurn());
+        Assert.Equal(TurnPoint.EndOfTurn, engine.Decision<TurnPointDecision>().Point);
+
+        game.State.Move(unit, Place.Battlefield(1));
+        game.State.Battlefields[1].ContestedBy = P1;
+        engine.Accept(P1, new ContinueTurn());
+
+        Assert.NotNull(game.State.Showdown);
+        Assert.Equal(1, game.State.Turn.Number);
+        Assert.Equal(P1, engine.Decision<PriorityDecision>().Player);
+        Assert.Equal(P1, game.State.Turn.Focus);
+
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+
+        Assert.Null(game.State.Showdown);
+        Assert.Equal(P1, game.State.Battlefields[1].Controller);
+        Assert.Equal(2, game.State.Turn.Number);
+        Assert.Equal(P2, engine.Decision<PriorityDecision>().Player);
+    }
+
+    [Fact]
+    public void A_combat_started_during_an_end_of_turn_pause_resolves_before_the_next_turn()
+    {
+        var game = new TestGame();
+        game.Put("dusk-relic", Place.Base(P1));
+        var unit = game.Put("unit-2", Place.Base(P1));
+        game.State.Battlefields[1].Controller = P2;
+        var defender = game.Put("unit-2", Place.Battlefield(1), owner: P2);
+        var engine = game.Start();
+        engine.Accept(P1, new EndTurn());
+        Assert.Equal(TurnPoint.EndOfTurn, engine.Decision<TurnPointDecision>().Point);
+
+        game.State.Move(unit, Place.Battlefield(1));
+        game.State.Battlefields[1].ContestedBy = P1;
+        engine.Accept(P1, new ContinueTurn());
+
+        Assert.True(game.State.Showdown!.IsCombat);
+        Assert.Equal(1, game.State.Turn.Number);
+        Assert.Equal(P1, engine.Decision<PriorityDecision>().Player);
+
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+
+        Assert.Equal(1, game.State.Turn.Number);
+        var attackerAssign = engine.Decision<AssignDamageDecision>();
+        Assert.Equal(P1, attackerAssign.Player);
+        engine.Accept(P1, new AssignDamage { Assignments = attackerAssign.Suggested });
+        var defenderAssign = engine.Decision<AssignDamageDecision>();
+        Assert.Equal(P2, defenderAssign.Player);
+        engine.Accept(P2, new AssignDamage { Assignments = defenderAssign.Suggested });
+
+        Assert.Null(game.State.Showdown);
+        Assert.Equal(2, game.State.Turn.Number);
+        Assert.Equal(P2, engine.Decision<PriorityDecision>().Player);
+    }
 }

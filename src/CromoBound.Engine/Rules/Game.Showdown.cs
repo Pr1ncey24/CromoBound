@@ -37,7 +37,7 @@ public sealed partial class Game
     {
         if (showdown.IsCombat)
         {
-            Enqueue(new CombatDamageTask(showdown.Battlefield));
+            Push(new CombatDamageTask(showdown.Battlefield));
             return;
         }
         State.Showdown = null;

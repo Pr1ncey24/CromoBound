@@ -13,6 +13,8 @@ internal sealed class TurnPointTask(TurnPoint point) : GameTask
     public List<PlayerId>? Order { get; set; }
     public int Next { get; set; }
 
+    internal override bool WaitsForNeutralOpen => true;
+
     public override bool Run(Game game) => game.RunTurnPoint(this);
 }
 

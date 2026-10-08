@@ -21,12 +21,12 @@ public sealed partial class Game
         EnterPhase(Phase.Awaken, TurnStep.None);
         foreach (var instance in State.Objects.Where(o => o.Controller == player && o.Place.IsBoard && o.Exhausted).ToList())
             SetStatus(instance.Id, StatusKind.Exhausted, false);
-        Enqueue(new StepTask(g => g.BeginningStep()));
+        Enqueue(new StepTask(g => g.BeginningStep(), waitsForNeutralOpen: true));
         Enqueue(new TurnPointTask(TurnPoint.StartOfBeginning));
-        Enqueue(new StepTask(g => g.ScoringStep()));
-        Enqueue(new StepTask(g => g.ChannelPhase()));
-        Enqueue(new StepTask(g => g.DrawPhase()));
-        Enqueue(new StepTask(g => g.MainPhase()));
+        Enqueue(new StepTask(g => g.ScoringStep(), waitsForNeutralOpen: true));
+        Enqueue(new StepTask(g => g.ChannelPhase(), waitsForNeutralOpen: true));
+        Enqueue(new StepTask(g => g.DrawPhase(), waitsForNeutralOpen: true));
+        Enqueue(new StepTask(g => g.MainPhase(), waitsForNeutralOpen: true));
         Enqueue(new TurnPointTask(TurnPoint.StartOfMain));
     }
 
@@ -71,14 +71,14 @@ public sealed partial class Game
     /// <summary>Ending step, Expiration step (Ending special cleanup), then the next player's turn (CR 317).</summary>
     private void EndTheTurn()
     {
-        Enqueue(new StepTask(g => g.EnterPhase(Phase.Ending, TurnStep.EndingStep)));
+        Enqueue(new StepTask(g => g.EnterPhase(Phase.Ending, TurnStep.EndingStep), waitsForNeutralOpen: true));
         Enqueue(new TurnPointTask(TurnPoint.EndOfTurn));
         Enqueue(new StepTask(g =>
         {
             g.EnterPhase(Phase.Ending, TurnStep.ExpirationStep);
             g.Push(new CleanupTask(CleanupMode.Ending));
-        }));
-        Enqueue(new StepTask(g => g.StartTurn(g.State.Opponent(g.State.Turn.TurnPlayer))));
+        }, waitsForNeutralOpen: true));
+        Enqueue(new StepTask(g => g.StartTurn(g.State.Opponent(g.State.Turn.TurnPlayer)), waitsForNeutralOpen: true));
     }
 
     private void EnterPhase(Phase phase, TurnStep step)
