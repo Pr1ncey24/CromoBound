@@ -51,7 +51,7 @@ public sealed class SeededRandom
 
     public int RollD20() => NextInt(20) + 1;
 
-    /// <summary>Fisher–Yates shuffle in place, from the last index down.</summary>
+    /// <summary>Fisher-Yates shuffle in place, from the last index down.</summary>
     public void Shuffle<T>(IList<T> items)
     {
         for (var i = items.Count - 1; i > 0; i--)
