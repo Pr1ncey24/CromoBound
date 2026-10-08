@@ -162,6 +162,25 @@ public class TargetTests
     }
 
     [Fact]
+    public void A_spell_ability_on_a_unit_asks_no_targets()
+    {
+        const string unitWithSpellAbility = """
+            { "cardId": "unit-2", "status": "Full", "abilities": [ { "kind": "Spell", "line": 1,
+              "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] } ] }
+            """;
+        var game = new TestGame(db: EngineTestDb.Create(("unit-2", unitWithSpellAbility)));
+        game.Put("unit-2", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 2);
+        game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "unit-2")));
+
+        Assert.IsNotType<ChooseTargetsDecision>(engine.Pending);
+        Assert.Empty(Assert.Single(game.State.Chain).Effect!.Slots);
+    }
+
+    [Fact]
     public void Target_choices_round_trip_through_json_and_a_null_list_is_rejected()
     {
         PlayerAction action = new ChooseTargets { Targets = [new ObjectId(4)] };

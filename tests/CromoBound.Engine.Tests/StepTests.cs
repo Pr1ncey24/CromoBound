@@ -107,6 +107,23 @@ public class StepTests
     }
 
     [Fact]
+    public void Killing_a_gear_moves_it_to_the_trash_without_a_unit_death()
+    {
+        var game = new TestGame();
+        var gear = game.Put("gear-1", Place.Base(P2));
+        var engine = game.Start();
+        var kill = new KillStep { Target = new ObjectRef { Select = SelectKind.Gear, Count = 1 } };
+        var context = new EffectContext { Controller = P1, SourceCardId = "spell", Slots = TargetSlots.Of([kill]) };
+        context.Targets.Add([gear]);
+
+        var events = engine.RunNow(new ResolveEffectTask(context, [kill], _ => { }));
+
+        Assert.False(game.State.Exists(gear));
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "gear-1");
+        Assert.DoesNotContain(events, e => e is UnitDied);
+    }
+
+    [Fact]
     public void Two_target_slots_may_hit_the_same_unit()
     {
         var game = new TestGame();

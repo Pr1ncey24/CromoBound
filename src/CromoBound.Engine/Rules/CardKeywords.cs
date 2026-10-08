@@ -27,7 +27,7 @@ public static partial class CardKeywords
     }
 
     /// <summary>True when the line is only the card's own keywords and their reminder text, e.g. "[Tank] (I must be assigned combat damage first.)".</summary>
-    public static bool IsKeywordLine(string line)
+    internal static bool IsKeywordLine(string line)
     {
         var leading = LeadingKeywords().Match(line);
         return leading.Success && RichText.StripReminders(line[leading.Length..]).Length == 0;

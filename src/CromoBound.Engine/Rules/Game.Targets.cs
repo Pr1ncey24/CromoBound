@@ -4,6 +4,7 @@ using CromoBound.Engine.Effects;
 using CromoBound.Engine.Effects.Resolvers;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
+using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
@@ -12,6 +13,7 @@ public sealed partial class Game
 {
     /// <summary>The steps of the card's spell abilities when the engine runs it (Full or Partial), in printed order; empty otherwise.</summary>
     internal IReadOnlyList<Step> SpellSteps(string cardId) =>
+        Db.Cards[cardId].Type != CardType.Spell ? [] :
         [.. Effects.For(cardId).Abilities.OfType<SpellAbility>().SelectMany(a => a.Steps)];
 
     /// <summary>A spell the engine runs can be played only if every required target slot has enough candidates (rule 355).</summary>

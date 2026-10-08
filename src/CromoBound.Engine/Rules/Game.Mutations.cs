@@ -82,10 +82,11 @@ public sealed partial class Game
         MarkDirty();
     }
 
+    /// <summary>Kills a permanent: it goes to its owner's trash; only a unit announces <see cref="UnitDied"/>.</summary>
     internal void Kill(ObjectId unit)
     {
         var instance = State[unit];
-        Emit(new UnitDied(unit, instance.CardId, instance.Controller));
+        if (IsUnit(instance)) Emit(new UnitDied(unit, instance.CardId, instance.Controller));
         MoveCard(unit, Place.Trash(instance.Owner));
     }
 
