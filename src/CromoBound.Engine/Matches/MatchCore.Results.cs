@@ -10,6 +10,18 @@ internal sealed partial class MatchCore
         if (Game?.Outcome is { } outcome) RecordGame(outcome);
     }
 
+    /// <summary>The player concedes the current game at any moment, even before it starts: the opponent wins it.</summary>
+    private Rejection? ConcedeGame(PlayerId player)
+    {
+        UndoRequestedBy = null;
+        _pending = null;
+        _handler = null;
+        var winner = Opponent(player);
+        if (Game is { Outcome: null } game) game.End(winner, GameEndReason.Concede);
+        RecordGame(new GameOutcome(winner, GameEndReason.Concede));
+        return null;
+    }
+
     /// <summary>Records the game. Bo3 removes the battlefields used in it. The match ends at 1 win (Bo1) or 2 (Bo3); otherwise the next game begins.</summary>
     internal void RecordGame(GameOutcome outcome)
     {

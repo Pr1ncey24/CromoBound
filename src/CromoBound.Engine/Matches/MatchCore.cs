@@ -76,6 +76,7 @@ internal sealed partial class MatchCore
 
         var rejection = action switch
         {
+            Concede => ConcedeGame(player),
             _ when _pending is not null => AnswerMatchDecision(player, action),
             _ when Stage == MatchStage.Playing => SubmitToGame(player, action),
             _ => Reject(RejectionCode.UnexpectedAction, "Nothing is waiting for that action."),

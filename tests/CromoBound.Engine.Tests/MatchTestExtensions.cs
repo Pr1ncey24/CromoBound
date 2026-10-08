@@ -24,6 +24,17 @@ internal static class MatchTestExtensions
         return match;
     }
 
+    /// <summary>Bo3: every waiting player picks their first offered battlefield.</summary>
+    public static Match PickFirstBattlefields(this Match match)
+    {
+        while (match.Pending is PickBattlefieldDecision pick)
+        {
+            var player = pick.Players[0];
+            match.Accept(player, new PickBattlefield(pick.Choices.Single(c => c.Player == player).Printings[0]));
+        }
+        return match;
+    }
+
     /// <summary>Up to the first decision of the first turn: nobody mulligans.</summary>
     public static Match ToPlay(this Match match)
     {
