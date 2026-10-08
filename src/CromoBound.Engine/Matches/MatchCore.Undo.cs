@@ -21,8 +21,7 @@ internal sealed partial class MatchCore
         if (UndoRequestedBy is not null) return SubmitResult.Reject(RejectionCode.UndoNotAllowed, "An undo request is already waiting.");
         if (UndoIndex(player) < 0) return SubmitResult.Reject(RejectionCode.UndoNotAllowed, "You have no action to undo in this game.");
         UndoRequestedBy = player;
-        Emit(new UndoRequested(player));
-        return new SubmitResult(true, null, Flush());
+        return new SubmitResult(true, null, [new UndoRequested(player)]);
     }
 
     /// <summary>A fresh core with <paramref name="log"/> replayed. Same setup + same log = same match (spec §6.5).</summary>

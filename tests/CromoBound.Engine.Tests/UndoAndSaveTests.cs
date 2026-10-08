@@ -3,6 +3,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
 using CromoBound.Models.Json;
+using static CromoBound.Engine.Tests.TestGame;
 
 namespace CromoBound.Engine.Tests;
 
@@ -49,6 +50,22 @@ public class UndoAndSaveTests
 
         Assert.IsType<PayCostDecision>(match.Pending);
         Assert.Equal(logBefore, match.ToRecord().Log.Count);
+    }
+
+    [Fact]
+    public void A_declined_undo_leaves_no_trace_in_the_saved_match()
+    {
+        var (match, player) = StartPlaying();
+        var pay = match.Decision<PayCostDecision>().Suggested!;
+        match.Accept(player, new PayCost { Exhaust = pay.Exhaust, Recycle = pay.Recycle });
+        match.Accept(player, new RequestUndo());
+        match.Accept(Other(player), new AnswerUndo(false));
+        match.Accept(player, new EndTurn());
+
+        var loaded = Match.Load(match.ToRecord(), EngineTestDb.Create());
+
+        Assert.Equal(CromoJson.Serialize(match.ViewFor(P1)), CromoJson.Serialize(loaded.ViewFor(P1)));
+        Assert.Equal(CromoJson.Serialize(match.ViewFor(P2)), CromoJson.Serialize(loaded.ViewFor(P2)));
     }
 
     [Fact]

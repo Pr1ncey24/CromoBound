@@ -31,10 +31,39 @@ public class ViewTests
         var json = CromoJson.Serialize(match.ViewFor(P1));
 
         var hidden = state.At(Place.Hand(P2))
+            .Concat(state.At(Place.Facedown(0))).Concat(state.At(Place.Facedown(1)))
             .Concat(new[] { P1, P2 }.SelectMany(p => state.At(Place.MainDeck(p)).Concat(state.At(Place.RuneDeck(p)))))
             .Select(id => id.Value)
             .ToHashSet();
         Assert.Empty(ObjectIdsIn(json).Intersect(hidden));
+    }
+
+    [Fact]
+    public void Manual_action_log_never_shows_hidden_ids_to_the_opponent()
+    {
+        var match = NewMatch().ToPlay();
+        var state = match.Game!.State;
+        state.Battlefields[0].Controller = P2;
+        state.Battlefields[1].Controller = P2;
+        match.Accept(P2, new ManualCreateToken("token-recruit", Place.Battlefield(0), P2));
+        match.Accept(P2, new ManualCreateToken("token-recruit", Place.Battlefield(1), P2));
+        var seen = new HashSet<int>();
+        var hand = state.At(Place.Hand(P2)).ToList();
+
+        seen.Add(hand[0].Value);
+        match.Accept(P2, new ManualMoveCard(hand[0], Place.Facedown(0)));
+        var facedown = state.At(Place.Facedown(0))[0];
+        state.Battlefields[1].Controller = P2;
+        seen.Add(facedown.Value);
+        match.Accept(P2, new ManualMoveCard(facedown, Place.Facedown(1)));
+        seen.Add(state.At(Place.Facedown(1))[0].Value);
+        seen.Add(hand[1].Value);
+        match.Accept(P2, new AddAbilityToChain(hand[1], 1, AbilityKind.Triggered));
+        seen.Add(hand[2].Value);
+        match.Accept(P2, new ManualMoveCard(hand[2], Place.Trash(P2)));
+
+        var json = CromoJson.Serialize(match.ViewFor(P1));
+        Assert.Empty(ObjectIdsIn(json).Intersect(seen));
     }
 
     [Fact]

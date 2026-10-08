@@ -25,7 +25,9 @@ public sealed partial class Game
     {
         if (Outcome is not null) return SubmitResult.Reject(RejectionCode.MatchOver, "The game is over.");
         if (ApplyManual(player, action) is { } rejection) return new SubmitResult(false, rejection, []);
-        Emit(new ManualActionTaken(player, action));
+        var kind = action.GetType().Name;
+        Emit(new ManualActionTaken(player, kind, action) { VisibleTo = player });
+        Emit(new ManualActionTaken(player, kind, null));
         if (_tasks.Count > 0 && _tasks[0] is CleanupTask cleanup) cleanup.StableReached = false;
         if (Pending is not ResolveManuallyDecision)
         {
@@ -99,7 +101,8 @@ public sealed partial class Game
                 return LookAtTop(player, look);
             case ManualReveal reveal:
                 if (!State.Exists(reveal.Card)) return Reject(RejectionCode.UnknownObject, $"{reveal.Card} doesn't exist.");
-                Emit(new CardRevealed(reveal.Card, State[reveal.Card].CardId));
+                var revealed = State[reveal.Card];
+                Emit(new CardRevealed(IsSecret(revealed.Place) ? null : reveal.Card, revealed.CardId));
                 return null;
             case ManualCounter counter:
                 return Counter(counter.ChainItem);
