@@ -23,7 +23,7 @@ public sealed record Mulligan : PlayerAction
     public IReadOnlyList<ObjectId> SetAside { get; init; } = [];
 }
 
-/// <summary>Ask to roll back to just before your last action; the opponent must agree.</summary>
+/// <summary>Ask to roll back to just before the game's last action, whoever made it; the opponent must agree.</summary>
 public sealed record RequestUndo : PlayerAction;
 
 public sealed record AnswerUndo(bool Accept) : PlayerAction;

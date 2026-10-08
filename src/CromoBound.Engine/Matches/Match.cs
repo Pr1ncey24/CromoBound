@@ -71,7 +71,7 @@ public sealed partial class Match
                     _core.UndoRequestedBy = null;
                     return new SubmitResult(true, null, []);
                 }
-                _core = MatchCore.Replay(_core.Setup, _core.Db, _core.Log.Take(_core.UndoIndex(requester)));
+                _core = MatchCore.Replay(_core.Setup, _core.Db, _core.Log.Take(_core.UndoIndex()));
                 return new SubmitResult(true, null, []);
             default:
                 return _core.Submit(player, action);

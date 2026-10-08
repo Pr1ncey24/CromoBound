@@ -69,14 +69,47 @@ public class UndoAndSaveTests
     }
 
     [Fact]
-    public void Undo_needs_an_action_of_yours_since_play_began()
+    public void Undo_needs_an_action_since_play_began()
     {
         var match = NewMatch().ToMulligan();
         Assert.Equal(RejectionCode.UndoNotAllowed, match.Submit(new PlayerId(0), new RequestUndo()).Rejection!.Code);
 
         match.ToPlay();
-        var opponent = Other(match.Decision<PriorityDecision>().Player);
-        Assert.Equal(RejectionCode.UndoNotAllowed, match.Submit(opponent, new RequestUndo()).Rejection!.Code);
+        var player = match.Decision<PriorityDecision>().Player;
+        Assert.Equal(RejectionCode.UndoNotAllowed, match.Submit(player, new RequestUndo()).Rejection!.Code);
+        Assert.Equal(RejectionCode.UndoNotAllowed, match.Submit(Other(player), new RequestUndo()).Rejection!.Code);
+    }
+
+    [Fact]
+    public void Undo_rolls_back_the_last_action_in_the_game_whoever_made_it()
+    {
+        var match = NewMatch().ToPlay();
+        var player = match.Decision<PriorityDecision>().Player;
+        var opponent = Other(player);
+        match.Accept(player, new ManualAdjustXp(player, 1));
+        match.Accept(opponent, new ManualAdjustXp(opponent, 1));
+
+        match.Accept(player, new RequestUndo());
+        Assert.Equal(opponent, match.Decision<ConfirmUndoDecision>().Player);
+        match.Accept(opponent, new AnswerUndo(true));
+
+        var state = match.Game!.State;
+        Assert.Equal((1, 0), (state.Player(player).Xp, state.Player(opponent).Xp));
+    }
+
+    [Fact]
+    public void A_player_without_actions_can_ask_to_undo_the_opponents_last_action()
+    {
+        var match = NewMatch().ToPlay();
+        var player = match.Decision<PriorityDecision>().Player;
+        var opponent = Other(player);
+        match.Accept(player, new ManualAdjustXp(player, 1));
+
+        match.Accept(opponent, new RequestUndo());
+        Assert.Equal(player, match.Decision<ConfirmUndoDecision>().Player);
+        match.Accept(player, new AnswerUndo(true));
+
+        Assert.Equal(0, match.Game!.State.Player(player).Xp);
     }
 
     [Fact]
