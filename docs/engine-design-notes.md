@@ -1,7 +1,7 @@
 # CromoBound — Engine Design Notes (Phase 2a, work in progress)
 
 - **Date:** 2026-10-07
-- **Status:** Design in progress. Not yet a spec. Sections 1–2 approved, section 3 under review, sections 4–7 still to design.
+- **Status:** Design in progress. Not yet a spec. Sections 1–6 approved; 7 still to design.
 - **Next documents:** once all sections are approved, this becomes `docs/engine-architecture.md` (spec), followed by `docs/engine-plan.md` (implementation plan).
 
 ---
@@ -9,10 +9,8 @@
 ## How to resume
 
 1. Re-read **Decisions** (§2) and the **pre-game procedure** (§3). They're settled.
-2. Section 3 (*How the engine is driven*, in §4.3) is waiting for review. Two points need an explicit answer:
-   - **Undo granularity:** roll back to just before the requester's last action?
-   - **Manual actions:** do they apply immediately, without the opponent confirming (the opponent can ask for an undo instead)?
-3. Then design sections 4–7 (§5), one at a time, using the rules digest (Appendix A).
+2. ~~Review section 3.~~ Approved (2026-10-08), including undo granularity and manual actions applying without confirmation.
+3. Then design section 7 (§5). Sections 4–6 are done (§4.4–§4.9).
 4. Resolve the rules ambiguities (§6), writing down the reading chosen for each.
 5. Write the spec (`docs/engine-architecture.md`), self-review it, review it together, then write the plan.
 
@@ -32,6 +30,8 @@ Phase 1 delivered card data, the effects DSL, `CardRepository` and `EffectsValid
 - **2b: Effects interpreter** (later).
   - Runs effects files: steps, targeting, choices, triggered, activated and passive abilities, modifiers, mechanical keywords.
   - Done when the 12 Phase 1 sample cards run automatically.
+
+Later phases (outside Phase 2): **Phase 3 server** (accounts, friends, saved decks, lobbies, SignalR) and **Phase 4 web UI** (deck builder, card list, play screen, …). Phase 2 is designed so those can reuse its pieces, e.g. `DeckValidator` in the deck builder.
 
 ---
 
@@ -63,7 +63,7 @@ Phase 1 delivered card data, the effects DSL, `CardRepository` and `EffectsValid
 
 **Battlefield rules (Core Rules 486.5)**
 - In Bo3, after a game that someone **won**, the battlefields used in that game are removed for the rest of the match. Each battlefield is played at most once, unless a player wins 2-0 first.
-- After a **draw**, the same battlefields may be used again (CR 486.5.a). Tournament Rules 406.1.b says they *must* be. Pick one reading in the spec.
+- After a **draw**, the same battlefields are kept for the next game (TR 406.1.b; CR 486.5.a only says "may").
 
 **Sideboarding rules (Tournament Rules 403, 601.1.c)**
 - The sideboard holds up to 10 cards, and only valid Main Deck cards.
@@ -148,7 +148,7 @@ IReadOnlyList<LoggedAction> log = match.Log;       // replay / undo / save
 
 **Random generator state** is part of the game state.
 
-### 4.3 Section 3: How the engine is driven (under review)
+### 4.3 Section 3: How the engine is driven (approved)
 
 **Submitting an action:** `Submit(player, action)`
 1. **Validate** against the current pending decision. If illegal, reject with a reason; nothing changes.
@@ -178,54 +178,202 @@ Cancelling during a play's choice or payment steps undoes the play (CR 358.5).
 - Saving means serializing exactly that with the Phase 1 JSON settings (`CromoJson`); loading means replaying it.
 - The engine is deterministic: no clock, no GUIDs, sequential ids.
 
-**Undo (to confirm)**
+**Undo**
 - `RequestUndo` rolls back to just before the requester's last action.
 - The opponent must confirm. Then the engine replays the log minus the undone entries; the random generator replays too, so shuffles and rolls are identical.
 
-**Manual actions (to confirm)**
+**Manual actions**
 - Move a card, add or remove damage, set points, ready or exhaust, add resources, …
 - They apply immediately, without confirmation, and are highlighted in the log. If the opponent disagrees, they ask for an undo.
+
+### 4.4 Section 4a: Game loop, tasks and timing (approved)
+
+**The loop.** After each accepted action, repeat until a player must decide or the game ends:
+1. **Tasks waiting?** Run the next one. A task can finish, add tasks, or stop and ask a player something.
+2. **Pending chain items?** Finalize the oldest.
+3. **Chain not empty?** The priority holder plays something with Reaction or passes. When every player has passed in a row, the newest item resolves.
+4. **Showdown running?** The focus holder plays something with Action or Reaction, or passes.
+5. **Main phase, Neutral Open?** The turn player plays, moves, hides or ends the turn.
+6. **Otherwise:** advance to the next phase.
+
+This is the rules' "handle tasks, then finalize, execute, pass, resolve" procedure (CR 334–340).
+
+**Responding to your own items.** After an item is finalized, priority goes to the controller of the newest item (CR 337.4). That's the same player, so a player may add any number of Reactions on top of their own items before passing. Priority moves to the opponent only when the holder passes. In a showdown, focus passes only once the whole chain has closed (CR 346).
+
+**Tasks**
+- Each piece of mandatory rules procedure is a small task object that tracks its own progress, so it can pause for a decision and resume.
+- Turn phases are tasks: Awaken, Beginning, Hold, Channel, Draw, start of Main (empty rune pools), Ending, Expiration, next turn. Combat steps are tasks too.
+
+**Automatic cleanup**
+- Any board change marks the game as needing a cleanup: zone change, status change, chain change, completed move.
+- It runs at the next task boundary, never mid-resolution, and repeats until a full pass changes nothing.
+
+**Timing state**
+- Open/Closed and Neutral/Showdown are derived from the chain and the active showdown.
+- Priority and focus holders are stored.
+- One function lists a player's legal actions for the current state; the priority decision shows it, and `Submit` validates against it.
+
+**Timing keywords in 2a:** Action and Reaction come from the card's own keywords in `cards.json`, extracted from the card text by the importer. Effects files take over in 2b.
+
+**Ending the turn and passing**
+- "End turn": Main phase, Neutral Open, no showdown or combat staged.
+- "Pass": only while there's a chain or a showdown.
+
+### 4.5 Section 4b: Playing cards, paying costs, the chain (approved)
+
+**Playing a card** (from hand, the Champion Zone, or face down when Hidden allows), following CR 353–359:
+1. **To the chain** as a pending item.
+2. **Choices.** In 2a only rule-level choices are known: a unit's location (your Base or a battlefield you control) and whether to pay Accelerate. Targets and modes in card text are handled by hand on resolution (section 6).
+3. **Total cost.** Printed cost plus the rule-level extras the engine knows. Text-based changes (discounts, Deflect taxes) are unknown in 2a: the player applies a **cost adjustment** (± energy, add/remove power symbols) before paying, logged like a manual action.
+4. **Pay.** One atomic action names the runes to exhaust (1 energy each), the runes to recycle (1 power of the rune's domain each) and what to take from the rune pool.
+   - The total must cover the cost; any extra floats in the pool. An insufficient payment is rejected outright, so a play is never half-paid.
+   - **Power matching:** domain symbols take matching power first; `Self` takes power of any of the card's domains; `[A]` takes any power; universal power fills the rest.
+   - The decision includes a **suggested payment** (one-click auto-pay). It's only a shortcut: the player can always choose exactly which runes to exhaust or recycle, for rune management.
+5. **Check legality:** timing, location, cost paid. Can't fail at this point, since each step was validated when submitted.
+6. **Finalize:** units and gear enter the board immediately (units exhausted at the chosen location; gear ready in Base). Spells stay on the chain.
+
+**Cancel** is allowed until payment is submitted: the card returns where it came from and nothing is spent.
+
+**Runes:** using a rune is a Reaction-speed Add that resolves immediately without passing priority. Allowed whenever the player holds priority (to float resources) or while paying.
+
+**Resolving in 2a**
+- A spell at the top of the chain resolves through a **"resolve manually"** step for its controller (section 6), then goes to its owner's trash.
+- Permanents have already resolved at finalization.
+- Unit and gear abilities and triggered abilities are put on the chain by hand in 2a (section 6). In 2b the interpreter does it.
+
+### 4.6 Section 4c: Cleanup, showdowns, combat (approved)
+
+**Cleanup** runs CR 323's steps in order, as one procedure, repeated until a full pass changes nothing:
+1. **Win check:** 8 or more points *and* more than the opponent.
+2. **Combat roles:** units at the combat battlefield get their side's role; units elsewhere lose it.
+3. **Lethal damage:** units with damage ≥ Might are killed and go to their owners' trash. Death triggers are manual in 2a; the engine records "this unit died" in the event log so the player can add the trigger by hand. The end-of-turn and combat special cleanups insert their extra steps here.
+4. **Battlefield control:** lost where a player has no units, if Open and nothing is happening there.
+5. **Recalls:** gear and runes at battlefields go to Base; a facedown card at a battlefield its controller doesn't control goes to its owner's trash.
+6–8. **Staging:** stage a showdown where Contested was applied; stage a combat where both players have units; clear Contested where it no longer applies.
+9–10. **Start one:** in Neutral Open, the turn player picks which staged showdown or combat begins (a decision; automatic if only one is staged).
+
+**Non-combat showdown** (a unit moved into an empty battlefield)
+- The player who applied Contested gets focus. Players alternate, using Action/Reaction cards or passing; it ends when both pass in a row with an empty chain.
+- If only one player has units there, they take control: a Conquer if they haven't scored that battlefield this turn.
+- If no units remain, the battlefield is left uncontested and uncontrolled (ambiguity #4, resolved).
+
+**Combat**
+1. **Combat showdown:** assign roles (attacker = whoever applied Contested), the attacker gets focus, then it runs as a showdown.
+2. **Damage**, only if both sides still have units; otherwise go straight to resolution (ambiguity #5, resolved).
+   - Each side's total = sum of current Might; stunned units count 0.
+   - **Attacker assigns first, then the defender**, each as a decision the engine validates: lethal on one unit before the next gets any; no more than lethal unless no other units remain; Tank first, Backline last (from the card's keywords in 2a).
+   - A suggested assignment is offered; manual assignment is always possible.
+   - All damage is dealt at once.
+3. **Resolution**
+   - Combat cleanup: kill lethal-damaged units, heal **all** units, recall attackers if defenders remain.
+   - Result: win, lose or no result.
+   - Control: Conquer if newly controlled and not scored this turn.
+   - End of combat: roles cleared, "this combat" modifiers expire.
+
+### 4.7 Section 4d: Scoring, Burn Out, keywords in 2a, rule calls (approved)
+
+**Scoring**
+- **Hold:** in the turn player's Beginning phase, they score every battlefield they control.
+- **Conquer:** gaining control of a battlefield not yet scored this turn.
+- At most **one score per battlefield per player per turn**, tracked in the turn state.
+- **Final Point:** a Conquer that would take a player from 7 to 8 gives the point only if they've scored **every battlefield this turn, including the one being conquered** (ambiguity #6). Otherwise they draw a card instead. Hold and other sources are unrestricted.
+- **Winning** is checked in cleanup: 8 or more points **and** more than the opponent (ambiguity #1, CR 194.2). Concede is always available.
+
+**Burn Out** (a draw or burn needs more cards than the Main Deck holds): do as much as possible → shuffle the trash into the Main Deck → the opponent gains 1 point → finish the action. With deck and trash both empty it repeats; from the second burnout in a row, a point reaching 8 with the lead wins immediately (CR 431.3). The Rune Deck never burns out.
+
+**Keywords handled by the engine in 2a** (read from the card's keywords):
+
+| Keyword | Engine behavior |
+|---|---|
+| Action / Reaction | Timing permission |
+| Hidden | Hide for `[A]` at a battlefield you control with an empty facedown slot; from the next turn the card has Reaction and can be played ignoring its base cost, at that battlefield |
+| Ganking | Standard move battlefield → battlefield |
+| Tank / Backline | Damage assignment order |
+| Accelerate | Optional extra cost (1 energy + 1 `[C]`); the unit enters ready |
+| Temporary | Killed at the start of its controller's Beginning phase, before scoring |
+| Unique | Deck validation only |
+
+All other keywords (Assault, Shield, Deflect, Vision, Legion, Level, …) are manual until 2b. Numbered keywords need values the engine doesn't parse in 2a.
+
+**Rule calls**
+- **#2 Priority after finalizing:** the controller of the **newest** item.
+- **#3 Hide timing:** **Neutral Open only** (Hide is discretionary, CR 410.1.a); no hiding during a showdown.
+- **#7 Hidden play cost:** base cost ignored; additional costs still apply (CR 811.1.b).
+
+### 4.8 Section 5: Decks, validation and the match layer (approved)
+
+**Where each piece lives** (designed with the future web app's deck section in mind)
+
+| Piece | Lives in | Why |
+|---|---|---|
+| `Deck` (contents only: legend, champion, main, runes, battlefields, sideboard) | `CromoBound.Models` (exists; gains an optional `sideboard` in the same shape as `main`; `deck.schema.json` regenerated) | Shared by the deck builder, the server and the engine |
+| `DeckValidator` | `CromoBound.Data` | The deck builder calls it live while editing; the engine calls it at match start. One set of rules. |
+| Saved decks (id, owner, name, last edited), friends, accounts | The future server (Phase 3) | Storage and users aren't game rules |
+| Match | `CromoBound.Engine` | Receives a **copy** of each deck at creation; editing a saved deck mid-match changes nothing |
+
+**`DeckValidator`** returns a structured report for the builder UI:
+- `IsLegal`, plus a list of issues. Each issue has:
+  - a **code** (e.g. `MainDeckSize`, `TooManyCopies`, `OutsideIdentity`);
+  - a **severity**: **Incomplete** (e.g. 38/40 cards, normal while building) or **Illegal** (e.g. 4 copies, a card outside the identity);
+  - the **cards involved**, so the UI can highlight them;
+  - numbers where relevant (have 38, need 40).
+- A match starts only when both decks have **no issues at all**. Validation runs again after every sideboarding.
+
+**Checks**
+
+| Rule | Check |
+|---|---|
+| Size | `main` + champion = **exactly 40**; runes = **exactly 12**; **3** battlefields with different names; sideboard **≤ 10** |
+| Copies | per card (not per printing), across main + champion + sideboard: ≤ 3; Unique ≤ 1 |
+| Signature | ≤ 3 in total, all with the legend's champion tag |
+| Champion | a Champion unit whose tag matches the legend |
+| Identity | every domain of every card inside the legend's domains (runes included) |
+| Types | legend is a Legend, runes are Runes, battlefields are Battlefields; main and sideboard hold Main Deck cards only |
+
+**Match state:** format (Bo1/Bo3), game number, wins per player, each player's battlefields still available, the previous game's result (decides who picks play order and whether sideboarding is allowed), each player's current deck after swaps. The registered deck stays unchanged.
+
+**Pre-game steps** become decisions in the §3 order:
+1. legends;
+2. battlefields (random in Bo1; simultaneous hidden pick in Bo3);
+3. d20 roll-off or the loser's choice, then first or last;
+4. sideboarding: simultaneous; each player submits their swaps, which may switch the champion, or "no changes";
+5. champion, shuffle, draw 4, mulligan in turn order.
+
+**Between games:** record the result. The match ends at 2 wins (Bo3) or after the single game (Bo1); otherwise the next game is set up from the current decks.
+
+**Ambiguity #8 resolved:** after a draw, the same battlefields are kept automatically (TR "must"); there's no pick step.
+
+**Later, not 2a:** a shareable deck code for import/export between friends; deck statistics for the builder (counts by type, energy curve, domains).
+
+### 4.9 Section 6: Manual actions and hand-resolved cards (approved)
+
+**Manual actions** can be submitted by **either player, at any time** during a game, on **any object** (card effects often hit the opponent's things). Each is logged and highlighted; the opponent can request an undo.
+
+| Action | Covers |
+|---|---|
+| Move card (to a zone or location; top or bottom for decks) | draw, discard, kill, banish, return to hand, recall, recycle |
+| Damage / heal (unit, amount) | spell damage, healing |
+| Set status (exhausted, stunned, buffed, empowered) | ready, exhaust, stun, buff |
+| Modify Might (unit, ±N, this turn / this combat / permanent) | pump effects |
+| Adjust points / XP (player, ±N) | scoring effects |
+| Add or remove resources (pool) | "add [2]", refunds |
+| Create token (which token, where, controlled by whom) | Recruit, Sprite, Gold, … |
+| Gain control (object → player) | steal effects |
+| Shuffle deck / look at the top N (private) / reveal a card (to the opponent) | search, predict, reveal |
+| Counter a chain item | counterspells |
+| Add ability to chain (source card + text line; optional cost) | triggered and activated abilities in 2a |
+
+**Rules still apply after a manual action:** the engine runs its loop again (cleanup kills lethal-damaged units, scoring happens, …). If the pending decision became invalid, it's rebuilt.
+
+**Resolving by hand:** when a spell or added ability resolves, its controller gets a **"Resolve: <card text>"** decision. Both players may use manual actions (the opponent may need to do their part, e.g. "opponent discards a card"); the controller then submits **Done**. The spell goes to the trash; an ability is removed. Cleanup waits until Done (nothing happens mid-resolution).
+
+**Triggers and activated abilities in 2a** go on the chain via "Add ability to chain", starting the normal priority flow so the opponent can respond. An entered cost is paid with the normal payment step.
+
+**In 2b:** a **Full** effects file → the interpreter runs the card and the hand-resolve step disappears; **Partial** → the interpreter does the mapped parts, the rest by hand; **Unmapped** cards and all manual actions stay as in 2a.
 
 ---
 
 ## 5. Sections still to design
-
-### Section 4: Rules machinery
-
-This is the core of 2a. Inputs are in Appendix A §3–§9.
-- **Turn structure:** Awaken → Beginning (Beginning step, Scoring step: Hold) → Channel (2 runes; +1 for the second player on their first turn) → Draw (1; Burn Out if empty) → Main → Ending (Ending step; Expiration step = Ending special cleanup, looping while chain activity happens).
-- **Task queue ("Handle Outstanding Tasks, then Finalize, Execute, Pass, Resolve"):** tasks block everything else; chain items added during tasks wait.
-- **The four states:** Neutral or Showdown, each Open or Closed. Plus priority, focus, and which actions are legal in each state (Action/Reaction are timing permissions only).
-- **Chain loop:** finalize oldest pending first; units, gear and Add abilities resolve immediately on finalize; priority passing; the newest finalized item resolves first (LIFO).
-- **Playing a card:** move to chain → choices → total cost (base changes, additional costs, increases, discounts, total modifications) → pay → check legality (undo all if illegal) → finish finalizing.
-- **Cleanup:** the 10 steps of CR 323, repeated until nothing changes; plus the Ending and Combat special cleanups.
-- **Showdowns:** staging, focus, passing, how they end; non-combat showdown → conquer.
-- **Combat:** combat showdown → damage (sum Might, attacker assigns first, lethal-before-next, Tank/Backline ordering, dealt simultaneously) → resolution (combat cleanup with heal-all and recall, result, control, conquer, end of combat).
-- **Scoring:** conquer, hold, one score per battlefield per turn, the **Final Point** (a conquer at 7 points needs every battlefield scored this turn, otherwise draw a card instead), Burn Out, win check in cleanup (8 points **and** more than the opponent).
-- **Resources:** runes' two abilities (exhaust → 1 energy; recycle → 1 power of the rune's domain), rune pool emptying (start of Main, end of turn), paying `[A]` (any domain) and `Self`/`[C]` (any of the card's domains — Phase 1 decision for multi-domain cards).
-- **Keywords the rules core needs even in 2a:** Action, Reaction, Hidden (hide/play facedown), Ganking (battlefield-to-battlefield move), Tank/Backline (damage order), Accelerate (enter ready, extra cost), Deflect (tax), Temporary (killed at Beginning). Decide which belong to 2a versus 2b.
-
-### Section 5: Match layer and deck validation
-
-- **`DeckValidator` (in `CromoBound.Data`):**
-  - Main Deck exactly 40 including the Chosen Champion.
-  - At most 3 copies per name; the champion counts.
-  - At most 3 Signature cards in total, all with the legend's champion tag.
-  - Unique cards: 1 copy.
-  - Rune Deck exactly 12, inside the Domain Identity.
-  - 3 battlefields with different names.
-  - Every multi-domain card's domains inside the legend's identity.
-  - Chosen Champion matches the legend's champion tag.
-  - Sideboard: up to 10 valid Main Deck cards; copy limits counted across Main Deck plus sideboard.
-- **Match state:** format, game number, game wins, battlefields still available per player, previous game result (for play-first and sideboarding permissions), current decks after sideboarding.
-- The pre-game steps of §3 as decisions.
-
-### Section 6: Manual actions and hybrid card handling
-
-- The full list of manual actions and their validation (e.g. can't move a card into a zone it can't legally be in?).
-- How a spell's effect is resolved by hand in 2a. Proposal: when a spell resolves, the engine pauses with a "resolve manually" decision for its controller. They perform manual actions, then confirm "done", and the spell goes to the trash.
-- Same for triggered abilities (2a has no automatic triggers; a manual "add trigger to chain" action?).
-- What 2b will replace: the manual pause, when an effects file with status `Full` exists.
 
 ### Section 7: Views, error handling, testing
 
@@ -237,14 +385,14 @@ This is the core of 2a. Inputs are in Appendix A §3–§9.
 
 ## 6. Rules ambiguities to resolve in the spec
 
-1. **Win condition wording:** CR 485.6 says "first player to reach the Victory Score wins", but CR 194.2/323.1 add "more points than every other player" and "checked in cleanup". Proposal: follow 194.2.
-2. **Priority after finalizing:** "next item" (312.2.c, 337.4) vs "newest item" (340.4). Proposal: newest (top) item.
-3. **Hide timing:** 811.1.b ("on your turn during an Open State") vs Hide being Discretionary (Neutral Open only, 410.1.a). Pick one.
-4. **Non-combat showdown ending with no units left** (348.2 is silent). Proposal: the battlefield ends uncontested and uncontrolled via cleanup steps 4 and 8.
-5. **Combat damage step when one side has no units left** (465 is silent). Proposal: skip straight to Resolution.
-6. **Final Point "every Battlefield":** does it include the battlefield being conquered right now? Proposal: yes.
-7. **Hidden play cost:** 421.3 "played for [0]" vs 811.1.b "ignoring its base cost" (additional costs still apply). Proposal: 811.1.b.
-8. **Bo3 battlefields after a draw:** CR 486.5.a "may be reused" vs TR 406.1.b "must use the same". Pick one.
+1. ~~**Win condition wording**~~ **Resolved:** follow CR 194.2 (8+ points and more than the opponent, checked in cleanup).
+2. ~~**Priority after finalizing**~~ **Resolved:** newest (top) item.
+3. ~~**Hide timing**~~ **Resolved:** Neutral Open only (410.1.a).
+4. ~~**Non-combat showdown ending with no units left** (348.2 is silent).~~ **Resolved:** the battlefield ends uncontested and uncontrolled via cleanup steps 4 and 8.
+5. ~~**Combat damage step when one side has no units left** (465 is silent).~~ **Resolved:** skip straight to Resolution.
+6. ~~**Final Point "every Battlefield"**~~ **Resolved:** yes, it includes the battlefield being conquered.
+7. ~~**Hidden play cost**~~ **Resolved:** 811.1.b (base cost ignored, additional costs apply).
+8. ~~**Bo3 battlefields after a draw**~~ **Resolved:** the same battlefields are kept (TR 406.1.b).
 9. **Public zones for targeting:** 355.10.a.1 omits Banishment and Chain, which 108.6.e and 108.1.b call public. Proposal: treat both as public.
 
 ---
