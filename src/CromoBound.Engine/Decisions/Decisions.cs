@@ -2,6 +2,7 @@ using CromoBound.Engine.Actions;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
+using CromoBound.Models.Json;
 
 namespace CromoBound.Engine.Decisions;
 
@@ -27,8 +28,8 @@ public sealed record PriorityDecision(
 public sealed record PlayChoicesDecision(PlayerId Player, ObjectId Card, IReadOnlyList<Place> Locations, bool AccelerateAvailable)
     : PendingDecision([Player]);
 
-/// <summary>Energy plus one power symbol per entry.</summary>
-public sealed record TotalCost(int Energy, IReadOnlyList<PowerSymbol> Power);
+/// <summary>Energy plus one power symbol per entry. Power is written even when empty, so it never reads back as null.</summary>
+public sealed record TotalCost(int Energy, [property: KeepEmpty] IReadOnlyList<PowerSymbol> Power);
 
 public sealed record PaymentSuggestion(IReadOnlyList<ObjectId> Exhaust, IReadOnlyList<ObjectId> Recycle);
 
