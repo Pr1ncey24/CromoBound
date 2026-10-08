@@ -64,7 +64,17 @@ public sealed partial class Game
         var (decision, handler) = (Pending, _handler);
         Pending = null;
         _handler = null;
-        if (handler(player, action) is { } rejection)
+        Rejection? rejection;
+        try
+        {
+            rejection = handler(player, action);
+        }
+        catch
+        {
+            if (Pending is null) (Pending, _handler) = (decision, handler);
+            throw;
+        }
+        if (rejection is not null)
         {
             if (Pending is null) (Pending, _handler) = (decision, handler);
             return new SubmitResult(false, rejection, []);
