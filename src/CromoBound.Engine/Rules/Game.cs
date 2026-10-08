@@ -164,27 +164,25 @@ public sealed partial class Game
         return points >= VictoryScore && State.Players.All(p => p.Id == player || p.Points < points);
     }
 
-    /// <summary>Handle outstanding tasks, then the chain, the showdown, the Main phase (CR 334-336).</summary>
+    /// <summary>Handle outstanding tasks, then the chain, the showdown, the Main phase (CR 334-336).
+    /// A turn-structure task (<see cref="GameTask.WaitsForNeutralOpen"/>) waits while a chain or showdown is running,
+    /// even after it started, and a cleanup may run while such a task is paused on its decision.</summary>
     private void RunLoop()
     {
         while (Outcome is null && Pending is null)
         {
-            if (_cleanupNeeded && !ResolvingManually && (_tasks.Count == 0 || !_tasks[0].Started))
+            var head = _tasks.Count > 0 ? _tasks[0] : null;
+            var paused = head is { WaitsForNeutralOpen: true } && (IsClosed || State.Showdown is not null);
+            if (_cleanupNeeded && !ResolvingManually && (head is null || !head.Started || head.WaitsForNeutralOpen))
             {
                 _cleanupNeeded = false;
                 Push(new CleanupTask(CleanupMode.Normal));
                 continue;
             }
-            if (_tasks.Count > 0)
+            if (head is not null && !paused)
             {
-                var task = _tasks[0];
-                if (!task.Started && task.WaitsForNeutralOpen && (IsClosed || State.Showdown is not null))
-                {
-                    AskPriority();
-                    continue;
-                }
-                task.Started = true;
-                if (task.Run(this)) _tasks.Remove(task);
+                head.Started = true;
+                if (head.Run(this)) _tasks.Remove(head);
                 continue;
             }
             AskPriority();

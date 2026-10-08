@@ -77,6 +77,7 @@ internal sealed partial class MatchCore
         var rejection = action switch
         {
             Concede => ConcedeGame(player),
+            ManualAction manual => ApplyManual(player, manual),
             _ when _pending is not null => AnswerMatchDecision(player, action),
             _ when Stage == MatchStage.Playing => SubmitToGame(player, action),
             _ => Reject(RejectionCode.UnexpectedAction, "Nothing is waiting for that action."),
@@ -136,6 +137,17 @@ internal sealed partial class MatchCore
     private Rejection? SubmitToGame(PlayerId player, PlayerAction action)
     {
         var result = Game!.Submit(player, action);
+        if (!result.Accepted) return result.Rejection;
+        _newEvents.AddRange(result.Events);
+        AfterGameChange();
+        return null;
+    }
+
+    /// <summary>Manual actions are possible only while a game is being played (not during pre-game steps).</summary>
+    private Rejection? ApplyManual(PlayerId player, ManualAction action)
+    {
+        if (Stage != MatchStage.Playing) return Reject(RejectionCode.WrongTiming, "Manual actions are only possible during play.");
+        var result = Game!.SubmitManual(player, action);
         if (!result.Accepted) return result.Rejection;
         _newEvents.AddRange(result.Events);
         AfterGameChange();
