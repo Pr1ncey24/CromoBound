@@ -26,6 +26,13 @@ public static partial class CardKeywords
         return result;
     }
 
+    /// <summary>True when the line is only the card's own keywords and their reminder text, e.g. "[Tank] (I must be assigned combat damage first.)".</summary>
+    public static bool IsKeywordLine(string line)
+    {
+        var leading = LeadingKeywords().Match(line);
+        return leading.Success && RichText.StripReminders(line[leading.Length..]).Length == 0;
+    }
+
     /// <summary>One or more bracketed terms at the start of a line, each optionally with a number ("[Shield 2]").</summary>
     [GeneratedRegex(@"^(?:\[(?<name>[A-Za-z-]+)(?:\s+\d+)?\]\s*)+")]
     private static partial Regex LeadingKeywords();

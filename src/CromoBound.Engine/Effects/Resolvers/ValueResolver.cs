@@ -3,7 +3,7 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Effects.Resolvers;
 
-/// <summary>Turns values into numbers. Plan D runs literals; the support check keeps other forms out of the cards it runs.</summary>
+/// <summary>Turns values into numbers. Plan D runs literals; <see cref="EffectsSupport"/> keeps other forms out of the cards it runs.</summary>
 internal static class ValueResolver
 {
     public static int Resolve(Game game, EffectContext context, Value value) =>

@@ -56,10 +56,15 @@ internal static class ViewBuilder
             sideboard, sideboardCount);
     }
 
-    private static CardView Card(Game game, CardInstance card) => new(
-        card.Id, card.CardId, card.PrintingId, card.Owner, card.Controller,
-        card.Exhausted, card.Stunned, card.Buffed, card.Empowered, card.Damage,
-        game.Db.Cards[card.CardId].Type == CardType.Unit ? game.MightOf(card.Id) : null, card.Role);
+    private static CardView Card(Game game, CardInstance card)
+    {
+        var effects = game.Effects.For(card.CardId);
+        return new(
+            card.Id, card.CardId, card.PrintingId, card.Owner, card.Controller,
+            card.Exhausted, card.Stunned, card.Buffed, card.Empowered, card.Damage,
+            game.Db.Cards[card.CardId].Type == CardType.Unit ? game.MightOf(card.Id) : null, card.Role,
+            effects.Status, effects.ManualLines);
+    }
 
     private static BattlefieldView Battlefield(Game game, BattlefieldState battlefield, PlayerId viewer)
     {

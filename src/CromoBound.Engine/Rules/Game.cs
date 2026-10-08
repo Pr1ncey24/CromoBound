@@ -1,6 +1,7 @@
 using CromoBound.Data;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Effects;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -17,16 +18,19 @@ public sealed partial class Game
     private Func<PlayerId, PlayerAction, Rejection?>? _handler;
     private int _nextSequence = 1;
     private bool _cleanupNeeded;
-    private readonly Dictionary<string, IReadOnlySet<DisplayKeyword>> _ownKeywords = [];
 
     public Game(GameState state, CardDatabase db)
     {
         State = state;
         Db = db;
+        Effects = new CardEffects(db);
     }
 
     public GameState State { get; }
     public CardDatabase Db { get; }
+
+    /// <summary>What each card does as this engine runs it (spec §4.1).</summary>
+    internal CardEffects Effects { get; }
 
     /// <summary>What the engine waits for. Null only when the game is over.</summary>
     public PendingDecision? Pending { get; private set; }
@@ -147,13 +151,8 @@ public sealed partial class Game
 
     internal Card CardOf(ObjectId id) => CardOf(State[id]);
 
-    /// <summary>Whether the card itself has the keyword (spec §7.10): only keywords starting a text line count, see <see cref="CardKeywords"/>.</summary>
-    internal bool Has(CardInstance instance, DisplayKeyword keyword)
-    {
-        if (!_ownKeywords.TryGetValue(instance.CardId, out var own))
-            _ownKeywords[instance.CardId] = own = CardKeywords.Own(CardOf(instance));
-        return own.Contains(keyword);
-    }
+    /// <summary>Whether the card itself has the keyword: from its effects file when the engine runs it, else from the starts of its text lines (spec §7.10).</summary>
+    internal bool Has(CardInstance instance, DisplayKeyword keyword) => Effects.For(instance.CardId).Keywords.Contains(keyword);
 
     internal bool IsUnit(CardInstance instance) => CardOf(instance).Type == CardType.Unit;
 

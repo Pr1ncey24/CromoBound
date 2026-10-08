@@ -7,10 +7,12 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Views;
 
-/// <summary>A card the viewer is allowed to see. Might is set for units only.</summary>
+/// <summary>A card the viewer is allowed to see. Might is set for units only. <see cref="Effects"/> says whether the engine runs the card;
+/// <see cref="ManualLines"/> are the text lines players resolve by hand (1-based).</summary>
 public sealed record CardView(
     ObjectId Id, string CardId, string? PrintingId, PlayerId Owner, PlayerId Controller,
-    bool Exhausted, bool Stunned, bool Buffed, bool Empowered, int Damage, int? Might, CombatRole? Role);
+    bool Exhausted, bool Stunned, bool Buffed, bool Empowered, int Damage, int? Might, CombatRole? Role,
+    MappingStatus Effects, IReadOnlyList<int> ManualLines);
 
 public sealed record PoolView(int Energy, IReadOnlyDictionary<Domain, int> Power, int UniversalPower);
 

@@ -2,6 +2,7 @@ using CromoBound.Data;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
+using CromoBound.Models.Json;
 
 namespace CromoBound.Engine.Tests;
 
@@ -70,17 +71,45 @@ internal static class EngineTestDb
         Simple("bf-f", CardType.Battlefield, []),
         Unit("jinx-alt", Domain.Chaos, energy: 2, might: 2) with { Supertype = Supertype.Champion, Tags = ["Jinx"] },
         Unit("vi-champ", Domain.Fury, energy: 2, might: 2) with { Supertype = Supertype.Champion, Tags = ["Vi"] },
+        Simple("multi-spell", CardType.Spell, [Domain.Fury]) with
+        {
+            Cost = new CardCost { Energy = 1 },
+            Text = new CardText { Rich = "<p>[Reaction] (Play any time.)<br />Deal 3 to a unit.<br />Draw 1.</p>" },
+        },
     ];
 
-    public static CardDatabase Create() => new()
+    /// <summary>The test pool, with effects files given as (card id, JSON) pairs.</summary>
+    public static CardDatabase Create(params (string CardId, string Json)[] effects) => new()
     {
         Cards = Cards.ToDictionary(c => c.Id, StringComparer.Ordinal),
         Printings = Cards.Where(c => c.Supertype != Supertype.Token)
             .Select(c => new Printing { Id = $"p-{c.Id}", CardId = c.Id, Set = "TST" })
             .ToDictionary(p => p.Id, StringComparer.Ordinal),
         Sets = new Dictionary<string, CardSet>(),
-        Effects = new Dictionary<string, LoadedEffects>(),
+        Effects = effects.ToDictionary(
+            e => e.CardId,
+            e => new LoadedEffects($"{e.CardId}.json", CromoJson.Deserialize<EffectsFile>(e.Json)),
+            StringComparer.Ordinal),
     };
+
+    /// <summary>The test pool plus the named real cards from data/ (their cards.json entries and effects files). Printing ids are "p-" + card id.</summary>
+    public static CardDatabase WithRealCards(params string[] cardIds)
+    {
+        var real = RealData.Value;
+        var test = Create();
+        var cards = new Dictionary<string, Card>(test.Cards, StringComparer.Ordinal);
+        var printings = new Dictionary<string, Printing>(test.Printings, StringComparer.Ordinal);
+        var effects = new Dictionary<string, LoadedEffects>(StringComparer.Ordinal);
+        foreach (var id in cardIds)
+        {
+            if (!cards.TryAdd(id, real.Cards[id])) throw new InvalidOperationException($"'{id}' is already a test card.");
+            printings[$"p-{id}"] = new Printing { Id = $"p-{id}", CardId = id, Set = "TST" };
+            if (real.Effects.TryGetValue(id, out var loaded)) effects[id] = loaded;
+        }
+        return new CardDatabase { Cards = cards, Printings = printings, Sets = test.Sets, Effects = effects };
+    }
+
+    private static readonly Lazy<CardDatabase> RealData = new(() => CardRepository.Load(RepoPaths.Data));
 }
 
 /// <summary>Legal decks built from <see cref="EngineTestDb"/>.</summary>
