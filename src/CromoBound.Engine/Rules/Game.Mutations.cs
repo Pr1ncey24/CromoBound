@@ -93,7 +93,12 @@ public sealed partial class Game
     internal void Recall(ObjectId id) => MoveCard(id, Place.Base(State[id].Controller));
 
     /// <summary>Draws one card at a time; an empty Main Deck burns out first (CR 413, 431).</summary>
-    internal void Draw(PlayerId player, int count)
+    internal void Draw(PlayerId player, int count) => MoveTopCards(player, count, Place.Hand(player));
+
+    /// <summary>Burn: the top cards of the Main Deck go to the trash one at a time; an empty deck burns out first (CR 431).</summary>
+    internal void Burn(PlayerId player, int count) => MoveTopCards(player, count, Place.Trash(player));
+
+    private void MoveTopCards(PlayerId player, int count, Place to)
     {
         var streak = 0;
         for (var i = 0; i < count && Outcome is null; i++)
@@ -103,7 +108,7 @@ public sealed partial class Game
                 BurnOut(player, ++streak);
                 if (State.At(Place.MainDeck(player)).Count == 0) continue;
             }
-            MoveCard(State.At(Place.MainDeck(player))[0], Place.Hand(player));
+            MoveCard(State.At(Place.MainDeck(player))[0], to);
             streak = 0;
         }
     }

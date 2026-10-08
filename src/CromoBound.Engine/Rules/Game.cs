@@ -53,6 +53,15 @@ public sealed partial class Game
         return TakeEvents();
     }
 
+    /// <summary>Runs <paramref name="task"/> before everything else, dropping the pending decision (whatever raised it asks again). For tests.</summary>
+    internal IReadOnlyList<GameEvent> RunNow(GameTask task)
+    {
+        Pending = null;
+        _handler = null;
+        Push(task);
+        return Continue();
+    }
+
     /// <summary>Events produced since the last call (e.g. by setup draws before <see cref="Start"/>).</summary>
     internal IReadOnlyList<GameEvent> TakeEvents()
     {
