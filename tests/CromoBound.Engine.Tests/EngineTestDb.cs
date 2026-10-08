@@ -29,6 +29,9 @@ internal static class EngineTestDb
         Id = id, Name = id, Type = type, Domains = domains, Supertype = supertype, Tags = tags ?? [], Text = new CardText(),
     };
 
+    private static Card Relic(string id, string rich) =>
+        Simple(id, CardType.Gear, [Domain.Fury]) with { Cost = new CardCost { Energy = 1 }, Text = new CardText { Rich = rich } };
+
     private static PowerSymbol Symbol(Domain domain) => Enum.Parse<PowerSymbol>(domain.ToString());
 
     public static IReadOnlyList<Card> Cards { get; } =
@@ -39,12 +42,19 @@ internal static class EngineTestDb
         Unit("backline-1", Domain.Fury, energy: 1, might: 1, [DisplayKeyword.Backline]),
         Unit("ganker-2", Domain.Chaos, energy: 2, might: 2, [DisplayKeyword.Ganking]),
         Unit("accel-3", Domain.Fury, energy: 3, might: 3, [DisplayKeyword.Accelerate]),
-        Unit("temp-1", Domain.Fury, energy: 1, might: 1, [DisplayKeyword.Temporary]),
+        Unit("temp-1", Domain.Fury, energy: 1, might: 1, [DisplayKeyword.Temporary]) with
+        {
+            Text = new CardText { Rich = "<p>[Temporary] (At the start of its controller's Beginning phase, before scoring, kill this.)</p>" },
+        },
         Unit("hidden-unit", Domain.Chaos, energy: 2, might: 2, [DisplayKeyword.Hidden]),
         Spell("spell"),
         Spell("action-spell", [DisplayKeyword.Action]),
         Spell("reaction-spell", [DisplayKeyword.Reaction]),
         Simple("gear-1", CardType.Gear, [Domain.Fury]) with { Cost = new CardCost { Energy = 1 } },
+        Relic("dawn-relic", "<p>At the start of your Beginning phase, deal 1 to a unit.</p>"),
+        Relic("each-relic", "<p>At the start of each player's Beginning phase, deal 1 to each unit.</p>"),
+        Relic("noon-relic", "<p>At the start of your Main phase, draw 1.</p>"),
+        Relic("dusk-relic", "<p>At the end of your turn, ready 2 runes.</p>"),
         Simple("fury-rune", CardType.Rune, [Domain.Fury], Supertype.Basic),
         Simple("chaos-rune", CardType.Rune, [Domain.Chaos], Supertype.Basic),
         Simple("bf-a", CardType.Battlefield, []),

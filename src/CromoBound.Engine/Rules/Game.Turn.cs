@@ -1,3 +1,4 @@
+using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -21,10 +22,12 @@ public sealed partial class Game
         foreach (var instance in State.Objects.Where(o => o.Controller == player && o.Place.IsBoard && o.Exhausted).ToList())
             SetStatus(instance.Id, StatusKind.Exhausted, false);
         Enqueue(new StepTask(g => g.BeginningStep()));
+        Enqueue(new TurnPointTask(TurnPoint.StartOfBeginning));
         Enqueue(new StepTask(g => g.ScoringStep()));
         Enqueue(new StepTask(g => g.ChannelPhase()));
         Enqueue(new StepTask(g => g.DrawPhase()));
         Enqueue(new StepTask(g => g.MainPhase()));
+        Enqueue(new TurnPointTask(TurnPoint.StartOfMain));
     }
 
     /// <summary>Temporary permanents the turn player controls are killed here, before scoring (CR 816.1.b).</summary>
@@ -69,6 +72,7 @@ public sealed partial class Game
     private void EndTheTurn()
     {
         Enqueue(new StepTask(g => g.EnterPhase(Phase.Ending, TurnStep.EndingStep)));
+        Enqueue(new TurnPointTask(TurnPoint.EndOfTurn));
         Enqueue(new StepTask(g =>
         {
             g.EnterPhase(Phase.Ending, TurnStep.ExpirationStep);
