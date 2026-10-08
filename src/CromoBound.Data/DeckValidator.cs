@@ -13,7 +13,7 @@ public enum DeckIssueSeverity
 
 public enum DeckIssueCode
 {
-    UnknownPrinting, WrongCardType, MainDeckSize, RuneDeckSize, BattlefieldCount, DuplicateBattlefield, SideboardSize,
+    UnknownPrinting, InvalidCount, WrongCardType, MainDeckSize, RuneDeckSize, BattlefieldCount, DuplicateBattlefield, SideboardSize,
     TooManyCopies, UniqueCopies, TooManySignatures, SignatureTag, ChampionMismatch, OutsideIdentity,
 }
 
@@ -41,13 +41,16 @@ public static class DeckValidator
         var issues = new List<DeckIssue>();
         var legend = Resolve(deck.Legend, db, issues);
         var champion = Resolve(deck.Champion, db, issues);
-        var main = ResolveEntries(deck.Main, db, issues);
-        var runes = ResolveEntries(deck.Runes, db, issues);
-        var sideboard = ResolveEntries(deck.Sideboard, db, issues);
+        var mainEntries = ValidEntries(deck.Main, "main deck", issues);
+        var runeEntries = ValidEntries(deck.Runes, "rune deck", issues);
+        var sideboardEntries = ValidEntries(deck.Sideboard, "sideboard", issues);
+        var main = ResolveEntries(mainEntries, db, issues);
+        var runes = ResolveEntries(runeEntries, db, issues);
+        var sideboard = ResolveEntries(sideboardEntries, db, issues);
         var battlefields = deck.Battlefields.Select(p => Resolve(p, db, issues)).OfType<Card>().ToList();
 
         CheckTypes(legend, runes, battlefields, main, sideboard, issues);
-        CheckSizes(deck, issues);
+        CheckSizes(deck, mainEntries, runeEntries, sideboardEntries, issues);
         CheckBattlefieldNames(battlefields, issues);
         CheckCopies(champion, main, sideboard, issues);
         if (legend is { Type: CardType.Legend })
@@ -67,7 +70,24 @@ public static class DeckValidator
         return null;
     }
 
-    private static List<(Card Card, int Count)> ResolveEntries(IEnumerable<DeckEntry> entries, CardDatabase db, List<DeckIssue> issues)
+    /// <summary>Entries with a count of at least 1. Others are reported as <see cref="DeckIssueCode.InvalidCount"/> and ignored by every other check.</summary>
+    private static List<DeckEntry> ValidEntries(IEnumerable<DeckEntry> entries, string section, List<DeckIssue> issues)
+    {
+        var valid = new List<DeckEntry>();
+        foreach (var entry in entries)
+        {
+            if (entry.Count >= 1)
+                valid.Add(entry);
+            else
+                issues.Add(new DeckIssue(DeckIssueCode.InvalidCount, DeckIssueSeverity.Illegal, [entry.Printing],
+                    $"Printing '{entry.Printing}' in the {section} has a count of {entry.Count}; it must be at least 1.", entry.Count));
+        }
+        return valid;
+    }
+
+    private static int Clamp(long value) => (int)Math.Min(value, int.MaxValue);
+
+    private static List<(Card Card, int Count)> ResolveEntries(List<DeckEntry> entries, CardDatabase db, List<DeckIssue> issues)
     {
         var result = new List<(Card Card, int Count)>();
         foreach (var entry in entries)
@@ -96,21 +116,23 @@ public static class DeckValidator
     private static DeckIssue WrongType(Card card, string section, string expected) =>
         new(DeckIssueCode.WrongCardType, DeckIssueSeverity.Illegal, [card.Id], $"'{card.Name}' in the {section} is not {expected}.");
 
-    private static void CheckSizes(Deck deck, List<DeckIssue> issues)
+    private static void CheckSizes(
+        Deck deck, List<DeckEntry> main, List<DeckEntry> runes, List<DeckEntry> sideboardEntries, List<DeckIssue> issues)
     {
-        CheckExact(DeckIssueCode.MainDeckSize, "Main deck (with the champion)", deck.Main.Sum(e => e.Count) + 1, MainDeckSize, issues);
-        CheckExact(DeckIssueCode.RuneDeckSize, "Rune deck", deck.Runes.Sum(e => e.Count), RuneDeckSize, issues);
+        CheckExact(DeckIssueCode.MainDeckSize, "Main deck (with the champion)", main.Sum(e => (long)e.Count) + 1, MainDeckSize, issues);
+        CheckExact(DeckIssueCode.RuneDeckSize, "Rune deck", runes.Sum(e => (long)e.Count), RuneDeckSize, issues);
         CheckExact(DeckIssueCode.BattlefieldCount, "Battlefields", deck.Battlefields.Count, BattlefieldCount, issues);
-        var sideboard = deck.Sideboard.Sum(e => e.Count);
+        var sideboard = Clamp(sideboardEntries.Sum(e => (long)e.Count));
         if (sideboard > MaxSideboardSize)
             issues.Add(new DeckIssue(DeckIssueCode.SideboardSize, DeckIssueSeverity.Illegal, [],
                 $"Sideboard has {sideboard} cards; the maximum is {MaxSideboardSize}.", sideboard, MaxSideboardSize));
     }
 
-    private static void CheckExact(DeckIssueCode code, string what, int actual, int expected, List<DeckIssue> issues)
+    private static void CheckExact(DeckIssueCode code, string what, long total, int expected, List<DeckIssue> issues)
     {
-        if (actual == expected) return;
-        var severity = actual < expected ? DeckIssueSeverity.Incomplete : DeckIssueSeverity.Illegal;
+        if (total == expected) return;
+        var actual = Clamp(total);
+        var severity = total < expected ? DeckIssueSeverity.Incomplete : DeckIssueSeverity.Illegal;
         issues.Add(new DeckIssue(code, severity, [], $"{what} has {actual} cards; it needs exactly {expected}.", actual, expected));
     }
 
@@ -128,7 +150,7 @@ public static class DeckValidator
         foreach (var group in all.GroupBy(e => e.Card.Id, StringComparer.Ordinal).OrderBy(g => g.Key, StringComparer.Ordinal))
         {
             var card = group.First().Card;
-            var copies = group.Sum(e => e.Count);
+            var copies = Clamp(group.Sum(e => (long)e.Count));
             var unique = card.Keywords.Contains(DisplayKeyword.Unique);
             var limit = unique ? 1 : MaxCopies;
             if (copies <= limit) continue;
@@ -148,7 +170,7 @@ public static class DeckValidator
     private static void CheckSignatures(Card legend, List<(Card Card, int Count)> main, List<(Card Card, int Count)> sideboard, List<DeckIssue> issues)
     {
         var mainSignatures = main.Where(e => e.Card.Supertype == Supertype.Signature).ToList();
-        var count = mainSignatures.Sum(e => e.Count);
+        var count = Clamp(mainSignatures.Sum(e => (long)e.Count));
         if (count > MaxSignatureCards)
             issues.Add(new DeckIssue(DeckIssueCode.TooManySignatures, DeckIssueSeverity.Illegal,
                 [.. mainSignatures.Select(e => e.Card.Id).Distinct().Order(StringComparer.Ordinal)],

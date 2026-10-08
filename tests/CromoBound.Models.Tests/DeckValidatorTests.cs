@@ -150,4 +150,27 @@ public class DeckValidatorTests
         Assert.Equal(new[] { "p-missing" }, Issue(report, DeckIssueCode.UnknownPrinting).CardIds);
         Assert.DoesNotContain(report.Issues, i => i.Code is DeckIssueCode.ChampionMismatch or DeckIssueCode.OutsideIdentity);
     }
+
+    [Fact]
+    public void Non_positive_counts_are_invalid_and_ignored()
+    {
+        var report = Validate(Legal() with { Main = [.. Legal().Main, E("unit-1", -1), E("unit-14", 0)] });
+
+        var invalid = report.Issues.Where(i => i.Code == DeckIssueCode.InvalidCount).ToList();
+        Assert.Equal(2, invalid.Count);
+        Assert.All(invalid, i => Assert.Equal(DeckIssueSeverity.Illegal, i.Severity));
+        Assert.Equal(new[] { "p-unit-1", "p-unit-14" }, invalid.SelectMany(i => i.CardIds).Order().ToList());
+        Assert.DoesNotContain(report.Issues, i => i.Code is DeckIssueCode.MainDeckSize or DeckIssueCode.TooManyCopies);
+    }
+
+    [Fact]
+    public void Huge_counts_report_illegal_sizes_without_throwing()
+    {
+        var report = Validate(Legal() with { Sideboard = [E("unit-14", int.MaxValue), E("colorless-gear", int.MaxValue)] });
+
+        Assert.Equal(DeckIssueSeverity.Illegal, Issue(report, DeckIssueCode.SideboardSize).Severity);
+        Assert.Equal(new[] { "colorless-gear", "unit-14" },
+            report.Issues.Where(i => i.Code == DeckIssueCode.TooManyCopies).SelectMany(i => i.CardIds).Order().ToList());
+        Assert.DoesNotContain(report.Issues, i => i.Code == DeckIssueCode.InvalidCount);
+    }
 }
