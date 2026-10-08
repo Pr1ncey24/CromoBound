@@ -30,7 +30,10 @@ public sealed class GameState
     /// <summary>Every object, in id order (deterministic).</summary>
     public IEnumerable<CardInstance> Objects => _objects.Values.OrderBy(o => o.Id.Value);
 
-    /// <summary>Objects at a place. For ordered places index 0 is the top.</summary>
+    /// <summary>
+    /// Objects at a place. For ordered places index 0 is the top. Returns a live view of the zone, so callers that
+    /// move cards while walking it must copy it first (for example <c>[.. state.At(place)]</c>).
+    /// </summary>
     public IReadOnlyList<ObjectId> At(Place place) => _zones.TryGetValue(place, out var list) ? list : [];
 
     public PlayerState Player(PlayerId id) => Players[id.Index];
