@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CromoBound.Engine.State;
 
 public enum PlaceKind { Hand, MainDeck, RuneDeck, Trash, Banishment, ChampionZone, LegendZone, Base, Battlefield, Facedown, BattlefieldCard, Chain }
@@ -22,14 +24,18 @@ public readonly record struct Place(PlaceKind Kind, PlayerId? Player, int? Index
     public static Place Chain { get; } = new(PlaceKind.Chain, null, null);
 
     /// <summary>Board zones (CR 107). Moving into or out of anything else makes a new object.</summary>
+    [JsonIgnore]
     public bool IsBoard => Kind is PlaceKind.LegendZone or PlaceKind.Base or PlaceKind.Battlefield or PlaceKind.Facedown or PlaceKind.BattlefieldCard;
 
     /// <summary>Places a unit or gear can be: a Base or a battlefield.</summary>
+    [JsonIgnore]
     public bool IsLocation => Kind is PlaceKind.Base or PlaceKind.Battlefield;
 
+    [JsonIgnore]
     public bool IsOrdered => Kind is PlaceKind.MainDeck or PlaceKind.RuneDeck or PlaceKind.Chain;
 
     /// <summary>Non-board zones that belong to one player; cards always go to their owner's (CR 056).</summary>
+    [JsonIgnore]
     public bool IsPlayerPile => Kind is PlaceKind.Hand or PlaceKind.MainDeck or PlaceKind.RuneDeck or PlaceKind.Trash or PlaceKind.Banishment or PlaceKind.ChampionZone;
 
     public override string ToString() => Player is { } p ? $"{Kind}({p})" : Index is { } i ? $"{Kind}({i})" : Kind.ToString();
