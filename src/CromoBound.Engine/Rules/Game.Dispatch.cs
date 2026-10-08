@@ -18,6 +18,9 @@ public sealed partial class Game
                 return null;
             case StandardMove move when options.Moves.Count > 0:
                 return MoveUnits(player, move, options);
+            case Hide hide when options.Hides.Any(h => h.Card == hide.Card && h.Battlefields.Contains(hide.Battlefield)):
+                StartHide(player, hide.Card, hide.Battlefield);
+                return null;
             case Pass when IsClosed:
                 PassPriority(player);
                 return null;
