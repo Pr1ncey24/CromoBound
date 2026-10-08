@@ -1,4 +1,5 @@
 using CromoBound.Data;
+using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
 
@@ -62,6 +63,11 @@ internal static class EngineTestDb
         Simple("jinx-legend", CardType.Legend, [Domain.Fury, Domain.Chaos], tags: ["Jinx"]),
         Unit("jinx-champ", Domain.Fury, energy: 3, might: 3) with { Supertype = Supertype.Champion, Tags = ["Jinx"] },
         Simple("token-recruit", CardType.Unit, [], Supertype.Token) with { Might = 1 },
+        .. Enumerable.Range(1, 14).Select(i => Unit($"filler-{i}", i % 2 == 0 ? Domain.Fury : Domain.Chaos, energy: 1, might: 1)),
+        Simple("bf-c", CardType.Battlefield, []),
+        Simple("bf-d", CardType.Battlefield, []),
+        Simple("bf-e", CardType.Battlefield, []),
+        Simple("bf-f", CardType.Battlefield, []),
     ];
 
     public static CardDatabase Create() => new()
@@ -73,4 +79,23 @@ internal static class EngineTestDb
         Sets = new Dictionary<string, CardSet>(),
         Effects = new Dictionary<string, LoadedEffects>(),
     };
+}
+
+/// <summary>Legal decks built from <see cref="EngineTestDb"/>.</summary>
+internal static class TestDecks
+{
+    /// <summary>Jinx legend and champion, filler-1..13 × 3, 6 + 6 runes, the given battlefields, filler-14 × 3 in the sideboard.</summary>
+    public static Deck Jinx(params string[] battlefields) => new()
+    {
+        Name = "Jinx",
+        Legend = "p-jinx-legend",
+        Champion = "p-jinx-champ",
+        Main = [.. Enumerable.Range(1, 13).Select(i => new DeckEntry { Printing = $"p-filler-{i}", Count = 3 })],
+        Runes = [new DeckEntry { Printing = "p-fury-rune", Count = 6 }, new DeckEntry { Printing = "p-chaos-rune", Count = 6 }],
+        Battlefields = [.. battlefields.Select(b => $"p-{b}")],
+        Sideboard = [new DeckEntry { Printing = "p-filler-14", Count = 3 }],
+    };
+
+    public static MatchSetup Setup(MatchFormat format, ulong seed = 7) =>
+        new(format, Jinx("bf-a", "bf-b", "bf-c"), Jinx("bf-d", "bf-e", "bf-f"), seed);
 }

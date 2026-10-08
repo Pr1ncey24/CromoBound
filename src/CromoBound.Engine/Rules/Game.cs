@@ -50,6 +50,12 @@ public sealed partial class Game
     public IReadOnlyList<GameEvent> Continue()
     {
         RunLoop();
+        return TakeEvents();
+    }
+
+    /// <summary>Events produced since the last call (e.g. by setup draws before <see cref="Start"/>).</summary>
+    internal IReadOnlyList<GameEvent> TakeEvents()
+    {
         var events = _events.ToList();
         _events.Clear();
         return events;
