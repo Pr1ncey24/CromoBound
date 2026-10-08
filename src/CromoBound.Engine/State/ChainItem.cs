@@ -21,4 +21,12 @@ public sealed class ChainItem
     public ObjectId? Source { get; init; }
     public int? TextLine { get; init; }
     public AbilityKind? AbilityKind { get; init; }
+
+    /// <summary>Where a permanent will enter, and whether Accelerate was paid (choices made while playing).</summary>
+    public Place? Location { get; set; }
+    public bool Accelerate { get; set; }
+
+    /// <summary>Ability items: the source card's id and the ability text, kept even if the source leaves play.</summary>
+    public string? SourceCardId { get; init; }
+    public string? Text { get; init; }
 }

@@ -13,6 +13,12 @@ public sealed partial class Game
         {
             case UseRune use:
                 return UseRuneNow(player, use);
+            case PlayCard play when options.Playable.Contains(play.Card):
+                StartPlay(player, play.Card);
+                return null;
+            case Pass when IsClosed:
+                PassPriority(player);
+                return null;
             case EndTurn when options.CanEndTurn:
                 EndTheTurn();
                 return null;
