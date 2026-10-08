@@ -16,8 +16,13 @@ public sealed partial class Game
             case PlayCard play when options.Playable.Contains(play.Card):
                 StartPlay(player, play.Card);
                 return null;
+            case StandardMove move when options.Moves.Count > 0:
+                return MoveUnits(player, move, options);
             case Pass when IsClosed:
                 PassPriority(player);
+                return null;
+            case Pass when State.Showdown is not null:
+                PassFocus(player);
                 return null;
             case EndTurn when options.CanEndTurn:
                 EndTheTurn();
