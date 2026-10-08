@@ -45,6 +45,16 @@ public sealed partial class Game
 
     private CardInstance? BoardUnit(ObjectId id) => OnBoard(id) is { } instance && IsUnit(instance) ? instance : null;
 
+    /// <summary>A place nothing else reads is a hole in the board: battlefield places carry only a valid index, Bases and player
+    /// zones only a valid player, the chain neither.</summary>
+    private bool HasCanonicalShape(Place place) => place.Kind switch
+    {
+        PlaceKind.Battlefield or PlaceKind.Facedown or PlaceKind.BattlefieldCard =>
+            place.Player is null && place.Index is { } index && index >= 0 && index < State.Battlefields.Count,
+        PlaceKind.Chain => place.Player is null && place.Index is null,
+        _ => place.Index is null && place.Player is { } owner && IsPlayer(owner),
+    };
+
     private static bool IsDeck(PlaceKind kind) => kind is PlaceKind.MainDeck or PlaceKind.RuneDeck;
 
     private Rejection? ApplyManual(PlayerId player, ManualAction action)
@@ -124,10 +134,10 @@ public sealed partial class Game
         if (State[move.Card].Place.Kind is PlaceKind.Chain or PlaceKind.BattlefieldCard or PlaceKind.LegendZone
             || to.Kind is PlaceKind.Chain or PlaceKind.BattlefieldCard or PlaceKind.LegendZone)
             return Reject(RejectionCode.IllegalLocation, "Cards on the chain, battlefields and legends can't be moved by hand (use ManualCounter for the chain).");
-        if ((to.Kind is PlaceKind.Battlefield or PlaceKind.Facedown) && (to.Index is not { } index || index < 0 || index >= State.Battlefields.Count))
-            return Reject(RejectionCode.IllegalLocation, "No such battlefield.");
-        if ((to.IsPlayerPile || to.Kind == PlaceKind.Base) && (to.Player is not { } owner || !IsPlayer(owner)))
-            return Reject(RejectionCode.IllegalLocation, "Name the player whose zone it is.");
+        if (!HasCanonicalShape(to))
+            return Reject(RejectionCode.IllegalLocation, "That place is not valid: battlefields take only an index, player zones and Bases only a player.");
+        if (to.Kind == PlaceKind.Facedown && State.At(to).Count(id => id != move.Card) >= BattlefieldState.FacedownCapacity)
+            return Reject(RejectionCode.IllegalLocation, "That battlefield already has a facedown card.");
 
         if (MoveCard(move.Card, to, move.Position) is not { } moved) return null;
         var card = State[moved];
@@ -158,12 +168,7 @@ public sealed partial class Game
         if (!Db.Cards.TryGetValue(token.TokenId, out var card) || card.Supertype != Supertype.Token)
             return Reject(RejectionCode.UnknownObject, $"'{token.TokenId}' is not a token.");
         var location = token.Location;
-        var valid = IsPlayer(token.Controller) && location.Kind switch
-        {
-            PlaceKind.Base => location.Player is { } owner && IsPlayer(owner),
-            PlaceKind.Battlefield => location.Index is { } index && index >= 0 && index < State.Battlefields.Count,
-            _ => false,
-        };
+        var valid = IsPlayer(token.Controller) && (location.Kind is PlaceKind.Base or PlaceKind.Battlefield) && HasCanonicalShape(location);
         if (!valid) return Reject(RejectionCode.IllegalLocation, "Tokens enter at a Base or a battlefield.");
         var id = State.Create(token.TokenId, null, token.Controller, location, isToken: true);
         Emit(new TokenCreated(id, token.TokenId, location));

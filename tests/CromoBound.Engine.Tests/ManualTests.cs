@@ -286,4 +286,56 @@ public class ManualTests
         Assert.Equal(RejectionCode.NotYourDecision, result.Rejection!.Code);
         Assert.Equal(0, game.State.Player(P1).Xp);
     }
+
+    [Fact]
+    public void A_move_to_a_place_with_the_wrong_shape_is_rejected_and_the_card_stays_put()
+    {
+        var game = new TestGame();
+        var card = game.Put("unit-2", Place.Hand(P1));
+        var engine = game.Start();
+        Place[] ghosts =
+        [
+            new(PlaceKind.Battlefield, P1, 0), new(PlaceKind.Hand, P1, 3), new(PlaceKind.Base, P1, 0),
+            new(PlaceKind.Base, null, null), new(PlaceKind.Facedown, P1, 0), new(PlaceKind.Chain, P1, null),
+        ];
+
+        foreach (var ghost in ghosts)
+        {
+            var result = engine.SubmitManual(P1, new ManualMoveCard(card, ghost));
+            Assert.Equal(RejectionCode.IllegalLocation, result.Rejection?.Code);
+        }
+        Assert.Equal(Place.Hand(P1), game.State[card].Place);
+    }
+
+    [Fact]
+    public void A_token_at_a_place_with_the_wrong_shape_is_rejected()
+    {
+        var game = new TestGame();
+        var engine = game.Start();
+
+        var withPlayer = engine.SubmitManual(P1, new ManualCreateToken("token-recruit", new Place(PlaceKind.Battlefield, P1, 0), P1));
+        var withIndex = engine.SubmitManual(P1, new ManualCreateToken("token-recruit", new Place(PlaceKind.Base, P1, 2), P1));
+
+        Assert.Equal(RejectionCode.IllegalLocation, withPlayer.Rejection?.Code);
+        Assert.Equal(RejectionCode.IllegalLocation, withIndex.Rejection?.Code);
+        Assert.DoesNotContain(game.State.Objects, o => o.IsToken);
+    }
+
+    [Fact]
+    public void A_full_facedown_slot_refuses_another_card_but_accepts_its_own()
+    {
+        var game = new TestGame();
+        game.State.Battlefields[0].Controller = P1;
+        game.Put("unit-2", Place.Battlefield(0));
+        var hidden = game.Put("unit-2", Place.Facedown(0), P1);
+        var other = game.Put("unit-2", Place.Hand(P1));
+        var engine = game.Start();
+
+        var full = engine.SubmitManual(P1, new ManualMoveCard(other, Place.Facedown(0)));
+        var same = engine.SubmitManual(P1, new ManualMoveCard(hidden, Place.Facedown(0)));
+
+        Assert.Equal(RejectionCode.IllegalLocation, full.Rejection?.Code);
+        Assert.True(same.Accepted, same.Rejection?.Message);
+        Assert.Equal(Place.Hand(P1), game.State[other].Place);
+    }
 }
