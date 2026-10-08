@@ -51,11 +51,11 @@ public sealed partial class Game
             var timing = anything
                 || Has(card, DisplayKeyword.Reaction)
                 || (!IsClosed && Has(card, DisplayKeyword.Action));
-            if (timing) yield return id;
+            if (timing && HasTargetsFor(player, card)) yield return id;
         }
         foreach (var battlefield in State.Battlefields)
             foreach (var id in State.At(Place.Facedown(battlefield.Index)))
-                if (CanPlayFromHidden(State[id], player)) yield return id;
+                if (CanPlayFromHidden(State[id], player) && HasTargetsFor(player, State[id])) yield return id;
     }
 
     /// <summary>A hidden card gains Reaction from the turn after it was hidden (CR 811.1.b).</summary>

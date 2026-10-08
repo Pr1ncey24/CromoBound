@@ -21,6 +21,7 @@ namespace CromoBound.Engine.Decisions;
 [JsonDerivedType(typeof(SideboardDecision), "Sideboard")]
 [JsonDerivedType(typeof(MulliganDecision), "Mulligan")]
 [JsonDerivedType(typeof(ConfirmUndoDecision), "ConfirmUndo")]
+[JsonDerivedType(typeof(ChooseTargetsDecision), "ChooseTargets")]
 public abstract record PendingDecision(IReadOnlyList<PlayerId> Players);
 
 public sealed record RuneOption(ObjectId Rune, bool CanExhaust);
@@ -68,3 +69,8 @@ public enum TurnPoint { StartOfBeginning, StartOfMain, EndOfTurn }
 
 /// <summary>Cards in play have an effect at this point of the turn: apply them with manual actions, then submit ContinueTurn.</summary>
 public sealed record TurnPointDecision(PlayerId Player, TurnPoint Point, IReadOnlyList<ObjectId> Cards) : PendingDecision([Player]);
+
+/// <summary>Choose between <see cref="Min"/> and <see cref="Max"/> of <see cref="Options"/> as the targets of slot <see cref="Slot"/>
+/// of the card being played (spec §5.1).</summary>
+public sealed record ChooseTargetsDecision(PlayerId Player, ObjectId Card, int Slot, IReadOnlyList<ObjectId> Options, int Min, int Max)
+    : PendingDecision([Player]);

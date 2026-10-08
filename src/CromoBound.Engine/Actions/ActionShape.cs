@@ -18,6 +18,7 @@ internal static class ActionShape
         Mulligan mulligan => mulligan.SetAside is null ? Missing(nameof(mulligan.SetAside)) : null,
         ManualCreateToken token => token.TokenId is null ? Missing(nameof(token.TokenId)) : null,
         AddAbilityToChain ability => ability.Cost is { Power: null } ? "The cost has no power list." : null,
+        ChooseTargets choose => choose.Targets is null ? Missing(nameof(choose.Targets)) : null,
         _ => null,
     };
 

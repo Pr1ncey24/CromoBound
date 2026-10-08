@@ -1,3 +1,5 @@
+using CromoBound.Engine.Effects;
+
 namespace CromoBound.Engine.State;
 
 public enum ChainItemKind { Card, Ability }
@@ -29,4 +31,7 @@ public sealed class ChainItem
     /// <summary>Ability items: the source card's id and the ability text, kept even if the source leaves play.</summary>
     public string? SourceCardId { get; init; }
     public string? Text { get; init; }
+
+    /// <summary>The resolution context of a card the engine runs: its targets, chosen while playing (spec §4.2).</summary>
+    internal EffectContext? Effect { get; set; }
 }

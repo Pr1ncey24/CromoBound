@@ -42,6 +42,7 @@ internal sealed class Bot
             ChooseShowdownDecision showdown => new ChooseShowdown(showdown.Battlefields[0]),
             ResolveManuallyDecision => new ResolveDone(),
             TurnPointDecision => new ContinueTurn(),
+            ChooseTargetsDecision targets => new ChooseTargets { Targets = [.. targets.Options.Take(Math.Max(targets.Min, Math.Min(1, targets.Max)))] },
             _ => throw new InvalidOperationException($"Unexpected decision {game.Pending}."),
         };
     }

@@ -42,6 +42,7 @@ namespace CromoBound.Engine.Actions;
 [JsonDerivedType(typeof(ManualReveal), "ManualReveal")]
 [JsonDerivedType(typeof(ManualCounter), "ManualCounter")]
 [JsonDerivedType(typeof(AddAbilityToChain), "AddAbilityToChain")]
+[JsonDerivedType(typeof(ChooseTargets), "ChooseTargets")]
 public abstract record PlayerAction;
 
 /// <summary>Start playing a card from hand, the Champion Zone, or face down.</summary>
@@ -98,3 +99,9 @@ public sealed record ResolveDone : PlayerAction;
 
 /// <summary>Start/end-of-turn effects have been applied by hand; the turn goes on.</summary>
 public sealed record ContinueTurn : PlayerAction;
+
+/// <summary>The targets chosen for the target slot being asked (spec §6.1).</summary>
+public sealed record ChooseTargets : PlayerAction
+{
+    public IReadOnlyList<ObjectId> Targets { get; init; } = [];
+}

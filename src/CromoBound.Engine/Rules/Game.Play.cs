@@ -7,7 +7,7 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
-internal enum PlayStep { ToChain, Choices, Cost, Pay, Finalize, Cancelled }
+internal enum PlayStep { ToChain, Choices, Targets, Cost, Pay, Finalize, Cancelled }
 
 /// <summary>Playing a card, CR 353-359: to the chain, choices, total cost, payment, finalize.</summary>
 internal sealed class PlayCardTask(PlayerId player, ObjectId source) : GameTask
@@ -40,7 +40,11 @@ public sealed partial class Game
                     break;
                 case PlayStep.Choices:
                     if (AskPlayChoices(task)) return false;
-                    task.Step = PlayStep.Cost;
+                    task.Step = PlayStep.Targets;
+                    break;
+                case PlayStep.Targets:
+                    if (AskTargets(task)) return false;
+                    if (task.Step == PlayStep.Targets) task.Step = PlayStep.Cost;
                     break;
                 case PlayStep.Cost:
                     task.Cost = Payment.CostOf(CardOf(task.Item!.Card!.Value), task.FromHidden, task.Item.Accelerate);
@@ -113,7 +117,7 @@ public sealed partial class Game
                 return Reject(RejectionCode.UnexpectedAction, "This card has no Accelerate.");
             item.Location = location;
             item.Accelerate = choice.Accelerate;
-            task.Step = PlayStep.Cost;
+            task.Step = PlayStep.Targets;
             return null;
         });
         return true;

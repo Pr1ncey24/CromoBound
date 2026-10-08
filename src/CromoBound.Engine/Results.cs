@@ -6,7 +6,7 @@ namespace CromoBound.Engine;
 public enum RejectionCode
 {
     NotYourDecision, UnexpectedAction, WrongTiming, UnknownObject, IllegalLocation, InsufficientPayment,
-    InvalidAssignment, InvalidSideboard, UndoNotAllowed, MatchOver,
+    InvalidAssignment, InvalidSideboard, UndoNotAllowed, MatchOver, InvalidTarget,
 }
 
 /// <summary>Why an action was refused. A rejected action changes nothing.</summary>
