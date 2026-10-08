@@ -162,7 +162,12 @@ public class MatchBo1Tests
     {
         var p1Deck = TestDecks.Jinx("bf-a", "bf-b", "bf-c") with
         {
-            Sideboard = [new DeckEntry { Printing = "p-filler-14", Count = 3 }, new DeckEntry { Printing = "p-jinx-alt", Count = 1 }],
+            Sideboard =
+            [
+                new DeckEntry { Printing = "p-filler-14", Count = 3 },
+                new DeckEntry { Printing = "p-jinx-alt", Count = 1 },
+                new DeckEntry { Printing = "p-vi-champ", Count = 1 },
+            ],
         };
         var match = Match.Create(TestDecks.Setup(MatchFormat.Bo1) with { Player1Deck = p1Deck }, EngineTestDb.Create()).Match!;
         match.Accept(match.Decision<ChoosePlayOrderDecision>().Player, new ChoosePlayOrder(true));

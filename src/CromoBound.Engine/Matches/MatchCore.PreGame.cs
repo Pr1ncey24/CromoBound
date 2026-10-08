@@ -111,12 +111,14 @@ internal sealed partial class MatchCore
         });
     }
 
-    /// <summary>The player's deck as it stands, with the cards that may become the Chosen Champion (the current one and any champion unit in the main deck or sideboard).</summary>
+    /// <summary>The player's deck as it stands, with the cards that may become the Chosen Champion (the current one and any champion unit in the main deck or sideboard that shares a tag with the legend).</summary>
     private SideboardChoice Choice(PlayerId player)
     {
         var deck = Decks[player.Index];
+        var legendTags = Db.Cards[Db.Printings[deck.Legend].CardId].Tags;
         var candidates = deck.Main.Concat(deck.Sideboard).Select(e => e.Printing)
-            .Where(printing => Db.Cards[Db.Printings[printing].CardId] is { Type: CardType.Unit, Supertype: Supertype.Champion })
+            .Where(printing => Db.Cards[Db.Printings[printing].CardId] is { Type: CardType.Unit, Supertype: Supertype.Champion } card
+                && card.Tags.Intersect(legendTags, StringComparer.Ordinal).Any())
             .Append(deck.Champion)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal);

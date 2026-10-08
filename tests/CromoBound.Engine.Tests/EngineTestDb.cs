@@ -69,6 +69,7 @@ internal static class EngineTestDb
         Simple("bf-e", CardType.Battlefield, []),
         Simple("bf-f", CardType.Battlefield, []),
         Unit("jinx-alt", Domain.Chaos, energy: 2, might: 2) with { Supertype = Supertype.Champion, Tags = ["Jinx"] },
+        Unit("vi-champ", Domain.Fury, energy: 2, might: 2) with { Supertype = Supertype.Champion, Tags = ["Vi"] },
     ];
 
     public static CardDatabase Create() => new()
