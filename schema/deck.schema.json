@@ -41,6 +41,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "sideboard": {
+      "type": "array",
+      "items": {
+        "$ref": "#/properties/main/items"
+      }
     }
   },
   "required": [
