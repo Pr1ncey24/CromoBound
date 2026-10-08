@@ -102,7 +102,7 @@ tests/CromoBound.Engine.Tests/
   - `PlayerResolver.Resolve(Game, EffectContext, PlayerRef?) : List<PlayerId>`.
   - `ValueResolver.Resolve(Game, EffectContext, Value) : int`.
 
-- [ ] **Step 1: Let the tests see internals**
+- [x] **Step 1: Let the tests see internals**
 
 In `src/CromoBound.Engine/CromoBound.Engine.csproj`, add this item group after the project references:
 ```xml
@@ -111,7 +111,7 @@ In `src/CromoBound.Engine/CromoBound.Engine.csproj`, add this item group after t
   </ItemGroup>
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/ResolverTests.cs`:
 ```csharp
@@ -237,12 +237,12 @@ public class ResolverTests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~ResolverTests"`
 Expected: FAIL (compilation errors: namespace `CromoBound.Engine.Effects` not found).
 
-- [ ] **Step 4: Implement the context and the target slots**
+- [x] **Step 4: Implement the context and the target slots**
 
 Create `src/CromoBound.Engine/Effects/EffectContext.cs`:
 ```csharp
@@ -304,7 +304,7 @@ internal static class TargetSlots
 }
 ```
 
-- [ ] **Step 5: Implement the resolvers**
+- [x] **Step 5: Implement the resolvers**
 
 Create `src/CromoBound.Engine/Effects/Resolvers/ObjectResolver.cs`:
 ```csharp
@@ -412,12 +412,12 @@ internal static class ValueResolver
 }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet build CromoBound.slnx --no-incremental` (expect `Avvisi: 0`, `Errori: 0`), then `dotnet test CromoBound.slnx`.
 Expected: PASS (all tests).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/ResolverTests.cs
@@ -440,7 +440,7 @@ git commit -m "feat(engine): add effect context, target slots and resolvers"
   - Namespace `CromoBound.Engine.Effects`: `internal sealed class ResolveEffectTask(EffectContext context, IReadOnlyList<Step> steps, Action<Game> onDone) : GameTask` with `Context`, `Steps`, `Index`, `Result`.
   - `Game.Burn(PlayerId, int)` (internal), `Game.RunNow(GameTask) : IReadOnlyList<GameEvent>` (internal, tests).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/StepTests.cs`:
 ```csharp
@@ -581,12 +581,12 @@ public class StepTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~StepTests"`
 Expected: FAIL (compilation errors: `ResolveEffectTask`, `Game.RunNow` not found).
 
-- [ ] **Step 3: Add Burn and the test seam to Game**
+- [x] **Step 3: Add Burn and the test seam to Game**
 
 In `src/CromoBound.Engine/Rules/Game.Mutations.cs`, replace the whole `Draw` method with:
 ```csharp
@@ -624,7 +624,7 @@ In `src/CromoBound.Engine/Rules/Game.cs`, add after `Continue()`:
     }
 ```
 
-- [ ] **Step 4: Implement the handlers, the registry and the task**
+- [x] **Step 4: Implement the handlers, the registry and the task**
 
 Create `src/CromoBound.Engine/Effects/Steps/StepHandler.cs`:
 ```csharp
@@ -784,12 +784,12 @@ internal sealed class ResolveEffectTask(EffectContext context, IReadOnlyList<Ste
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet build CromoBound.slnx --no-incremental` (expect `Avvisi: 0`, `Errori: 0`), then `dotnet test CromoBound.slnx`.
 Expected: PASS (all tests, including Plan B's `TurnTests` that exercise `Draw` and Burn Out).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/StepTests.cs
@@ -818,7 +818,7 @@ git commit -m "feat(engine): run effect steps for draw, burn, deal and kill"
   - `CardView` gains `MappingStatus Effects` and `IReadOnlyList<int> ManualLines` (last two parameters).
   - Test helpers: `EngineTestDb.Create(params (string CardId, string Json)[] effects)`, `EngineTestDb.WithRealCards(params string[] cardIds)`, the `multi-spell` test card, `TestGame(ulong seed = 1, CardDatabase? db = null)`, `RepoPaths.Data`.
 
-- [ ] **Step 1: Add the test helpers**
+- [x] **Step 1: Add the test helpers**
 
 Create `tests/CromoBound.Engine.Tests/RepoPaths.cs`:
 ```csharp
@@ -897,7 +897,7 @@ In `tests/CromoBound.Engine.Tests/TestGame.cs`, replace the constructor with:
     }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/CardEffectsTests.cs`:
 ```csharp
@@ -1033,12 +1033,12 @@ public class EffectsDataTests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~CardEffectsTests|FullyQualifiedName~EffectsDataTests"`
 Expected: FAIL (compilation errors: `CardEffects`, `EffectsSupport` not found).
 
-- [ ] **Step 4: Implement the support check**
+- [x] **Step 4: Implement the support check**
 
 Create `src/CromoBound.Engine/Effects/EffectsSupport.cs`:
 ```csharp
@@ -1130,7 +1130,7 @@ In `src/CromoBound.Engine/Effects/Resolvers/ValueResolver.cs`, make the summary 
 /// <summary>Turns values into numbers. Plan D runs literals; <see cref="EffectsSupport"/> keeps other forms out of the cards it runs.</summary>
 ```
 
-- [ ] **Step 5: Implement CardEffects and keyword lines**
+- [x] **Step 5: Implement CardEffects and keyword lines**
 
 In `src/CromoBound.Engine/Rules/CardKeywords.cs`, add this method to `CardKeywords` after `Own`:
 ```csharp
@@ -1193,7 +1193,7 @@ internal sealed class CardEffects(CardDatabase db)
 }
 ```
 
-- [ ] **Step 6: Route Game's keywords through CardEffects**
+- [x] **Step 6: Route Game's keywords through CardEffects**
 
 In `src/CromoBound.Engine/Rules/Game.cs`:
 - Add `using CromoBound.Engine.Effects;`.
@@ -1210,7 +1210,7 @@ In `src/CromoBound.Engine/Rules/Game.cs`:
     internal bool Has(CardInstance instance, DisplayKeyword keyword) => Effects.For(instance.CardId).Keywords.Contains(keyword);
 ```
 
-- [ ] **Step 7: Show each card's effects status in views**
+- [x] **Step 7: Show each card's effects status in views**
 
 In `src/CromoBound.Engine/Views/PlayerView.cs`, replace the `CardView` record and its summary with:
 ```csharp
@@ -1235,12 +1235,12 @@ In `src/CromoBound.Engine/Views/ViewBuilder.cs`, replace the `Card` method with:
     }
 ```
 
-- [ ] **Step 8: Run the tests to verify they pass**
+- [x] **Step 8: Run the tests to verify they pass**
 
 Run: `dotnet build CromoBound.slnx --no-incremental` (expect `Avvisi: 0`, `Errori: 0`), then `dotnet test CromoBound.slnx`.
 Expected: PASS (all tests; every 2a test is unchanged because the test pool has no effects files).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -1268,7 +1268,7 @@ git commit -m "feat(engine): load card effects and fall back to manual play"
   - `PlayStep.Targets` between `Choices` and `Cost`.
   - `Game.SpellSteps(string cardId) : IReadOnlyList<Step>` (internal), `HasTargetsFor`, `AskTargets` (private).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/TargetTests.cs`:
 ```csharp
@@ -1449,12 +1449,12 @@ public class TargetTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~TargetTests"`
 Expected: FAIL (compilation errors: `ChooseTargets`, `ChooseTargetsDecision`, `ChoiceMade`, `RejectionCode.InvalidTarget` not found).
 
-- [ ] **Step 3: Add the public types**
+- [x] **Step 3: Add the public types**
 
 In `src/CromoBound.Engine/Results.cs`, add `InvalidTarget` as the last member of `RejectionCode` (after `MatchOver`).
 
@@ -1498,7 +1498,7 @@ In `src/CromoBound.Engine/State/ChainItem.cs`, add `using CromoBound.Engine.Effe
     internal EffectContext? Effect { get; set; }
 ```
 
-- [ ] **Step 4: Add the target step to playing**
+- [x] **Step 4: Add the target step to playing**
 
 Create `src/CromoBound.Engine/Rules/Game.Targets.cs`:
 ```csharp
@@ -1601,19 +1601,19 @@ In `src/CromoBound.Engine/Rules/Game.Priority.cs`, in `PlayableCards`:
 - Replace `if (timing) yield return id;` with `if (timing && HasTargetsFor(player, card)) yield return id;`.
 - Replace `if (CanPlayFromHidden(State[id], player)) yield return id;` with `if (CanPlayFromHidden(State[id], player) && HasTargetsFor(player, State[id])) yield return id;`.
 
-- [ ] **Step 5: Teach the scripted player to choose targets**
+- [x] **Step 5: Teach the scripted player to choose targets**
 
 In `tests/CromoBound.Engine.Tests/Bot.cs`, add this arm to the `switch` in `Choose(Game game)`, before the `_ =>` arm:
 ```csharp
             ChooseTargetsDecision targets => new ChooseTargets { Targets = [.. targets.Options.Take(Math.Max(targets.Min, Math.Min(1, targets.Max)))] },
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet build CromoBound.slnx --no-incremental` (expect `Avvisi: 0`, `Errori: 0`), then `dotnet test CromoBound.slnx`.
 Expected: PASS (all tests, including Plan B's `PlayTests` and `HiddenTests`).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -1632,7 +1632,7 @@ git commit -m "feat(engine): choose spell targets while playing"
 - Consumes: Tasks 2-4 (`ResolveEffectTask`, `CardEffects`, `ChainItem.Effect`, `SpellSteps`); Plan B's `ResolveTop`, `FinishResolution`, `ResolveManuallyDecision`; Plan C's `Match`, `MatchTestExtensions.Snapshot`, `TestDecks`.
 - Produces: the resolution switch of spec §5.1 step 3 (`ResolveTop` runs Full and Partial spells; `ResolveByHand(item, text)`; `AfterAutomatedResolution`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/SpellResolutionTests.cs`:
 ```csharp
@@ -1882,12 +1882,12 @@ public class MatchEffectsTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~SpellResolutionTests|FullyQualifiedName~MatchEffectsTests"`
 Expected: FAIL. The project compiles; the resolution tests get a `ResolveManuallyDecision` where they expect the spell to have resolved.
 
-- [ ] **Step 3: Implement the resolution switch**
+- [x] **Step 3: Implement the resolution switch**
 
 In `src/CromoBound.Engine/Rules/Game.Chain.cs`:
 - Add `using CromoBound.Engine.Effects;` and `using CromoBound.Models.Cards;` to the top.
@@ -1941,12 +1941,12 @@ In `src/CromoBound.Engine/Rules/Game.Chain.cs`:
     }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `dotnet build CromoBound.slnx --no-incremental` (expect `Avvisi: 0`, `Errori: 0`), then `dotnet test CromoBound.slnx`.
 Expected: PASS (all tests, including Plan B's `PlayTests` for hand resolution of unmapped spells and Plan C's `ViewTests` scripted Bo3).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -1957,9 +1957,9 @@ git commit -m "feat(engine): resolve mapped spells automatically"
 
 ## Done criteria
 
-- [ ] Resolvers, target slots and the effect context work as pinned by `ResolverTests` (Task 1).
-- [ ] Draw, Burn, Deal and Kill run through `ResolveEffectTask`, and Burn Out applies to Burn (Task 2).
-- [ ] `CardEffects` reports Full, Partial and Unmapped with keywords and manual lines; files the engine can't run yet play by hand and say why; views carry each card's effects status (Task 3).
-- [ ] Spells the engine runs ask for targets while being played, auto-pick forced targets, can't be played without legal targets, and keep their targets across manual actions (Task 4).
-- [ ] Full spells resolve automatically, Partial spells hand only their unmapped lines to the players, and Progress Day, Falling Star, Vengeance and Vanguard Sergeant work with the real card data; undo, loading and views work with target choices (Task 5).
-- [ ] `dotnet build CromoBound.slnx --no-incremental` reports 0 warnings and 0 errors, and `dotnet test CromoBound.slnx` passes.
+- [x] Resolvers, target slots and the effect context work as pinned by `ResolverTests` (Task 1).
+- [x] Draw, Burn, Deal and Kill run through `ResolveEffectTask`, and Burn Out applies to Burn (Task 2).
+- [x] `CardEffects` reports Full, Partial and Unmapped with keywords and manual lines; files the engine can't run yet play by hand and say why; views carry each card's effects status (Task 3).
+- [x] Spells the engine runs ask for targets while being played, auto-pick forced targets, can't be played without legal targets, and keep their targets across manual actions (Task 4).
+- [x] Full spells resolve automatically, Partial spells hand only their unmapped lines to the players, and Progress Day, Falling Star, Vengeance and Vanguard Sergeant work with the real card data; undo, loading and views work with target choices (Task 5).
+- [x] `dotnet build CromoBound.slnx --no-incremental` reports 0 warnings and 0 errors, and `dotnet test CromoBound.slnx` passes.
