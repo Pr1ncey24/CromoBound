@@ -63,6 +63,7 @@ public sealed partial class Game
 
     public SubmitResult Submit(PlayerId player, PlayerAction action)
     {
+        if (ActionShape.Check(action) is { } malformed) return SubmitResult.Reject(RejectionCode.UnexpectedAction, malformed);
         if (Outcome is not null) return SubmitResult.Reject(RejectionCode.MatchOver, "The game is over.");
         if (Pending is null || _handler is null) throw new InvalidOperationException("The game is running but nothing is pending.");
         if (!Pending.Players.Contains(player)) return SubmitResult.Reject(RejectionCode.NotYourDecision, $"{player} is not the one deciding now.");

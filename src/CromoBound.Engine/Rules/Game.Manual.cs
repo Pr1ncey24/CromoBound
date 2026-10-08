@@ -23,6 +23,8 @@ public sealed partial class Game
     /// options (a hand resolution stays as it is) and cleanup runs.</summary>
     public SubmitResult SubmitManual(PlayerId player, ManualAction action)
     {
+        if (ActionShape.Check(action) is { } malformed) return SubmitResult.Reject(RejectionCode.UnexpectedAction, malformed);
+        if (!IsPlayer(player)) return SubmitResult.Reject(RejectionCode.NotYourDecision, $"{player} is not in this game.");
         if (Outcome is not null) return SubmitResult.Reject(RejectionCode.MatchOver, "The game is over.");
         if (ApplyManual(player, action) is { } rejection) return new SubmitResult(false, rejection, []);
         var kind = action.GetType().Name;

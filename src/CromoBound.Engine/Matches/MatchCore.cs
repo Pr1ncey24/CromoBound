@@ -70,6 +70,8 @@ internal sealed partial class MatchCore
 
     public SubmitResult Submit(PlayerId player, PlayerAction action)
     {
+        if (ActionShape.Check(action) is { } malformed) return SubmitResult.Reject(RejectionCode.UnexpectedAction, malformed);
+        if (!Players.Contains(player)) return SubmitResult.Reject(RejectionCode.NotYourDecision, $"{player} is not in this match.");
         if (Winner is not null) return SubmitResult.Reject(RejectionCode.MatchOver, "The match is over.");
         if (UndoRequestedBy is not null && action is not Concede)
             return SubmitResult.Reject(RejectionCode.UnexpectedAction, "Answer the undo request first.");

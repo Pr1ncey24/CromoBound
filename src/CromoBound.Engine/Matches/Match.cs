@@ -40,8 +40,24 @@ public sealed partial class Match
     /// <summary>Each player's deck after sideboarding.</summary>
     public IReadOnlyList<Deck> CurrentDecks => _core.Decks;
 
-    /// <summary>Submits an action. Undo requests and answers are handled here, because an accepted undo replaces the whole core.</summary>
+    /// <summary>Submits an action. Undo requests and answers are handled here, because an accepted undo replaces the whole core.
+    /// If anything throws, the core is rebuilt from the log (which holds only accepted actions) so the live state cannot drift from it.</summary>
     public SubmitResult Submit(PlayerId player, PlayerAction action)
+    {
+        if (ActionShape.Check(action) is { } malformed) return SubmitResult.Reject(RejectionCode.UnexpectedAction, malformed);
+        if (!MatchCore.Players.Contains(player)) return SubmitResult.Reject(RejectionCode.NotYourDecision, $"{player} is not in this match.");
+        try
+        {
+            return Route(player, action);
+        }
+        catch
+        {
+            _core = MatchCore.Replay(_core.Setup, _core.Db, _core.Log);
+            throw;
+        }
+    }
+
+    private SubmitResult Route(PlayerId player, PlayerAction action)
     {
         switch (action)
         {

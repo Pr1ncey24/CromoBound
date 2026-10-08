@@ -4,6 +4,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
+using CromoBound.Models.Json;
 using static CromoBound.Engine.Tests.TestGame;
 
 namespace CromoBound.Engine.Tests;
@@ -98,5 +99,48 @@ public class MatchBo1Tests
         static string Describe(Match m) => string.Join("|", m.ToPlay().Events.Select(e => $"{e.Sequence}:{e.GetType().Name}"));
 
         Assert.Equal(Describe(NewMatch(seed: 9)), Describe(NewMatch(seed: 9)));
+    }
+
+    [Fact]
+    public void Actions_with_missing_lists_are_rejected_and_the_match_stays_playable()
+    {
+        var match = NewMatch();
+        match.Accept(match.Decision<ChoosePlayOrderDecision>().Player, new ChoosePlayOrder(true));
+        var before = match.Snapshot();
+        string[] bodies =
+        [
+            """{"type":"SubmitSideboard","swaps":null}""",
+            """{"type":"SubmitSideboard","swaps":[null]}""",
+            """{"type":"SubmitSideboard","swaps":[{"out":null,"in":null}]}""",
+        ];
+
+        foreach (var body in bodies)
+        {
+            var action = CromoJson.Deserialize<PlayerAction>(body)!;
+            var result = match.Submit(P1, action);
+            Assert.Equal(RejectionCode.UnexpectedAction, result.Rejection?.Code);
+        }
+
+        Assert.Equal(before, match.Snapshot());
+        Assert.Equal(new[] { P1, P2 }, match.Decision<SideboardDecision>().Players);
+        match.Accept(P1, new SubmitSideboard());
+        match.Accept(P2, new SubmitSideboard());
+        Assert.IsType<MulliganDecision>(match.Pending);
+    }
+
+    [Fact]
+    public void A_seat_that_is_not_in_the_match_cannot_concede_act_or_ask_for_undo()
+    {
+        var match = NewMatch().ToPlay();
+        var ghost = new PlayerId(5);
+        var before = match.Snapshot();
+        var log = match.ToRecord().Log.Count;
+
+        foreach (PlayerAction action in new PlayerAction[] { new Concede(), new ManualAdjustXp(P1, 1), new RequestUndo(), new AnswerUndo(true) })
+            Assert.Equal(RejectionCode.NotYourDecision, match.Submit(ghost, action).Rejection?.Code);
+
+        Assert.Equal(before, match.Snapshot());
+        Assert.Equal(log, match.ToRecord().Log.Count);
+        Assert.IsType<PriorityDecision>(match.Pending);
     }
 }

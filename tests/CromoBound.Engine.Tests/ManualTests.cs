@@ -4,6 +4,7 @@ using CromoBound.Engine.Events;
 using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
 using CromoBound.Models.Effects;
+using CromoBound.Models.Json;
 using static CromoBound.Engine.Tests.TestGame;
 
 namespace CromoBound.Engine.Tests;
@@ -254,5 +255,35 @@ public class ManualTests
 
         Assert.Equal(1, game.State.Showdown!.Battlefield);
         Assert.DoesNotContain(0, game.State.StagedShowdowns);
+    }
+
+    [Fact]
+    public void An_ability_cost_without_a_power_list_is_rejected_before_anything_changes()
+    {
+        var game = new TestGame();
+        var relic = game.Put("dawn-relic", Place.Base(P1));
+        var engine = game.Start();
+        var pending = engine.Pending;
+        var json = $$$"""{"type":"AddAbilityToChain","source":{"value":{{{relic.Value}}}},"line":1,"kind":"Triggered","cost":{"energy":1}}""";
+        var action = CromoJson.Deserialize<PlayerAction>(json)!;
+
+        var result = engine.SubmitManual(P1, (ManualAction)action);
+
+        Assert.False(result.Accepted);
+        Assert.Equal(RejectionCode.UnexpectedAction, result.Rejection!.Code);
+        Assert.Empty(game.State.Chain);
+        Assert.Same(pending, engine.Pending);
+    }
+
+    [Fact]
+    public void A_manual_action_from_a_seat_that_does_not_exist_is_rejected()
+    {
+        var game = new TestGame();
+        var engine = game.Start();
+
+        var result = engine.SubmitManual(new PlayerId(9), new ManualAdjustXp(P1, 1));
+
+        Assert.Equal(RejectionCode.NotYourDecision, result.Rejection!.Code);
+        Assert.Equal(0, game.State.Player(P1).Xp);
     }
 }
