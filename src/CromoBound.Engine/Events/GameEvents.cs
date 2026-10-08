@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CromoBound.Engine.Decisions;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -5,6 +6,48 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Events;
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(TurnStarted), "TurnStarted")]
+[JsonDerivedType(typeof(PhaseStarted), "PhaseStarted")]
+[JsonDerivedType(typeof(CardMoved), "CardMoved")]
+[JsonDerivedType(typeof(StatusChanged), "StatusChanged")]
+[JsonDerivedType(typeof(ResourcesAdded), "ResourcesAdded")]
+[JsonDerivedType(typeof(CostAdjusted), "CostAdjusted")]
+[JsonDerivedType(typeof(DamageDealt), "DamageDealt")]
+[JsonDerivedType(typeof(UnitsHealed), "UnitsHealed")]
+[JsonDerivedType(typeof(UnitDied), "UnitDied")]
+[JsonDerivedType(typeof(PointsChanged), "PointsChanged")]
+[JsonDerivedType(typeof(BattlefieldScored), "BattlefieldScored")]
+[JsonDerivedType(typeof(ControlChanged), "ControlChanged")]
+[JsonDerivedType(typeof(ShowdownStarted), "ShowdownStarted")]
+[JsonDerivedType(typeof(ShowdownEnded), "ShowdownEnded")]
+[JsonDerivedType(typeof(CombatStarted), "CombatStarted")]
+[JsonDerivedType(typeof(CombatEnded), "CombatEnded")]
+[JsonDerivedType(typeof(ChainItemAdded), "ChainItemAdded")]
+[JsonDerivedType(typeof(ChainItemResolved), "ChainItemResolved")]
+[JsonDerivedType(typeof(PlayCancelled), "PlayCancelled")]
+[JsonDerivedType(typeof(BurnedOut), "BurnedOut")]
+[JsonDerivedType(typeof(GameEnded), "GameEnded")]
+[JsonDerivedType(typeof(GameStarted), "GameStarted")]
+[JsonDerivedType(typeof(BattlefieldsChosen), "BattlefieldsChosen")]
+[JsonDerivedType(typeof(D20Rolled), "D20Rolled")]
+[JsonDerivedType(typeof(PlayOrderChosen), "PlayOrderChosen")]
+[JsonDerivedType(typeof(SideboardChanged), "SideboardChanged")]
+[JsonDerivedType(typeof(MulliganTaken), "MulliganTaken")]
+[JsonDerivedType(typeof(GameRecorded), "GameRecorded")]
+[JsonDerivedType(typeof(MatchEnded), "MatchEnded")]
+[JsonDerivedType(typeof(UndoRequested), "UndoRequested")]
+[JsonDerivedType(typeof(ManualActionTaken), "ManualActionTaken")]
+[JsonDerivedType(typeof(UnitHealed), "UnitHealed")]
+[JsonDerivedType(typeof(MightModified), "MightModified")]
+[JsonDerivedType(typeof(XpChanged), "XpChanged")]
+[JsonDerivedType(typeof(PoolAdjusted), "PoolAdjusted")]
+[JsonDerivedType(typeof(TokenCreated), "TokenCreated")]
+[JsonDerivedType(typeof(ControlGained), "ControlGained")]
+[JsonDerivedType(typeof(DeckShuffled), "DeckShuffled")]
+[JsonDerivedType(typeof(CardsLookedAt), "CardsLookedAt")]
+[JsonDerivedType(typeof(CardRevealed), "CardRevealed")]
+[JsonDerivedType(typeof(ChainItemCountered), "ChainItemCountered")]
 /// <summary>Something that happened. <see cref="VisibleTo"/> null means public; otherwise only that player may see it.</summary>
 public abstract record GameEvent
 {

@@ -1,5 +1,6 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Matches;
 using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -13,6 +14,16 @@ internal sealed class Bot
     private readonly HashSet<string> _unaffordable = [];
     private int _turn;
     private string? _playing;
+
+    /// <summary>Pre-game: first offered battlefield, play first, no sideboard changes, no mulligan; in play, as for a game.</summary>
+    public PlayerAction Choose(Match match) => match.Pending switch
+    {
+        PickBattlefieldDecision pick => new PickBattlefield(pick.Choices.Single(c => c.Player == pick.Players[0]).Printings[0]),
+        ChoosePlayOrderDecision => new ChoosePlayOrder(true),
+        SideboardDecision => new SubmitSideboard(),
+        MulliganDecision => new Mulligan(),
+        _ => Choose(match.Game!),
+    };
 
     public PlayerAction Choose(Game game)
     {

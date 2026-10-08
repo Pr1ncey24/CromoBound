@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -7,6 +8,19 @@ using CromoBound.Models.Json;
 namespace CromoBound.Engine.Decisions;
 
 /// <summary>What the engine is waiting for and from whom.</summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(PriorityDecision), "Priority")]
+[JsonDerivedType(typeof(PlayChoicesDecision), "PlayChoices")]
+[JsonDerivedType(typeof(PayCostDecision), "PayCost")]
+[JsonDerivedType(typeof(ChooseShowdownDecision), "ChooseShowdown")]
+[JsonDerivedType(typeof(AssignDamageDecision), "AssignDamage")]
+[JsonDerivedType(typeof(ResolveManuallyDecision), "ResolveManually")]
+[JsonDerivedType(typeof(TurnPointDecision), "TurnPoint")]
+[JsonDerivedType(typeof(PickBattlefieldDecision), "PickBattlefield")]
+[JsonDerivedType(typeof(ChoosePlayOrderDecision), "ChoosePlayOrder")]
+[JsonDerivedType(typeof(SideboardDecision), "Sideboard")]
+[JsonDerivedType(typeof(MulliganDecision), "Mulligan")]
+[JsonDerivedType(typeof(ConfirmUndoDecision), "ConfirmUndo")]
 public abstract record PendingDecision(IReadOnlyList<PlayerId> Players);
 
 public sealed record RuneOption(ObjectId Rune, bool CanExhaust);

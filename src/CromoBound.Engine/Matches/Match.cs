@@ -4,6 +4,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
+using CromoBound.Engine.Views;
 using CromoBound.Models.Cards;
 
 namespace CromoBound.Engine.Matches;
@@ -12,6 +13,9 @@ namespace CromoBound.Engine.Matches;
 public sealed partial class Match
 {
     private MatchCore _core;
+
+    /// <summary>What <paramref name="player"/> may see: the only thing the server should send to that player (spec §10).</summary>
+    public PlayerView ViewFor(PlayerId player) => ViewBuilder.Build(_core, player);
 
     private Match(MatchCore core) => _core = core;
 
