@@ -83,7 +83,7 @@ tests/CromoBound.Engine.Tests/
 - Consumes: Plan B types (`PlayerAction`, `PendingDecision`, `GameEvent`, `TotalCost`, `StatusKind`, `AbilityKind`, `GameEndReason`); `Deck` (Plan A).
 - Produces: every type in the code below. Later tasks use these exact names.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/CromoBound.Engine.Tests/MatchJsonTests.cs`:
 ```csharp
@@ -133,12 +133,12 @@ public class MatchJsonTests
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~MatchJsonTests"`
 Expected: FAIL (compilation errors: `CromoBound.Engine.Matches`, `PickBattlefield` … not found).
 
-- [ ] **Step 3: Keep empty power lists in TotalCost**
+- [x] **Step 3: Keep empty power lists in TotalCost**
 
 In `src/CromoBound.Engine/Decisions/Decisions.cs`, add `using CromoBound.Models.Json;` and replace the `TotalCost` record with:
 ```csharp
@@ -146,7 +146,7 @@ In `src/CromoBound.Engine/Decisions/Decisions.cs`, add `using CromoBound.Models.
 public sealed record TotalCost(int Energy, [property: KeepEmpty] IReadOnlyList<PowerSymbol> Power);
 ```
 
-- [ ] **Step 4: Create the action types**
+- [x] **Step 4: Create the action types**
 
 Create `src/CromoBound.Engine/Actions/MatchActions.cs`:
 ```csharp
@@ -262,7 +262,7 @@ In `src/CromoBound.Engine/Actions/PlayerAction.cs`, add these attribute lines di
 [JsonDerivedType(typeof(AddAbilityToChain), "AddAbilityToChain")]
 ```
 
-- [ ] **Step 5: Create the decision, event and match types**
+- [x] **Step 5: Create the decision, event and match types**
 
 Create `src/CromoBound.Engine/Decisions/MatchDecisions.cs`:
 ```csharp
@@ -375,12 +375,12 @@ namespace CromoBound.Engine.Matches;
 public sealed partial class Match;
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/MatchJsonTests.cs
@@ -413,7 +413,7 @@ git commit -m "feat(engine): add match, manual action and pre-game types"
     - `TestDecks.Jinx(params string[] battlefields)`, `TestDecks.Setup(MatchFormat, ulong seed = 7)`;
     - extensions `match.Accept(...)`, `match.Decision<T>()`, `match.ToMulligan()`, `match.ToPlay()`.
 
-- [ ] **Step 1: Add the deck test data**
+- [x] **Step 1: Add the deck test data**
 
 In `tests/CromoBound.Engine.Tests/EngineTestDb.cs`, add these entries at the end of the `Cards` list (before the closing `];`):
 ```csharp
@@ -485,7 +485,7 @@ internal static class MatchTestExtensions
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/MatchBo1Tests.cs`:
 ```csharp
@@ -593,12 +593,12 @@ public class MatchBo1Tests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~MatchBo1Tests"`
 Expected: FAIL (compilation errors: `Match.Create`, `TestDecks` … not found).
 
-- [ ] **Step 4: Let the match collect game events**
+- [x] **Step 4: Let the match collect game events**
 
 In `src/CromoBound.Engine/Rules/Game.cs`, replace the body of `Continue()` and add `TakeEvents()` after it:
 ```csharp
@@ -617,7 +617,7 @@ In `src/CromoBound.Engine/Rules/Game.cs`, replace the body of `Continue()` and a
     }
 ```
 
-- [ ] **Step 5: Implement the core**
+- [x] **Step 5: Implement the core**
 
 Create `src/CromoBound.Engine/Matches/MatchCore.cs`:
 ```csharp
@@ -1080,12 +1080,12 @@ public sealed partial class Match
 }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -1105,7 +1105,7 @@ git commit -m "feat(engine): add match core with the Bo1 pre-game"
 - Consumes: Task 2 (`MatchCore`, `RecordGame`, `BeginGame`); `Game.End` (Plan B, internal).
 - Produces: `MatchCore.ConcedeGame(PlayerId) : Rejection?`; test helper `match.PickFirstBattlefields()`.
 
-- [ ] **Step 1: Add test helpers and data**
+- [x] **Step 1: Add test helpers and data**
 
 In `tests/CromoBound.Engine.Tests/EngineTestDb.cs`, add to the end of the `Cards` list:
 ```csharp
@@ -1126,7 +1126,7 @@ In `tests/CromoBound.Engine.Tests/MatchTestExtensions.cs`, add to `MatchTestExte
     }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/MatchBo3Tests.cs`:
 ```csharp
@@ -1261,12 +1261,12 @@ public class MatchBo3Tests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~MatchBo3Tests"`
 Expected: FAIL. The two tests that never concede pass; the rest fail because `Concede` is rejected.
 
-- [ ] **Step 4: Implement conceding**
+- [x] **Step 4: Implement conceding**
 
 In `src/CromoBound.Engine/Matches/MatchCore.cs`, add this arm first in the `switch` inside `Submit`:
 ```csharp
@@ -1288,12 +1288,12 @@ In `src/CromoBound.Engine/Matches/MatchCore.Results.cs`, add to the class:
     }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/CromoBound.Engine/Matches tests/CromoBound.Engine.Tests
@@ -1324,7 +1324,7 @@ git commit -m "feat(engine): play Bo3 matches with conceding and sideboarding"
   - Cleanup runs.
 - **Turn-point pauses:** a `TurnPointTask` *waits while the chain is open*. An ability added during a turn-point pause (e.g. the trigger of the card that caused it) is handled first: priority, passes, resolution by hand. Then the pause asks again.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/ManualTests.cs`:
 ```csharp
@@ -1530,12 +1530,12 @@ public class ManualTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~ManualTests"`
 Expected: FAIL (compilation error: `Game` has no `SubmitManual`).
 
-- [ ] **Step 3: Let tasks wait for the chain**
+- [x] **Step 3: Let tasks wait for the chain**
 
 In `src/CromoBound.Engine/Rules/GameTask.cs`, add to `GameTask`:
 ```csharp
@@ -1575,7 +1575,7 @@ In `src/CromoBound.Engine/Rules/Game.cs`, replace `RunLoop` with:
     }
 ```
 
-- [ ] **Step 4: Implement the manual actions**
+- [x] **Step 4: Implement the manual actions**
 
 Create `src/CromoBound.Engine/Rules/Game.Manual.cs`:
 ```csharp
@@ -1829,7 +1829,7 @@ public sealed partial class Game
 }
 ```
 
-- [ ] **Step 5: Route manual actions in the match**
+- [x] **Step 5: Route manual actions in the match**
 
 In `src/CromoBound.Engine/Matches/MatchCore.cs`, add this arm right after the `Concede` arm in `Submit`'s `switch`:
 ```csharp
@@ -1850,12 +1850,12 @@ Add this method to `MatchCore` (in `MatchCore.cs`):
     }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests, including Plan B's turn-point and battlefield tests).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests/ManualTests.cs
@@ -1888,7 +1888,7 @@ git commit -m "feat(engine): add manual actions and hand-added abilities"
   - Accepting rebuilds the match by replaying the log without that action and everything after it.
 - **Loading:** first compare the record's engine version and data fingerprint with the current ones; on any difference, throw `MatchVersionMismatchException` without replaying. Then replay. A rejected log entry fails loading, naming the entry.
 
-- [ ] **Step 1: Add the snapshot helper**
+- [x] **Step 1: Add the snapshot helper**
 
 In `tests/CromoBound.Engine.Tests/MatchTestExtensions.cs`, add to `MatchTestExtensions`:
 ```csharp
@@ -1908,7 +1908,7 @@ In `tests/CromoBound.Engine.Tests/MatchTestExtensions.cs`, add to `MatchTestExte
     }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/UndoAndSaveTests.cs`:
 ```csharp
@@ -2024,12 +2024,12 @@ public class UndoAndSaveTests
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~UndoAndSaveTests"`
 Expected: FAIL (compilation errors: `Match.ToRecord`, `Match.Load` not found).
 
-- [ ] **Step 4: Implement undo and replay in the core**
+- [x] **Step 4: Implement undo and replay in the core**
 
 Create `src/CromoBound.Engine/Matches/MatchCore.Undo.cs`:
 ```csharp
@@ -2078,7 +2078,7 @@ internal sealed partial class MatchCore
 }
 ```
 
-- [ ] **Step 5: Route undo, save and load in the facade**
+- [x] **Step 5: Route undo, save and load in the facade**
 
 In `src/CromoBound.Engine/Matches/Match.cs`, replace the `Submit` method with:
 ```csharp
@@ -2116,12 +2116,12 @@ In `src/CromoBound.Engine/Matches/Match.cs`, replace the `Submit` method with:
     }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/CromoBound.Engine/Matches tests/CromoBound.Engine.Tests
@@ -2157,7 +2157,7 @@ git commit -m "feat(engine): add undo by agreement and saved matches"
 
 **The leak fix:** a public `CardMoved` hides the object id of any side that is a deck, a hand or a facedown slot, and hides the card's identity when both sides are hidden. When a side is a hand or a facedown slot, the owner (or the facedown card's controller) also gets a private copy. That copy shows hand and facedown ids, but never deck ids, since deck order is secret even from the owner.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/CromoBound.Engine.Tests/ViewTests.cs`:
 ```csharp
@@ -2274,12 +2274,12 @@ public class ViewTests
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `dotnet test CromoBound.slnx --filter "FullyQualifiedName~ViewTests"`
 Expected: FAIL (compilation errors: `Match.ViewFor`, `Bot.Choose(Match)` not found).
 
-- [ ] **Step 3: Fix the move events**
+- [x] **Step 3: Fix the move events**
 
 In `src/CromoBound.Engine/Rules/Game.Mutations.cs`, replace `MoveCard` and `IsHidden` with:
 ```csharp
@@ -2309,7 +2309,7 @@ In `src/CromoBound.Engine/Rules/Game.Mutations.cs`, replace `MoveCard` and `IsHi
     private static bool IsHidden(Place place) => IsSecret(place) || IsPrivate(place);
 ```
 
-- [ ] **Step 4: Make events and decisions serializable**
+- [x] **Step 4: Make events and decisions serializable**
 
 In `src/CromoBound.Engine/Events/GameEvents.cs`, add `using System.Text.Json.Serialization;` and put these attributes on `GameEvent`:
 ```csharp
@@ -2374,7 +2374,7 @@ In `src/CromoBound.Engine/Decisions/Decisions.cs`, add `using System.Text.Json.S
 [JsonDerivedType(typeof(ConfirmUndoDecision), "ConfirmUndo")]
 ```
 
-- [ ] **Step 5: Implement the views**
+- [x] **Step 5: Implement the views**
 
 Create `src/CromoBound.Engine/Views/PlayerView.cs`:
 ```csharp
@@ -2523,7 +2523,7 @@ In `src/CromoBound.Engine/Matches/Match.cs`, add `using CromoBound.Engine.Views;
     public PlayerView ViewFor(PlayerId player) => ViewBuilder.Build(_core, player);
 ```
 
-- [ ] **Step 6: Teach the scripted player the match decisions**
+- [x] **Step 6: Teach the scripted player the match decisions**
 
 In `tests/CromoBound.Engine.Tests/Bot.cs`, add `using CromoBound.Engine.Matches;` and this method to `Bot`:
 ```csharp
@@ -2538,14 +2538,14 @@ In `tests/CromoBound.Engine.Tests/Bot.cs`, add `using CromoBound.Engine.Matches;
     };
 ```
 
-- [ ] **Step 7: Run the tests to verify they pass**
+- [x] **Step 7: Run the tests to verify they pass**
 
 Run: `dotnet test CromoBound.slnx`
 Expected: PASS (all tests, including Plan B's `HiddenTests`, whose event checks still hold).
 
 If the scripted Bo3 doesn't finish within the cap, find where it stops progressing and fix the engine, as in Plan B Task 8.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/CromoBound.Engine tests/CromoBound.Engine.Tests
@@ -2556,10 +2556,10 @@ git commit -m "feat(engine): add per-player views without hidden-card leaks"
 
 ## Done criteria
 
-- [ ] Match, manual and pre-game types round-trip through JSON (Task 1).
-- [ ] Bo1: random battlefields, d20 roll-off, play order, sideboarding, setup, mulligan, first turn (Task 2).
-- [ ] Bo3: battlefield picks and removal, loser chooses, sideboarding from game 2 (champion switch, illegal swaps rejected), conceding, 2 wins end the match (Task 3).
-- [ ] All manual actions work, at any moment of play, without losing the pending decision; abilities added by hand go on the chain (Task 4).
-- [ ] Undo by agreement equals never taking the action; saved matches load identically; other versions are refused (Task 5).
-- [ ] Views show each player only what they may see; a full scripted Bo3 finishes and replays identically (Task 6).
-- [ ] `dotnet test CromoBound.slnx` passes.
+- [x] Match, manual and pre-game types round-trip through JSON (Task 1).
+- [x] Bo1: random battlefields, d20 roll-off, play order, sideboarding, setup, mulligan, first turn (Task 2).
+- [x] Bo3: battlefield picks and removal, loser chooses, sideboarding from game 2 (champion switch, illegal swaps rejected), conceding, 2 wins end the match (Task 3).
+- [x] All manual actions work, at any moment of play, without losing the pending decision; abilities added by hand go on the chain (Task 4).
+- [x] Undo by agreement equals never taking the action; saved matches load identically; other versions are refused (Task 5).
+- [x] Views show each player only what they may see; a full scripted Bo3 finishes and replays identically (Task 6).
+- [x] `dotnet test CromoBound.slnx` passes.

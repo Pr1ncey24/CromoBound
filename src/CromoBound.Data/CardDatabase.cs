@@ -13,6 +13,9 @@ public sealed class CardDatabase
     public required IReadOnlyDictionary<string, CardSet> Sets { get; init; }
     public required IReadOnlyDictionary<string, LoadedEffects> Effects { get; init; }
 
+    /// <summary>SHA-256 of the loaded data files, so a saved match can tell the card data changed (spec §6.7). Empty when built in memory.</summary>
+    public string Fingerprint { get; init; } = "";
+
     public MappingStatus StatusOf(string cardId) =>
         Effects.TryGetValue(cardId, out var effects) ? effects.File.Status : MappingStatus.Unmapped;
 }

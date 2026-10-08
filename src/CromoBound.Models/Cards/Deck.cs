@@ -9,6 +9,9 @@ public sealed record Deck
     public IReadOnlyList<DeckEntry> Main { get; init; } = [];
     public IReadOnlyList<DeckEntry> Runes { get; init; } = [];
     public IReadOnlyList<string> Battlefields { get; init; } = [];
+
+    /// <summary>Up to 10 cards swapped 1-for-1 with Main Deck cards between games (TR 403).</summary>
+    public IReadOnlyList<DeckEntry> Sideboard { get; init; } = [];
 }
 
 public sealed record DeckEntry

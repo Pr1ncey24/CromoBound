@@ -109,6 +109,27 @@ public class CardJsonTests
     }
 
     [Fact]
+    public void Deck_sideboard_round_trips_and_is_optional()
+    {
+        const string json = """
+            {
+              "name": "Jinx",
+              "legend": "l1",
+              "champion": "c1",
+              "main": [ { "printing": "p1", "count": 3 } ],
+              "sideboard": [ { "printing": "p2", "count": 2 } ]
+            }
+            """;
+
+        var deck = CromoJson.Deserialize<Deck>(json);
+        var withoutSideboard = deck with { Sideboard = [] };
+
+        Assert.Equal("p2", Assert.Single(deck.Sideboard).Printing);
+        Assert.Contains("\"sideboard\"", CromoJson.Serialize(deck));
+        Assert.DoesNotContain("sideboard", CromoJson.Serialize(withoutSideboard));
+    }
+
+    [Fact]
     public void Printing_and_set_deserialize()
     {
         var printing = CromoJson.Deserialize<Printing>("""

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
@@ -9,11 +11,19 @@ public static class CardRepository
 {
     public static CardDatabase Load(string dataDir)
     {
+        var files = new List<string> { "cards.json" };
         var cards = ReadList<Card>(Path.Combine(dataDir, "cards.json"));
         var tokensPath = Path.Combine(dataDir, "tokens.json");
-        var tokens = File.Exists(tokensPath) ? ReadList<Card>(tokensPath) : [];
+        IReadOnlyList<Card> tokens = [];
+        if (File.Exists(tokensPath))
+        {
+            tokens = ReadList<Card>(tokensPath);
+            files.Add("tokens.json");
+        }
         var printings = ReadList<Printing>(Path.Combine(dataDir, "printings.json"));
         var sets = ReadList<CardSet>(Path.Combine(dataDir, "sets.json"));
+        files.Add("printings.json");
+        files.Add("sets.json");
 
         var effects = new Dictionary<string, LoadedEffects>(StringComparer.Ordinal);
         var effectsDir = Path.Combine(dataDir, "effects");
@@ -24,6 +34,7 @@ public static class CardRepository
                 var file = Read<EffectsFile>(path);
                 if (!effects.TryAdd(file.CardId, new LoadedEffects(path, file)))
                     throw new InvalidDataException($"{path}: cardId '{file.CardId}' is already defined in {effects[file.CardId].FilePath}.");
+                files.Add("effects/" + Path.GetFileName(path));
             }
         }
 
@@ -33,7 +44,20 @@ public static class CardRepository
             Printings = Index(printings, p => p.Id, "printings.json"),
             Sets = Index(sets, s => s.Id, "sets.json"),
             Effects = effects,
+            Fingerprint = Fingerprint(dataDir, files),
         };
+    }
+
+    /// <summary>SHA-256 over each file's relative path and content, with line endings normalized so git checkouts on any OS agree.</summary>
+    private static string Fingerprint(string dataDir, IEnumerable<string> relativePaths)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (var relative in relativePaths)
+        {
+            var content = File.ReadAllText(Path.Combine(dataDir, relative)).ReplaceLineEndings("\n");
+            hash.AppendData(Encoding.UTF8.GetBytes($"{relative}\n{content}\n"));
+        }
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
     private static IReadOnlyList<T> ReadList<T>(string path) => Read<List<T>>(path);
