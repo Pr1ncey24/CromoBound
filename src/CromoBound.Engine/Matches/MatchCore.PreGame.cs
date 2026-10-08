@@ -4,6 +4,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
+using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Matches;
@@ -19,6 +20,7 @@ internal sealed partial class MatchCore
         Array.Clear(Picks);
         Stage = MatchStage.PickBattlefields;
         Emit(new GameStarted(GameNumber));
+        Emit(new LegendsRevealed([.. Decks.Select(d => d.Legend)]));
         if (Setup.Format == MatchFormat.Bo1)
         {
             foreach (var player in Players) Picks[player.Index] = Available[player.Index][Rng.NextInt(Available[player.Index].Count)];
@@ -94,7 +96,7 @@ internal sealed partial class MatchCore
             SetUpGame();
             return;
         }
-        Ask(new SideboardDecision(waiting), (player, action) =>
+        Ask(new SideboardDecision(waiting, [.. waiting.Select(Choice)]), (player, action) =>
         {
             if (action is not SubmitSideboard submit) return Reject(RejectionCode.UnexpectedAction, "Submit your sideboard swaps, or none.");
             var current = Decks[player.Index];
@@ -107,6 +109,18 @@ internal sealed partial class MatchCore
             AskSideboards([.. waiting.Where(p => p != player)]);
             return null;
         });
+    }
+
+    /// <summary>The player's deck as it stands, with the cards that may become the Chosen Champion (the current one and any champion unit in the main deck or sideboard).</summary>
+    private SideboardChoice Choice(PlayerId player)
+    {
+        var deck = Decks[player.Index];
+        var candidates = deck.Main.Concat(deck.Sideboard).Select(e => e.Printing)
+            .Where(printing => Db.Cards[Db.Printings[printing].CardId] is { Type: CardType.Unit, Supertype: Supertype.Champion })
+            .Append(deck.Champion)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
+        return new SideboardChoice(player, deck.Main, deck.Sideboard, deck.Champion, [.. candidates]);
     }
 
     /// <summary>Creates the game's cards from the current decks and picked battlefields, shuffles, and deals 4 each (CR 110-116).</summary>

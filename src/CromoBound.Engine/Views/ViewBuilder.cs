@@ -28,6 +28,7 @@ internal static class ViewBuilder
     private static PendingDecision? Decision(PendingDecision? pending, PlayerId viewer) => pending switch
     {
         PickBattlefieldDecision pick when pick.Players.Contains(viewer) => pick with { Choices = [.. pick.Choices.Where(c => c.Player == viewer)] },
+        SideboardDecision sideboard when sideboard.Players.Contains(viewer) => sideboard with { Choices = [.. sideboard.Choices.Where(c => c.Player == viewer)] },
         { } decision when decision.Players.Contains(viewer) => decision,
         _ => null,
     };

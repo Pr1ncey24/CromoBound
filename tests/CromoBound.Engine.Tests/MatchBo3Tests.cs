@@ -126,4 +126,39 @@ public class MatchBo3Tests
         Assert.Single(match.Events.OfType<MatchEnded>());
         Assert.Equal(RejectionCode.MatchOver, match.Submit(P1, new Concede()).Rejection!.Code);
     }
+
+    [Fact]
+    public void A_game_ended_before_setup_removes_no_battlefields()
+    {
+        var match = NewBo3();
+        match.Accept(P1, new PickBattlefield("p-bf-a"));
+        match.Accept(P2, new PickBattlefield("p-bf-d"));
+        match.Accept(P1, new Concede());
+
+        Assert.Equal(2, match.GameNumber);
+        var pick = match.Decision<PickBattlefieldDecision>();
+        Assert.Equal(new[] { "p-bf-a", "p-bf-b", "p-bf-c" }, pick.Choices.Single(c => c.Player == P1).Printings);
+        Assert.Equal(new[] { "p-bf-d", "p-bf-e", "p-bf-f" }, pick.Choices.Single(c => c.Player == P2).Printings);
+    }
+
+    [Fact]
+    public void A_concede_during_the_pick_also_removes_none()
+    {
+        var match = NewBo3();
+        match.Accept(P2, new Concede());
+
+        Assert.Equal(3, match.Decision<PickBattlefieldDecision>().Choices.Single(c => c.Player == P1).Printings.Count);
+    }
+
+    [Fact]
+    public void Each_game_reveals_the_legends()
+    {
+        var match = NewBo3();
+        LoseGame(match, P2);
+
+        var reveals = match.Events.OfType<LegendsRevealed>().ToList();
+
+        Assert.Equal(2, reveals.Count);
+        Assert.All(reveals, r => Assert.Equal(new[] { "p-jinx-legend", "p-jinx-legend" }, r.Printings));
+    }
 }

@@ -22,7 +22,7 @@ internal sealed partial class MatchCore
         return null;
     }
 
-    /// <summary>Records the game. Bo3 removes the battlefields used in it. The match ends at 1 win (Bo1) or 2 (Bo3); otherwise the next game begins.</summary>
+    /// <summary>Records the game. Bo3 removes the battlefields used in it, but only if the game was set up (a game ended during the picks, play order or sideboarding uses none). The match ends at 1 win (Bo1) or 2 (Bo3); otherwise the next game begins.</summary>
     internal void RecordGame(GameOutcome outcome)
     {
         Emit(new GameRecorded(GameNumber, outcome.Winner, outcome.Reason));
@@ -31,7 +31,7 @@ internal sealed partial class MatchCore
             Wins[winner.Index]++;
             LastLoser = Opponent(winner);
         }
-        if (Setup.Format == MatchFormat.Bo3)
+        if (Setup.Format == MatchFormat.Bo3 && Game is not null)
             foreach (var player in Players) Available[player.Index].Remove(Picks[player.Index]!);
 
         var needed = Setup.Format == MatchFormat.Bo1 ? 1 : 2;

@@ -4,6 +4,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
+using CromoBound.Models.Cards;
 using CromoBound.Models.Json;
 using static CromoBound.Engine.Tests.TestGame;
 
@@ -142,5 +143,41 @@ public class MatchBo1Tests
         Assert.Equal(before, match.Snapshot());
         Assert.Equal(log, match.ToRecord().Log.Count);
         Assert.IsType<PriorityDecision>(match.Pending);
+    }
+
+    [Fact]
+    public void Every_game_starts_by_revealing_both_legends()
+    {
+        var match = NewMatch();
+
+        var revealed = Assert.Single(match.Events.OfType<LegendsRevealed>());
+
+        Assert.Equal(new[] { "p-jinx-legend", "p-jinx-legend" }, revealed.Printings);
+        Assert.True(revealed.Sequence > match.Events.OfType<GameStarted>().Single().Sequence);
+        Assert.Null(revealed.VisibleTo);
+    }
+
+    [Fact]
+    public void The_sideboard_decision_lists_the_viewers_own_deck_options_only()
+    {
+        var p1Deck = TestDecks.Jinx("bf-a", "bf-b", "bf-c") with
+        {
+            Sideboard = [new DeckEntry { Printing = "p-filler-14", Count = 3 }, new DeckEntry { Printing = "p-jinx-alt", Count = 1 }],
+        };
+        var match = Match.Create(TestDecks.Setup(MatchFormat.Bo1) with { Player1Deck = p1Deck }, EngineTestDb.Create()).Match!;
+        match.Accept(match.Decision<ChoosePlayOrderDecision>().Player, new ChoosePlayOrder(true));
+
+        var mine = Assert.IsType<SideboardDecision>(match.ViewFor(P1).Decision);
+        var theirs = Assert.IsType<SideboardDecision>(match.ViewFor(P2).Decision);
+
+        var choice = Assert.Single(mine.Choices);
+        Assert.Equal(P1, choice.Player);
+        Assert.Equal("p-jinx-champ", choice.Champion);
+        Assert.Equal(new[] { "p-jinx-alt", "p-jinx-champ" }, choice.ChampionCandidates);
+        Assert.Equal(p1Deck.Sideboard.Select(e => (e.Printing, e.Count)), choice.Sideboard.Select(e => (e.Printing, e.Count)));
+        Assert.Equal(p1Deck.Main.Count, choice.Main.Count);
+        var other = Assert.Single(theirs.Choices);
+        Assert.Equal(P2, other.Player);
+        Assert.Equal(new[] { "p-jinx-champ" }, other.ChampionCandidates);
     }
 }

@@ -29,6 +29,7 @@ namespace CromoBound.Engine.Events;
 [JsonDerivedType(typeof(BurnedOut), "BurnedOut")]
 [JsonDerivedType(typeof(GameEnded), "GameEnded")]
 [JsonDerivedType(typeof(GameStarted), "GameStarted")]
+[JsonDerivedType(typeof(LegendsRevealed), "LegendsRevealed")]
 [JsonDerivedType(typeof(BattlefieldsChosen), "BattlefieldsChosen")]
 [JsonDerivedType(typeof(D20Rolled), "D20Rolled")]
 [JsonDerivedType(typeof(PlayOrderChosen), "PlayOrderChosen")]
