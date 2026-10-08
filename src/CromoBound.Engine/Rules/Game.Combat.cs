@@ -74,7 +74,11 @@ public sealed partial class Game
             if (AskAssignment(task, combat.Defender!.Value, defenders, attackers)) return false;
             task.Step = 2;
         }
-        foreach (var assignment in task.Assignments) DealDamage(assignment.Unit, assignment.Amount);
+        foreach (var assignment in task.Assignments)
+        {
+            if (State.Exists(assignment.Unit) && State[assignment.Unit].Place == Place.Battlefield(task.Battlefield))
+                DealDamage(assignment.Unit, assignment.Amount);
+        }
         Push(new CombatResolutionTask(task.Battlefield));
         return true;
     }

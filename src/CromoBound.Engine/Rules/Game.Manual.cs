@@ -26,6 +26,7 @@ public sealed partial class Game
         if (Outcome is not null) return SubmitResult.Reject(RejectionCode.MatchOver, "The game is over.");
         if (ApplyManual(player, action) is { } rejection) return new SubmitResult(false, rejection, []);
         Emit(new ManualActionTaken(player, action));
+        if (_tasks.Count > 0 && _tasks[0] is CleanupTask cleanup) cleanup.StableReached = false;
         if (Pending is not ResolveManuallyDecision)
         {
             Pending = null;

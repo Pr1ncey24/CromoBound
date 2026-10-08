@@ -24,6 +24,7 @@ public sealed partial class Game
     internal bool RunHide(HideTask task)
     {
         if (task.Cancelled) return true;
+        if (!State.Exists(task.Card) || State[task.Card].Place != Place.Hand(task.Player)) return true;
         if (!task.Paid)
         {
             AskPay(task.Player, task.Cost, CardOf(task.Card).Domains,

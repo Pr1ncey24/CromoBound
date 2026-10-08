@@ -197,4 +197,62 @@ public class ManualTests
         Assert.Equal(RejectionCode.UnknownObject, engine.SubmitManual(P1, new ManualDamage(new ObjectId(999), 1)).Rejection!.Code);
         Assert.Equal(RejectionCode.UnexpectedAction, engine.SubmitManual(P1, new AddAbilityToChain(unit, 5, AbilityKind.Triggered)).Rejection!.Code);
     }
+
+    [Fact]
+    public void Moving_an_assigned_defender_away_mid_combat_does_not_break_the_game()
+    {
+        var game = new TestGame();
+        game.State.Battlefields[1].Controller = P2;
+        var defender = game.Put("unit-2", Place.Battlefield(1), owner: P2);
+        var attacker = game.Put("unit-3", Place.Base(P1));
+        var engine = game.Start();
+        engine.Accept(P1, new StandardMove { Units = [attacker], Destination = Place.Battlefield(1) });
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+        engine.Accept(P1, new AssignDamage { Assignments = [new(defender, 3)] });
+        Assert.Equal(P2, engine.Decision<AssignDamageDecision>().Player);
+
+        Manual(engine, P2, new ManualMoveCard(defender, Place.Trash(P2)));
+
+        if (engine.Pending is AssignDamageDecision) engine.Accept(P2, new AssignDamage { Assignments = [new(attacker, 2)] });
+        Assert.IsNotType<AssignDamageDecision>(engine.Pending);
+        Assert.NotNull(engine.Pending);
+    }
+
+    [Fact]
+    public void Moving_the_card_being_hidden_cancels_the_hide()
+    {
+        var game = new TestGame();
+        game.State.Battlefields[0].Controller = P1;
+        game.Put("unit-2", Place.Battlefield(0));
+        var card = game.Put("hidden-unit", Place.Hand(P1));
+        game.Runes(P1, "chaos-rune", 1);
+        var rune = game.First(Place.Base(P1), "chaos-rune");
+        var engine = game.Start();
+        engine.Accept(P1, new Hide(card, 0));
+        Assert.IsType<PayCostDecision>(engine.Pending);
+
+        Manual(engine, P1, new ManualMoveCard(card, Place.Trash(P1)));
+
+        Assert.IsType<PriorityDecision>(engine.Pending);
+        Assert.Empty(game.State.At(Place.Facedown(0)));
+        Assert.False(game.State[rune].Exhausted);
+    }
+
+    [Fact]
+    public void A_manual_action_during_a_showdown_choice_reruns_cleanup()
+    {
+        var game = new TestGame();
+        game.State.Battlefields[0].ContestedBy = P1;
+        game.State.Battlefields[1].ContestedBy = P1;
+        var first = game.Put("unit-2", Place.Battlefield(0));
+        game.Put("unit-2", Place.Battlefield(1));
+        var engine = game.Start();
+        Assert.IsType<ChooseShowdownDecision>(engine.Pending);
+
+        Manual(engine, P1, new ManualMoveCard(first, Place.Trash(P1)));
+
+        Assert.Equal(1, game.State.Showdown!.Battlefield);
+        Assert.DoesNotContain(0, game.State.StagedShowdowns);
+    }
 }

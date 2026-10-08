@@ -14,6 +14,9 @@ internal sealed class CleanupTask(CleanupMode mode) : GameTask
     /// <summary>Set once steps 1-8 are stable, so answering the step 9-10 choice doesn't rerun them.</summary>
     public bool StableReached { get; set; }
 
+    /// <summary>Set once the Ending or Combat special steps ran, so a rerun after a manual action does them only once.</summary>
+    public bool SpecialDone { get; set; }
+
     public override bool Run(Game game) => game.RunCleanup(mode, this);
 }
 
@@ -23,7 +26,8 @@ public sealed partial class Game
     {
         if (!task.StableReached)
         {
-            var special = mode;
+            var special = task.SpecialDone ? CleanupMode.Normal : mode;
+            task.SpecialDone = true;
             while (true)
             {
                 var before = Changes;
