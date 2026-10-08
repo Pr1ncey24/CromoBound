@@ -19,7 +19,7 @@ public class CardKeywordsTests
 
     [Theory]
     [InlineData("<p>[Reaction][&gt;] :rb_exhaust:: [Add] :rb_energy_1:.</p>")]
-    [InlineData("<p>:rb_exhaust:: [Reaction] - Pay any amount of Energy.</p>")]
+    [InlineData("<p>:rb_exhaust:: [Reaction] — Pay any amount of Energy.</p>")]
     [InlineData("<p>Give a unit [Shield 3] and [Tank] this turn.</p>")]
     [InlineData("<p>While I'm buffed, I have [Ganking].</p>")]
     [InlineData("<p>Units here with [Temporary] have [Shield].</p>")]
