@@ -36,5 +36,36 @@ public sealed partial class Match
     /// <summary>Each player's deck after sideboarding.</summary>
     public IReadOnlyList<Deck> CurrentDecks => _core.Decks;
 
-    public SubmitResult Submit(PlayerId player, PlayerAction action) => _core.Submit(player, action);
+    /// <summary>Submits an action. Undo requests and answers are handled here, because an accepted undo replaces the whole core.</summary>
+    public SubmitResult Submit(PlayerId player, PlayerAction action)
+    {
+        switch (action)
+        {
+            case RequestUndo:
+                return _core.RequestUndo(player);
+            case AnswerUndo answer:
+                if (_core.UndoRequestedBy is not { } requester || MatchCore.Opponent(requester) != player)
+                    return SubmitResult.Reject(RejectionCode.UnexpectedAction, "There is no undo request for you to answer.");
+                if (!answer.Accept)
+                {
+                    _core.UndoRequestedBy = null;
+                    return new SubmitResult(true, null, []);
+                }
+                _core = MatchCore.Replay(_core.Setup, _core.Db, _core.Log.Take(_core.UndoIndex(requester)));
+                return new SubmitResult(true, null, []);
+            default:
+                return _core.Submit(player, action);
+        }
+    }
+
+    /// <summary>What to save: the versions, the setup and the log (spec §6.5).</summary>
+    public MatchRecord ToRecord() => new(EngineInfo.Version, _core.Db.Fingerprint, _core.Setup, [.. _core.Log]);
+
+    /// <summary>Rebuilds a saved match by replaying it. Refuses records from another engine build or other card data (spec §6.7).</summary>
+    public static Match Load(MatchRecord record, CardDatabase db)
+    {
+        if (record.EngineVersion != EngineInfo.Version || record.DataFingerprint != db.Fingerprint)
+            throw new MatchVersionMismatchException(record.EngineVersion, EngineInfo.Version, record.DataFingerprint, db.Fingerprint);
+        return new Match(MatchCore.Replay(record.Setup, db, record.Log));
+    }
 }

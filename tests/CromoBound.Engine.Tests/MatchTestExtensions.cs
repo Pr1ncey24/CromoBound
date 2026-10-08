@@ -16,6 +16,21 @@ internal static class MatchTestExtensions
 
     public static T Decision<T>(this Match match) where T : PendingDecision => Assert.IsType<T>(match.Pending);
 
+    /// <summary>A text fingerprint of a match: stage, score, every event, every object and the turn state. Equal snapshots = same match.</summary>
+    public static string Snapshot(this Match match)
+    {
+        var parts = new List<string> { $"{match.Stage} game {match.GameNumber} wins {string.Join(",", match.Result.GameWins)}" };
+        parts.AddRange(match.Events.Select(e => $"{e.Sequence}: {e}"));
+        if (match.Game is { } game)
+        {
+            parts.AddRange(game.State.Objects.Select(o => $"{o.Id} {o.CardId} @{o.Place} ctrl {o.Controller} ex {o.Exhausted} dmg {o.Damage}"));
+            parts.AddRange(game.State.Players.Select(p => $"{p.Id} pts {p.Points} energy {p.Pool.Energy}"));
+            var turn = game.State.Turn;
+            parts.Add($"turn {turn.Number} {turn.Phase} priority {turn.Priority} chain {game.State.Chain.Count} pending {game.Pending?.GetType().Name}");
+        }
+        return string.Join("\n", parts);
+    }
+
     /// <summary>The roll-off winner plays first, then (if asked) both players keep their decks: up to the first mulligan.</summary>
     public static Match ToMulligan(this Match match)
     {
