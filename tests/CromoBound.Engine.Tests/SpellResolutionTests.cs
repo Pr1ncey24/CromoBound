@@ -46,6 +46,29 @@ public class SpellResolutionTests
     }
 
     [Fact]
+    public void A_mapped_spell_without_chosen_targets_kills_nothing()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("spell", TargetTests.KillAUnit)));
+        game.Put("spell", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 1);
+        var mine = game.Put("unit-2", Place.Base(P1));
+        var enemy = game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "spell")));
+        engine.Accept(P1, new ChooseTargets { Targets = [enemy] });
+        engine.PayWithSuggestion(P1);
+        Assert.Single(game.State.Chain).Effect = null;
+
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+
+        Assert.True(game.State.Exists(mine));
+        Assert.True(game.State.Exists(enemy));
+        Assert.Contains(game.State.At(Place.Trash(P1)), id => game.State[id].CardId == "spell");
+        Assert.Empty(game.State.Chain);
+    }
+
+    [Fact]
     public void A_partial_spell_runs_its_mapped_lines_then_asks_for_the_rest()
     {
         var game = new TestGame(db: EngineTestDb.Create(("multi-spell", DealOnLineTwo)));

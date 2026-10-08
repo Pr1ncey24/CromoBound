@@ -31,8 +31,15 @@ public sealed partial class Game
         var item = State.Chain.Last(i => i.Status == ChainItemStatus.Finalized);
         if (item.Card is { } card && Effects.For(State[card].CardId) is { Status: not MappingStatus.Unmapped } effects)
         {
-            var context = item.Effect ?? new EffectContext { Controller = item.Controller, Source = card, SourceCardId = State[card].CardId };
-            Push(new ResolveEffectTask(context, SpellSteps(context.SourceCardId), g => g.AfterAutomatedResolution(item, effects)));
+            var steps = SpellSteps(State[card].CardId);
+            var context = item.Effect ?? new EffectContext
+            {
+                Controller = item.Controller,
+                Source = card,
+                SourceCardId = State[card].CardId,
+                Slots = TargetSlots.Of(steps),
+            };
+            Push(new ResolveEffectTask(context, steps, g => g.AfterAutomatedResolution(item, effects)));
             return;
         }
         ResolveByHand(item, null);
