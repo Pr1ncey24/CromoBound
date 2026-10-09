@@ -7,12 +7,13 @@ namespace CromoBound.Engine.Effects;
 /// <summary>What this engine can run (spec §7). A card whose file uses anything else plays by hand, like an Unmapped card.</summary>
 internal static class EffectsSupport
 {
-    /// <summary>Keywords the engine runs: those the 2a rules core enforces and the keyword abilities of Plan E. The others arrive with Plan F.</summary>
+    /// <summary>Keywords the engine runs. The others arrive later in Plan F.</summary>
     private static readonly HashSet<MechanicalKeyword> Keywords =
     [
         MechanicalKeyword.Accelerate, MechanicalKeyword.Action, MechanicalKeyword.Reaction, MechanicalKeyword.Hidden,
         MechanicalKeyword.Ganking, MechanicalKeyword.Tank, MechanicalKeyword.Backline, MechanicalKeyword.Temporary,
         MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt, MechanicalKeyword.Empower,
+        MechanicalKeyword.Assault, MechanicalKeyword.Shield,
     ];
 
     /// <summary>The keywords that take a value (Hunt 3, Assault 2), a cost (Empower, Equip) or steps (Deathknell). Any other

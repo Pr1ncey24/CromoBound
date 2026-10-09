@@ -105,12 +105,8 @@ public sealed partial class Game
         return new SubmitResult(true, null, Continue());
     }
 
-    /// <summary>Current Might: printed + buff + active modifiers (spec §5).</summary>
-    public int MightOf(ObjectId id)
-    {
-        var unit = State[id];
-        return (CardOf(unit).Might ?? 0) + (unit.Buffed ? 1 : 0) + unit.Modifiers.Sum(m => m.Amount);
-    }
+    /// <summary>Current Might (spec §4.7): printed + buff + modifiers + Assault or Shield in combat.</summary>
+    public int MightOf(ObjectId id) => Modifiers.MightOf(this, State[id]);
 
     /// <summary>Raises a decision. The handler validates the answer first, then applies it; it returns a rejection to keep waiting.</summary>
     internal void Ask(PendingDecision decision, Func<PlayerId, PlayerAction, Rejection?> handler)

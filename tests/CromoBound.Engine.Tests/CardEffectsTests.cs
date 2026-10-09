@@ -55,7 +55,7 @@ public class CardEffectsTests
     public void A_file_the_engine_cant_run_yet_falls_back_to_unmapped_and_says_why()
     {
         var db = EngineTestDb.Create(("tank-2", """
-            { "cardId": "tank-2", "status": "Full", "keywords": [ { "keyword": "Shield", "value": 1 } ],
+            { "cardId": "tank-2", "status": "Full", "keywords": [ { "keyword": "Deflect", "value": 1 } ],
               "abilities": [ { "kind": "Triggered", "trigger": { "event": "Hold" }, "steps": [ { "action": "Draw" } ] } ] }
             """));
 
@@ -63,7 +63,7 @@ public class CardEffectsTests
 
         Assert.Equal(MappingStatus.Unmapped, info.Status);
         Assert.Contains(DisplayKeyword.Tank, info.Keywords);
-        Assert.Equal(new[] { "keyword Shield", "abilities[0]: trigger" }, info.Unsupported);
+        Assert.Equal(new[] { "keyword Deflect", "abilities[0]: trigger" }, info.Unsupported);
     }
 
     [Theory]
