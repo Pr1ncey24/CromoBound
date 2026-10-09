@@ -203,7 +203,7 @@ public class MatchEffectsTests
         Assert.Contains(2, match.Result.GameWins);
         Assert.Contains(match.Events, e => e is TriggerAdded);
         var loaded = Match.Load(match.ToRecord(), EngineTestDb.WithRealCards(MappedFuryChaos));
-        var first = new PlayerId(0);
-        Assert.Equal(CromoJson.Serialize(match.ViewFor(first)), CromoJson.Serialize(loaded.ViewFor(first)));
+        foreach (var viewer in new[] { new PlayerId(0), new PlayerId(1) })
+            Assert.Equal(CromoJson.Serialize(match.ViewFor(viewer)), CromoJson.Serialize(loaded.ViewFor(viewer)));
     }
 }

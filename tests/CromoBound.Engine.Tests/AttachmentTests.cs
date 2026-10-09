@@ -36,6 +36,20 @@ public class AttachmentTests
     }
 
     [Fact]
+    public void Gear_moved_away_from_its_unit_is_detached()
+    {
+        var (game, engine, unit, gear) = Setup();
+        Assert.True(engine.SubmitManual(P1, new ManualAttach(gear, unit)).Accepted);
+
+        var moved = engine.SubmitManual(P1, new ManualMoveCard(gear, Place.Base(P1)));
+
+        Assert.True(moved.Accepted);
+        Assert.Null(game.State[gear].AttachedTo);
+        Assert.Contains(moved.Events, e => e is Detached);
+        Assert.Equal(Place.Base(P1), game.State[gear].Place);
+    }
+
+    [Fact]
     public void Gear_is_detached_and_recalled_when_its_unit_leaves_the_board()
     {
         var (game, engine, unit, gear) = Setup();

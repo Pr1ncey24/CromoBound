@@ -112,9 +112,10 @@ public sealed partial class Game
         return [Place.Base(task.Player), .. battlefields.Select(Place.Battlefield)];
     }
 
-    /// <summary>Ambush (CR 822): the battlefields where the player has units, when the card has Ambush.</summary>
+    /// <summary>Ambush (CR 822): the battlefields where the player has units, when the engine runs the card (Full or Partial) and
+    /// it has Ambush; an Unmapped card's text keyword stays manual, as in 2a.</summary>
     private List<int> AmbushBattlefields(PlayerId player, CardInstance card) =>
-        !Has(card, DisplayKeyword.Ambush) ? [] :
+        Effects.For(card.CardId).Status == MappingStatus.Unmapped || !Has(card, DisplayKeyword.Ambush) ? [] :
         [.. State.Battlefields.Where(b => UnitsAt(Place.Battlefield(b.Index)).Any(u => u.Controller == player)).Select(b => b.Index)];
 
     /// <summary>Asks for the location and Accelerate when there is a real choice; returns true when it asked.</summary>

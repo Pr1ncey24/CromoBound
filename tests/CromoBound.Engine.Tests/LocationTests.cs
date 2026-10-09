@@ -52,6 +52,22 @@ public class LocationTests
     }
 
     [Fact]
+    public void An_unmapped_card_with_an_ambush_text_keyword_gets_no_reaction_timing()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("stalking-wolf"));
+        game.State.Battlefields[0].Controller = P1;
+        game.Put("unit-2", Place.Battlefield(0));
+        game.Put("stalking-wolf", Place.Hand(P1));
+        game.Put("spell", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 4);
+        var engine = game.Start();
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "spell")));
+        engine.PayWithSuggestion(P1);
+
+        Assert.DoesNotContain(game.First(Place.Hand(P1), "stalking-wolf"), engine.Decision<PriorityDecision>().Playable);
+    }
+
+    [Fact]
     public void In_your_main_phase_an_ambush_unit_may_still_enter_at_your_base()
     {
         var game = SoulspinnerGame(unitThere: true);
