@@ -65,8 +65,8 @@ internal sealed class TwoPlayers : IAsyncDisposable
         }
     }
 
-    /// <summary>A view as a player receives it: written by the server and read back by the client, where empty lists read back as
-    /// null. Compare views a client received with this, not with the engine's view directly.</summary>
+    /// <summary>A view as a player receives it: written to the wire and read back. Compare views a client received with this, not with
+    /// the engine's view directly.</summary>
     public static string AsReceived(PlayerView view) =>
         CromoJson.Serialize(JsonSerializer.Deserialize<PlayerView>(JsonSerializer.Serialize(view, WireJson.Options), WireJson.Options));
 

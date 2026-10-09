@@ -42,6 +42,7 @@ public class AppTests
         var response = await player.GetAsync("/" + AppScript);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotEmpty(await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -85,6 +86,7 @@ public class AppTests
             .Select(e => e.RoutePattern.RawText?.TrimStart('/')).ToList();
 
         Assert.Contains(AppScript, routes);
+        Assert.Contains("_framework/dotnet.js", routes);
         Assert.Contains("index.html", routes);
     }
 }

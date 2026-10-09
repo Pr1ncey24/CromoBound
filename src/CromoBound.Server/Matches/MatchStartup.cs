@@ -8,7 +8,7 @@ namespace CromoBound.Server.Matches;
 
 /// <summary>Runs at startup, after the database is ready (spec §6.6). Taking the card data loads it, so a data folder that can't be
 /// loaded stops the server. Every Running match is replayed from its record. A match that can't be replayed is marked Abandoned, and
-/// its players are told the next time they ask for their match. That covers a record from another engine build or other card data,
+/// its players are told the next time they ask for their lobby. That covers a record from another engine build or other card data,
 /// one that can't be read at all, and one whose player no longer exists. Nothing in a saved match can stop the server from
 /// starting.</summary>
 internal sealed class MatchStartup(CardDatabase cards, IMatchStore store, MatchRegistry matches, IServiceScopeFactory scopes,

@@ -71,7 +71,7 @@ internal sealed class GameClient : IAsyncDisposable
         await connection.StartAsync();
         // StartAsync returns before the server has put the connection in its user's group, so a notice sent right away could miss it. The
         // server runs a connection's calls only after it has joined the group, so a reply proves it. This call changes nothing: it asks
-        // to cancel a challenge that doesn't exist (GetMatch would use up a one-time abandoned notice). A connection refused at the
+        // to cancel a challenge that doesn't exist (GetLobby would use up a one-time abandoned notice). A connection refused at the
         // upgrade still throws from StartAsync.
         await connection.InvokeAsync<HubReply>("CancelChallenge", Guid.Empty);
         return client;
