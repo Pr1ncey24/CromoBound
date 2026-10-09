@@ -17,6 +17,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAccounts();
+app.MapAdmin();
 app.Run();
 
 /// <summary>The entry point; public so the test host can start the server.</summary>
