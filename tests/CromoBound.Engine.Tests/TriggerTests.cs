@@ -168,4 +168,16 @@ public class TriggerTests
         Assert.Equal(P2, Assert.Single(game.State.Chain).Controller);
         Assert.Equal(P2, engine.Decision<PriorityDecision>().Player);
     }
+
+    [Fact]
+    public void A_keyword_trigger_shows_its_keyword_line_on_the_chain()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("soaring-scout"));
+        var scout = game.Put("soaring-scout", Place.Base(P1));
+        var engine = game.Start();
+
+        Assert.True(engine.SubmitManual(P1, new ManualDamage(scout, 1)).Accepted);
+
+        Assert.StartsWith("[Deathknell]", Assert.Single(game.State.Chain).Text);
+    }
 }

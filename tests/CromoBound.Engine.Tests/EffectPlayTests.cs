@@ -119,4 +119,51 @@ public class EffectPlayTests
         Assert.Empty(game.State.Chain);
         Assert.IsType<PriorityDecision>(engine.Pending);
     }
+
+    [Fact]
+    public void A_spell_played_by_an_effect_waits_on_the_chain_and_the_effect_goes_on()
+    {
+        var game = new TestGame();
+        game.Put("spell", Place.Trash(P2));
+        var engine = game.Start();
+        var hand = game.State.At(Place.Hand(P1)).Count;
+        var context = Context();
+
+        var events = engine.RunNow(new ResolveEffectTask(context,
+        [
+            new ChooseCardStep { From = OpponentsTrash, Filter = new Filter { Type = CardType.Spell }, Store = "picked" },
+            new PlayStep { Card = ObjectRef.Variable("picked"), Cost = PlayCostMode.IgnoreAll, Store = "played" },
+            new DrawStep { Amount = 1 },
+        ], _ => { }));
+
+        var item = Assert.Single(game.State.Chain);
+        Assert.Equal(ChainItemStatus.Finalized, item.Status);
+        Assert.Equal(new[] { item.Card!.Value }, context.Vars["played"].Objects);
+        Assert.Contains(events, e => e is CardPlayed { CardId: "spell" });
+        Assert.Equal(hand + 1, game.State.At(Place.Hand(P1)).Count);
+        Assert.Equal(P1, engine.Decision<PriorityDecision>().Player);
+
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+        engine.Decision<ResolveManuallyDecision>();
+        engine.Accept(P1, new ResolveDone());
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "spell");
+    }
+
+    [Fact]
+    public void A_facedown_card_is_never_played_by_an_effect()
+    {
+        var game = new TestGame();
+        var engine = game.Start();
+        game.State.Battlefields[0].Controller = P1;
+        var hidden = game.Put("hidden-unit", Place.Facedown(0));
+        var context = Context();
+        context.Vars["picked"] = new EffectVar([hidden], [], 1, true);
+
+        engine.RunNow(new ResolveEffectTask(context, [new PlayStep { Card = ObjectRef.Variable("picked"), Store = "played" }], _ => { }));
+
+        Assert.False(context.Vars["played"].Happened);
+        Assert.Equal(PlaceKind.Facedown, game.State[hidden].Place.Kind);
+        Assert.Empty(game.State.Chain);
+    }
 }

@@ -39,34 +39,37 @@ internal sealed class CardEffects(CardDatabase db)
         if (unsupported.Count > 0) return Unmapped(card, all, unsupported);
 
         IReadOnlySet<DisplayKeyword> keywords = file.Keywords.Select(k => Enum.Parse<DisplayKeyword>(k.Keyword.ToString())).ToHashSet();
-        IReadOnlyList<Ability> abilities = [.. file.Abilities, .. KeywordAbilities(file)];
+        IReadOnlyList<Ability> abilities = [.. file.Abilities, .. KeywordAbilities(file, lines)];
         if (file.Status == MappingStatus.Full) return new(MappingStatus.Full, abilities, keywords, [], [], file.Keywords);
         var covered = file.Abilities.Where(a => a.Line is not null).SelectMany(a => a.Line!.Lines).ToHashSet();
         List<int> manual = [.. all.Where(n => !covered.Contains(n) && !CardKeywords.IsKeywordLine(lines[n - 1]))];
         return new(MappingStatus.Partial, abilities, keywords, manual, [], file.Keywords);
     }
 
-    /// <summary>The abilities keywords stand for (spec §8.1), listed after the file's own so ability indices follow the JSON.</summary>
-    private static IEnumerable<Ability> KeywordAbilities(EffectsFile file)
+    /// <summary>The abilities keywords stand for (spec §8.1), listed after the file's own so ability indices follow the JSON. Each
+    /// carries the keyword's text line, so its chain item has text.</summary>
+    private static IEnumerable<Ability> KeywordAbilities(EffectsFile file, IReadOnlyList<string> lines)
     {
         foreach (var entry in file.Keywords)
         {
+            var line = KeywordLine(lines, entry.Keyword);
             switch (entry.Keyword)
             {
                 case MechanicalKeyword.Deathknell:
-                    yield return OwnTrigger(TriggerEvent.Dies, entry.Steps);
+                    yield return OwnTrigger(TriggerEvent.Dies, entry.Steps, line);
                     break;
                 case MechanicalKeyword.Vision:
-                    yield return OwnTrigger(TriggerEvent.Played, [new PredictStep()]);
+                    yield return OwnTrigger(TriggerEvent.Played, [new PredictStep()], line);
                     break;
                 case MechanicalKeyword.Hunt:
                     IReadOnlyList<Step> gain = [new GainXpStep { Amount = entry.Value!.Value }];
-                    yield return OwnTrigger(TriggerEvent.Conquer, gain);
-                    yield return OwnTrigger(TriggerEvent.Hold, gain);
+                    yield return OwnTrigger(TriggerEvent.Conquer, gain, line);
+                    yield return OwnTrigger(TriggerEvent.Hold, gain, line);
                     break;
                 case MechanicalKeyword.Empower:
                     yield return new ActivatedAbility
                     {
+                        Line = line,
                         Cost = entry.Cost,
                         UseOnlyIf = new Condition { Not = new Condition { Empowered = true } },
                         Steps = [new EmpowerStep { Target = ObjectRef.Self }],
@@ -76,9 +79,17 @@ internal sealed class CardEffects(CardDatabase db)
         }
     }
 
+    /// <summary>The first text line that starts with the keyword ("[Deathknell] ...", "[Hunt 3] ..."), or null.</summary>
+    private static LineRef? KeywordLine(IReadOnlyList<string> lines, MechanicalKeyword keyword)
+    {
+        for (var n = 1; n <= lines.Count; n++)
+            if (lines[n - 1].StartsWith($"[{keyword}", StringComparison.Ordinal)) return n;
+        return null;
+    }
+
     /// <summary>"When I ...": a trigger on the card's own event.</summary>
-    private static TriggeredAbility OwnTrigger(TriggerEvent kind, IReadOnlyList<Step> steps) =>
-        new() { Trigger = new Trigger { Event = kind, Subject = ObjectRef.Self }, Steps = steps };
+    private static TriggeredAbility OwnTrigger(TriggerEvent kind, IReadOnlyList<Step> steps, LineRef? line) =>
+        new() { Line = line, Trigger = new Trigger { Event = kind, Subject = ObjectRef.Self }, Steps = steps };
 
     private static CardEffectInfo Unmapped(Card card, List<int> lines, IReadOnlyList<string> unsupported) =>
         new(MappingStatus.Unmapped, [], CardKeywords.Own(card), lines, unsupported, []);
