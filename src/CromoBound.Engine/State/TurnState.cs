@@ -18,6 +18,13 @@ public sealed class TurnState
     /// <summary>Battlefield indexes each player has scored this turn (CR 470: one score per battlefield per turn).</summary>
     public Dictionary<PlayerId, HashSet<int>> Scored { get; } = [];
 
+    /// <summary>How many cards each player has played (finalized) this turn; Legion reads it.</summary>
+    public Dictionary<PlayerId, int> Played { get; } = [];
+
+    public int PlayedThisTurn(PlayerId player) => Played.GetValueOrDefault(player);
+
+    public void MarkPlayed(PlayerId player) => Played[player] = PlayedThisTurn(player) + 1;
+
     public bool HasScored(PlayerId player, int battlefield) => Scored.TryGetValue(player, out var set) && set.Contains(battlefield);
 
     public void MarkScored(PlayerId player, int battlefield)

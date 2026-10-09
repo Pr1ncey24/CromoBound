@@ -13,7 +13,7 @@ internal static class EffectsSupport
         MechanicalKeyword.Accelerate, MechanicalKeyword.Action, MechanicalKeyword.Reaction, MechanicalKeyword.Hidden,
         MechanicalKeyword.Ganking, MechanicalKeyword.Tank, MechanicalKeyword.Backline, MechanicalKeyword.Temporary,
         MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt, MechanicalKeyword.Empower,
-        MechanicalKeyword.Assault, MechanicalKeyword.Shield,
+        MechanicalKeyword.Assault, MechanicalKeyword.Shield, MechanicalKeyword.Deflect,
     ];
 
     /// <summary>The keywords that take a value (Hunt 3, Assault 2), a cost (Empower, Equip) or steps (Deathknell). Any other
@@ -56,12 +56,13 @@ internal static class EffectsSupport
 
     private static void CheckAbility(Ability ability, CardType type, string at, List<string> problems)
     {
-        if (ability is not (SpellAbility or TriggeredAbility or ActivatedAbility))
+        if (ability is not (SpellAbility or TriggeredAbility or ActivatedAbility or PassiveAbility))
         {
             problems.Add($"{at}: {ability.GetType().Name.Replace("Ability", "")} ability");
             return;
         }
-        if (ability.Condition is not null || ability.ActiveIn is not null || ability.Script is not null)
+        var condition = ability.Condition is null || (ability is PassiveAbility && ability.Condition.Legion == true);
+        if (!condition || ability.ActiveIn is not null || ability.Script is not null)
             problems.Add($"{at}: condition, activeIn or script");
         switch (ability)
         {
@@ -79,8 +80,21 @@ internal static class EffectsSupport
                 if (activated.Cost is { } cost && !IsSupportedCost(cost)) problems.Add($"{at}: cost");
                 CheckSteps(activated.Steps, at, problems, targets: false);
                 break;
+            case PassiveAbility passive:
+                if (passive.While is not null) problems.Add($"{at}: while");
+                foreach (var modifier in passive.Modifiers)
+                    if (!IsSupportedModifier(modifier)) problems.Add($"{at}: modifier {modifier.GetType().Name.Replace("Modifier", "")}");
+                break;
         }
     }
+
+    /// <summary>A modifier on the card itself, of a kind <see cref="Modifiers"/> evaluates: a literal energy cost reduction.</summary>
+    private static bool IsSupportedModifier(Modifier modifier) => modifier.AppliesTo?.Ref == RefKind.Self && modifier switch
+    {
+        CostReductionModifier reduction => reduction.Energy?.Literal is not null && reduction.Power.Count == 0
+            && reduction.Minimum is null && reduction.FromZone is null,
+        _ => false,
+    };
 
     /// <summary>The forms the <see cref="TriggerWatcher"/> maps: the source's own Dies, BecameEmpowered, Played, Hold or Conquer
     /// (a card that can be their subject, so not a battlefield), and a battlefield's "when you hold (or conquer) here".</summary>

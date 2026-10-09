@@ -15,6 +15,7 @@ public sealed partial class Game
         turn.Number++;
         turn.TurnPlayer = player;
         turn.Scored.Clear();
+        turn.Played.Clear();
         turn.Priority = null;
         turn.Focus = null;
         Emit(new TurnStarted(player, turn.Number));

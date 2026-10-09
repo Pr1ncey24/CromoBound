@@ -26,11 +26,13 @@ public class EffectsDataTests
     [InlineData("daring-poro")]
     [InlineData("mutated-mouser")]
     [InlineData("jeweled-colossus")]
+    [InlineData("noxus-hopeful")]
+    [InlineData("navori-scout")]
+    [InlineData("pouty-poro")]
+    [InlineData("token-bird")]
     public void Cards_the_engine_runs_today_are_full(string cardId) => Assert.Equal(MappingStatus.Full, Real.For(cardId).Status);
 
     [Theory]
-    [InlineData("noxus-hopeful", "Passive ability")]
-    [InlineData("navori-scout", "keyword Deflect")]
     [InlineData("soulspinner", "keyword Ambush")]
     [InlineData("veteran-poro", "keyword Weaponmaster")]
     public void Cards_needing_later_plans_play_by_hand_for_now(string cardId, string missing)

@@ -1,5 +1,6 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Effects;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
@@ -54,7 +55,7 @@ public sealed partial class Game
                     if (task.Step == PlayStep.Targets) task.Step = PlayStep.Cost;
                     break;
                 case PlayStep.Cost:
-                    task.Cost = Payment.CostOf(CardOf(task.Item!.Card!.Value), task.FromHidden || task.IgnoreCost, task.Item.Accelerate);
+                    task.Cost = Modifiers.CostOf(this, task);
                     task.Step = task.IgnoreCost && task.Cost.Energy == 0 && task.Cost.Power.Count == 0 ? PlayStep.Finalize : PlayStep.Pay;
                     break;
                 case PlayStep.Pay:
@@ -201,6 +202,7 @@ public sealed partial class Game
         item.Status = ChainItemStatus.Finalized;
         ChainPasses = 0;
         task.Finished = true;
+        State.Turn.MarkPlayed(task.Player);
         if (card.Type is CardType.Unit or CardType.Gear)
         {
             State.Chain.Remove(item);
