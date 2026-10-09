@@ -11,6 +11,7 @@ public class UserStoreTests
     [InlineData("has space", false)]
     [InlineData("way-too-long-for-a-username", false)]
     [InlineData("café", false)]
+    [InlineData("abc\n", false)]
     public void Usernames_have_3_to_24_letters_digits_underscores_or_dashes(string userName, bool valid) =>
         Assert.Equal(valid, UserStore.UserNameProblem(userName) is null);
 
@@ -55,6 +56,28 @@ public class UserStoreTests
             Assert.NotEqual(stamp, user.SecurityStamp);
             Assert.True(await store.VerifyAsync(user, "a-brand-new-password"));
             Assert.False(await store.VerifyAsync(user, ServerFactory.PlayerPassword));
+        });
+    }
+
+    [Fact]
+    public async Task Changing_the_role_or_the_disabled_flag_replaces_the_security_stamp()
+    {
+        using var factory = new ServerFactory();
+        await factory.AddUserAsync("player1");
+
+        await factory.WithStoreAsync(async store =>
+        {
+            var user = (await store.FindAsync("player1"))!;
+            var stamp = user.SecurityStamp;
+
+            await store.SetAdminAsync(user, true);
+
+            Assert.NotEqual(stamp, user.SecurityStamp);
+            stamp = user.SecurityStamp;
+
+            await store.SetDisabledAsync(user, true);
+
+            Assert.NotEqual(stamp, user.SecurityStamp);
         });
     }
 }

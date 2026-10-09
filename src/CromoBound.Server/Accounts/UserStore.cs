@@ -100,6 +100,6 @@ internal sealed partial class UserStore(CromoDbContext db, IPasswordHasher<UserE
 
     private static string NewStamp() => Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
 
-    [GeneratedRegex("^[A-Za-z0-9_-]{3,24}$")]
+    [GeneratedRegex(@"\A[A-Za-z0-9_-]{3,24}\z")]
     private static partial Regex ValidUserName();
 }
