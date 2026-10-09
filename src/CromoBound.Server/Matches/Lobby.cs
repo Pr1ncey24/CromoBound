@@ -99,7 +99,7 @@ internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry
     public Task<HubReply> CancelAsync(MatchSeat me, Guid challengeId) =>
         CloseAsync(challengeId, c => c.From.UserId == me.UserId, ChallengeEnd.Cancelled);
 
-    /// <summary>The user's open challenges, made and received (spec ง6.1).</summary>
+    /// <summary>The user's open challenges, made and received (spec ยง6.1).</summary>
     public async Task<IReadOnlyList<ChallengeInfo>> ChallengesOfAsync(int userId)
     {
         await _gate.WaitAsync();

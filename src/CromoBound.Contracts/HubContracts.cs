@@ -65,7 +65,7 @@ public sealed record PlayerPresence(string UserName, bool Online, bool InMatch);
 /// <summary>An open challenge the receiving player made or received.</summary>
 public sealed record ChallengeInfo(Guid ChallengeId, string From, string To, MatchFormat Format);
 
-/// <summary>GetLobby's answer (spec ง6.1): every other enabled player by name, the caller's open challenges, their running match,
+/// <summary>GetLobby's answer (spec ยง6.1): every other enabled player by name, the caller's open challenges, their running match,
 /// once the notice of a match of theirs abandoned when the server restarted, and whether maintenance is on.</summary>
 public sealed record LobbyReply(
     IReadOnlyList<PlayerPresence> Players, IReadOnlyList<ChallengeInfo> Challenges, Guid? MatchId, MatchEndedNotice? Ended, bool Maintenance);
