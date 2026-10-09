@@ -64,6 +64,29 @@ public class DefaultDenyTests
     }
 
     [Fact]
+    public async Task Every_admin_endpoint_requires_the_admin_role_and_not_just_the_player_role()
+    {
+        using var factory = new ServerFactory();
+        var policies = factory.Services.GetRequiredService<IAuthorizationPolicyProvider>();
+        var fallback = factory.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value.FallbackPolicy;
+
+        var admin = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>()
+            .Where(e => e.RoutePattern.RawText?.StartsWith("/api/admin", StringComparison.Ordinal) == true).ToList();
+
+        Assert.NotEmpty(admin);
+        foreach (var endpoint in admin)
+        {
+            var route = endpoint.RoutePattern.RawText;
+            var policy = await AuthorizationPolicy.CombineAsync(policies, endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>(),
+                endpoint.Metadata.GetOrderedMetadata<AuthorizationPolicy>()) ?? fallback;
+            Assert.True(policy is not null, $"{route} has no policy.");
+            var roles = policy.Requirements.OfType<RolesAuthorizationRequirement>().ToList();
+            Assert.True(roles.Any(r => r.AllowedRoles.Contains(Roles.Steward)), $"{route} doesn't require the admin role.");
+            Assert.All(roles, requirement => Assert.Equal(new[] { Roles.Steward }, requirement.AllowedRoles));
+        }
+    }
+
+    [Fact]
     public void Anything_without_its_own_rule_needs_the_player_role()
     {
         using var factory = new ServerFactory();
