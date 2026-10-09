@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CromoBound.Server.Storage;
 
-/// <summary>Runs before the server accepts requests: brings the database up to the latest migration and, while there are no users, creates the first
-/// admin from <see cref="AdminUserKey"/> and <see cref="AdminPasswordKey"/> (spec §5.3). Without users and without those
-/// settings the server refuses to start.</summary>
+/// <summary>Runs before the server accepts requests: brings the database up to the latest migration and, while there are no users,
+/// creates the first admin from <see cref="AdminUserKey"/> and <see cref="AdminPasswordKey"/> (spec §5.3). Without users and
+/// without those settings the server refuses to start.</summary>
 internal sealed class DatabaseSetup(IServiceScopeFactory scopes, IConfiguration configuration, ILogger<DatabaseSetup> log) : IHostedService
 {
     public const string AdminUserKey = "CROMOBOUND_ADMIN_USER";
