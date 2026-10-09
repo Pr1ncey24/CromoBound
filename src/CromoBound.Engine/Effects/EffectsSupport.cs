@@ -14,6 +14,7 @@ internal static class EffectsSupport
         MechanicalKeyword.Ganking, MechanicalKeyword.Tank, MechanicalKeyword.Backline, MechanicalKeyword.Temporary,
         MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt, MechanicalKeyword.Empower,
         MechanicalKeyword.Assault, MechanicalKeyword.Shield, MechanicalKeyword.Deflect,
+        MechanicalKeyword.Ambush,
     ];
 
     /// <summary>The keywords that take a value (Hunt 3, Assault 2), a cost (Empower, Equip) or steps (Deathknell). Any other
@@ -88,11 +89,12 @@ internal static class EffectsSupport
         }
     }
 
-    /// <summary>A modifier on the card itself, of a kind <see cref="Modifiers"/> evaluates: a literal energy cost reduction.</summary>
+    /// <summary>A modifier on the card itself, of a kind <see cref="Modifiers"/> evaluates: a literal energy cost reduction, or the permission to be played to a battlefield with enemy units.</summary>
     private static bool IsSupportedModifier(Modifier modifier) => modifier.AppliesTo?.Ref == RefKind.Self && modifier switch
     {
         CostReductionModifier reduction => reduction.Energy?.Literal is not null && reduction.Power.Count == 0
             && reduction.Minimum is null && reduction.FromZone is null,
+        PermissionModifier permission => permission.Permission == Permission.PlayToBattlefieldWithEnemyUnits,
         _ => false,
     };
 

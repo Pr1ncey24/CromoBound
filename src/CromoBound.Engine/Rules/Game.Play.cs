@@ -25,6 +25,10 @@ internal sealed class PlayCardTask(PlayerId player, ObjectId source) : GameTask
     /// <summary>Played by an effect "ignoring its cost" (spec §5.5): the base cost is skipped like a hidden play's; Accelerate still costs.</summary>
     public bool IgnoreCost { get; init; }
 
+    /// <summary>Started with Ambush's Reaction timing because the card's own timing didn't allow the play (CR 822): it may enter
+    /// only a battlefield where the player has units.</summary>
+    public bool ByAmbush { get; init; }
+
     /// <summary>Set when the play finalized; <see cref="Played"/> is the card where it ended up (the board, or the chain for a spell).</summary>
     public bool Finished { get; set; }
     public ObjectId? Played { get; set; }
@@ -34,7 +38,8 @@ internal sealed class PlayCardTask(PlayerId player, ObjectId source) : GameTask
 
 public sealed partial class Game
 {
-    private void StartPlay(PlayerId player, ObjectId card) => Push(new PlayCardTask(player, card));
+    private void StartPlay(PlayerId player, ObjectId card) =>
+        Push(new PlayCardTask(player, card) { ByAmbush = State[card].Place.Kind != PlaceKind.Facedown && !HasPlayTiming(player, State[card]) });
 
     internal bool RunPlay(PlayCardTask task)
     {
@@ -48,7 +53,7 @@ public sealed partial class Game
                     break;
                 case PlayStep.Choices:
                     if (AskPlayChoices(task)) return false;
-                    task.Step = PlayStep.Targets;
+                    if (task.Step == PlayStep.Choices) task.Step = PlayStep.Targets;
                     break;
                 case PlayStep.Targets:
                     if (AskTargets(task)) return false;
@@ -87,22 +92,41 @@ public sealed partial class Game
         task.Item = item;
     }
 
-    /// <summary>Where the permanent may enter (CR 355.2.a, 811.1.d): a unit at your Base or a battlefield you control;
-    /// gear at your Base; from Hidden, that card's battlefield. Spells have no location.</summary>
+    /// <summary>Where the permanent may enter (CR 355.2.a, 811.1.d, 822): a unit at your Base or a battlefield you control, plus
+    /// with Ambush a battlefield where you have units, plus with the permission a battlefield with enemy units; only the Ambush
+    /// battlefields when Ambush gave the timing. Gear at your Base; from Hidden, that card's battlefield. Spells have no location.</summary>
     private List<Place> PlayLocations(PlayCardTask task)
     {
-        var card = CardOf(task.Item!.Card!.Value);
+        var instance = State[task.Item!.Card!.Value];
+        var card = CardOf(instance);
         if (card.Type == CardType.Spell) return [];
         if (task.FromHidden) return [Place.Battlefield(task.Origin.Index!.Value)];
         if (card.Type != CardType.Unit) return [Place.Base(task.Player)];
-        return [Place.Base(task.Player), .. State.Battlefields.Where(b => b.Controller == task.Player).Select(b => Place.Battlefield(b.Index))];
+        var ambush = AmbushBattlefields(task.Player, instance);
+        if (task.ByAmbush) return [.. ambush.Select(Place.Battlefield)];
+        IEnumerable<int> enemies = Modifiers.Permits(this, instance, task.Player, Permission.PlayToBattlefieldWithEnemyUnits)
+            ? State.Battlefields.Where(b => UnitsAt(Place.Battlefield(b.Index)).Any(u => u.Controller != task.Player)).Select(b => b.Index)
+            : [];
+        var battlefields = State.Battlefields.Where(b => b.Controller == task.Player).Select(b => b.Index)
+            .Concat(ambush).Concat(enemies).Distinct().Order();
+        return [Place.Base(task.Player), .. battlefields.Select(Place.Battlefield)];
     }
+
+    /// <summary>Ambush (CR 822): the battlefields where the player has units, when the card has Ambush.</summary>
+    private List<int> AmbushBattlefields(PlayerId player, CardInstance card) =>
+        !Has(card, DisplayKeyword.Ambush) ? [] :
+        [.. State.Battlefields.Where(b => UnitsAt(Place.Battlefield(b.Index)).Any(u => u.Controller == player)).Select(b => b.Index)];
 
     /// <summary>Asks for the location and Accelerate when there is a real choice; returns true when it asked.</summary>
     private bool AskPlayChoices(PlayCardTask task)
     {
         var item = task.Item!;
         var locations = PlayLocations(task);
+        if (locations.Count == 0 && CardOf(item.Card!.Value).Type != CardType.Spell)
+        {
+            UndoPlay(task);
+            return false;
+        }
         var accelerate = CardOf(item.Card!.Value).Type == CardType.Unit && Has(State[item.Card.Value], DisplayKeyword.Accelerate);
         if (locations.Count <= 1 && !accelerate)
         {

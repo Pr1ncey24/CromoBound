@@ -30,10 +30,13 @@ public class EffectsDataTests
     [InlineData("navori-scout")]
     [InlineData("pouty-poro")]
     [InlineData("token-bird")]
+    [InlineData("soulspinner")]
+    [InlineData("inferna")]
+    [InlineData("rengar-trophy-hunter")]
+    [InlineData("rengar-unseen")]
     public void Cards_the_engine_runs_today_are_full(string cardId) => Assert.Equal(MappingStatus.Full, Real.For(cardId).Status);
 
     [Theory]
-    [InlineData("soulspinner", "keyword Ambush")]
     [InlineData("veteran-poro", "keyword Weaponmaster")]
     public void Cards_needing_later_plans_play_by_hand_for_now(string cardId, string missing)
     {

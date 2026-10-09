@@ -42,22 +42,23 @@ public sealed partial class Game
     private bool IsNeutralOpenMain(PlayerId player) =>
         !IsClosed && State.Showdown is null && State.Turn.Phase == Phase.Main && State.Turn.TurnPlayer == player;
 
-    /// <summary>Cards the player may start playing now, by timing only (CR 310, 806, 811, 813). Payment is checked later.</summary>
+    /// <summary>Cards the player may start playing now, by timing only (CR 310, 806, 811, 813, 822). Payment is checked later.</summary>
     private IEnumerable<ObjectId> PlayableCards(PlayerId player)
     {
-        var anything = IsNeutralOpenMain(player);
         foreach (var id in State.At(Place.Hand(player)).Concat(State.At(Place.ChampionZone(player))))
         {
             var card = State[id];
-            var timing = anything
-                || Has(card, DisplayKeyword.Reaction)
-                || (!IsClosed && Has(card, DisplayKeyword.Action));
+            var timing = HasPlayTiming(player, card) || AmbushBattlefields(player, card).Count > 0;
             if (timing && HasTargetsFor(player, card)) yield return id;
         }
         foreach (var battlefield in State.Battlefields)
             foreach (var id in State.At(Place.Facedown(battlefield.Index)))
                 if (CanPlayFromHidden(State[id], player) && HasTargetsFor(player, State[id])) yield return id;
     }
+
+    /// <summary>The card's own timing: anything in your Neutral Open Main, Reaction any time, Action while no chain exists.</summary>
+    private bool HasPlayTiming(PlayerId player, CardInstance card) =>
+        IsNeutralOpenMain(player) || Has(card, DisplayKeyword.Reaction) || (!IsClosed && Has(card, DisplayKeyword.Action));
 
     /// <summary>A hidden card gains Reaction from the turn after it was hidden (CR 811.1.b).</summary>
     private bool CanPlayFromHidden(CardInstance card, PlayerId player) =>

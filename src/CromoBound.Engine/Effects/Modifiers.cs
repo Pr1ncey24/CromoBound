@@ -45,6 +45,12 @@ internal static class Modifiers
         return new TotalCost(Math.Max(0, cost.Energy - reduction), power);
     }
 
+    /// <summary>Whether one of the card's passive abilities gives the card the permission now (spec §4.7).</summary>
+    public static bool Permits(Game game, CardInstance card, PlayerId controller, Permission permission) =>
+        OwnPassives(game, card, new EffectContext { Controller = controller, Source = card.Id, SourceCardId = card.CardId })
+            .OfType<PermissionModifier>()
+            .Any(p => p.Permission == permission);
+
     /// <summary>The modifiers of the card's passive abilities that apply to the card itself and whose condition holds now.</summary>
     private static IEnumerable<Modifier> OwnPassives(Game game, CardInstance card, EffectContext context) =>
         game.Effects.For(card.CardId).Abilities.OfType<PassiveAbility>()
