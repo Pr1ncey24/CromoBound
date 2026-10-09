@@ -156,4 +156,30 @@ public class TurnPointTests
         Assert.Equal(2, game.State.Turn.Number);
         Assert.Equal(P2, engine.Decision<PriorityDecision>().Player);
     }
+
+    [Fact]
+    public void A_full_card_never_pauses()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("dawn-relic", """{ "cardId": "dawn-relic", "status": "Full" }""")));
+        game.Put("dawn-relic", Place.Base(P1));
+
+        var engine = game.Start();
+
+        Assert.IsType<PriorityDecision>(engine.Pending);
+    }
+
+    [Fact]
+    public void A_partial_card_pauses_only_for_its_manual_lines()
+    {
+        var manual = new TestGame(db: EngineTestDb.Create(("dawn-relic", """{ "cardId": "dawn-relic", "status": "Partial" }""")));
+        manual.Put("dawn-relic", Place.Base(P1));
+        var covered = new TestGame(db: EngineTestDb.Create(("dawn-relic", """
+            { "cardId": "dawn-relic", "status": "Partial",
+              "abilities": [ { "kind": "Activated", "line": 1, "steps": [ { "action": "Draw", "amount": 1 } ] } ] }
+            """)));
+        covered.Put("dawn-relic", Place.Base(P1));
+
+        Assert.IsType<TurnPointDecision>(manual.Start().Pending);
+        Assert.IsType<PriorityDecision>(covered.Start().Pending);
+    }
 }

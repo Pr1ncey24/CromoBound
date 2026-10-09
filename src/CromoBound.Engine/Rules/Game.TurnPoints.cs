@@ -3,6 +3,7 @@ using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
+using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
@@ -49,7 +50,7 @@ public sealed partial class Game
         return true;
     }
 
-    /// <summary>Cards in play handled by <paramref name="player"/> whose text acts at this point (reminder text ignored).
+    /// <summary>Cards in play handled by <paramref name="player"/> whose text the players still resolve (<see cref="TurnPointText"/>) acts at this point (reminder text ignored).
     /// Text saying "your" counts only on its controller's turn.</summary>
     internal List<ObjectId> TurnPointCards(TurnPoint point, PlayerId player)
     {
@@ -63,12 +64,25 @@ public sealed partial class Game
         foreach (var instance in State.Objects.Where(o => o.Place.IsBoard && o.Place.Kind != PlaceKind.Facedown))
         {
             if (HandledBy(instance) != player) continue;
-            var match = pattern.Match(RichText.StripReminders(CardOf(instance).Text.Rich));
+            if (TurnPointText(instance) is not { } text) continue;
+            var match = pattern.Match(RichText.StripReminders(text));
             if (!match.Success) continue;
             if (Your.IsMatch(match.Value) && player != State.Turn.TurnPlayer) continue;
             result.Add(instance.Id);
         }
         return result;
+    }
+
+    /// <summary>The text that may need a turn-point pause (spec §9): all of an Unmapped card's text, only the manual lines of a
+    /// Partial card, and none of a Full card's (the engine runs it).</summary>
+    private string? TurnPointText(CardInstance instance)
+    {
+        var effects = Effects.For(instance.CardId);
+        var text = CardOf(instance).Text.Rich;
+        if (effects.Status == MappingStatus.Unmapped) return text;
+        if (effects.Status == MappingStatus.Full || effects.ManualLines.Count == 0) return null;
+        var lines = RichText.Lines(text);
+        return string.Join("<br />", effects.ManualLines.Select(n => lines[n - 1]));
     }
 
     /// <summary>A battlefield's abilities belong to its controller, or the turn player when uncontrolled (CR 190.6).</summary>
