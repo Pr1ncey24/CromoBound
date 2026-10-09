@@ -21,6 +21,13 @@ internal sealed class PlayCardTask(PlayerId player, ObjectId source) : GameTask
     public TotalCost Cost { get; set; } = new(0, []);
     public bool FromHidden => Origin.Kind == PlaceKind.Facedown;
 
+    /// <summary>Played by an effect "ignoring its cost" (spec §5.5): the base cost is skipped like a hidden play's; Accelerate still costs.</summary>
+    public bool IgnoreCost { get; init; }
+
+    /// <summary>Set when the play finalized; <see cref="Played"/> is the card where it ended up (the board, or the chain for a spell).</summary>
+    public bool Finished { get; set; }
+    public ObjectId? Played { get; set; }
+
     public override bool Run(Game game) => game.RunPlay(this);
 }
 
@@ -47,8 +54,8 @@ public sealed partial class Game
                     if (task.Step == PlayStep.Targets) task.Step = PlayStep.Cost;
                     break;
                 case PlayStep.Cost:
-                    task.Cost = Payment.CostOf(CardOf(task.Item!.Card!.Value), task.FromHidden, task.Item.Accelerate);
-                    task.Step = PlayStep.Pay;
+                    task.Cost = Payment.CostOf(CardOf(task.Item!.Card!.Value), task.FromHidden || task.IgnoreCost, task.Item.Accelerate);
+                    task.Step = task.IgnoreCost && task.Cost.Energy == 0 && task.Cost.Power.Count == 0 ? PlayStep.Finalize : PlayStep.Pay;
                     break;
                 case PlayStep.Pay:
                     AskPay(task.Player, task.Cost, CardOf(task.Item!.Card!.Value).Domains,
@@ -186,23 +193,28 @@ public sealed partial class Game
     }
 
     /// <summary>CR 359: a permanent leaves the chain and enters the board (a unit exhausted unless Accelerated, gear ready);
-    /// a spell stays on the chain, finalized, and its controller gets priority (CR 337.4).</summary>
+    /// a spell stays on the chain, finalized, and its controller gets priority (CR 337.4). Either way the play is announced.</summary>
     private void FinishFinalizing(PlayCardTask task)
     {
         var item = task.Item!;
         var card = CardOf(item.Card!.Value);
         item.Status = ChainItemStatus.Finalized;
         ChainPasses = 0;
+        task.Finished = true;
         if (card.Type is CardType.Unit or CardType.Gear)
         {
             State.Chain.Remove(item);
             var id = MoveCard(item.Card.Value, item.Location!.Value)!.Value;
             State[id].Controller = task.Player;
             if (card.Type == CardType.Unit && !item.Accelerate) SetStatus(id, StatusKind.Exhausted, true);
+            task.Played = id;
+            Emit(new CardPlayed(id, card.Id, task.Player));
             Emit(new ChainItemResolved(item.Id));
             AfterResolution();
             return;
         }
+        task.Played = item.Card;
+        Emit(new CardPlayed(item.Card.Value, card.Id, task.Player));
         State.Turn.Priority = item.Controller;
     }
 }

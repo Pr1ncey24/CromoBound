@@ -88,6 +88,11 @@ internal static class EffectsSupport
             case PredictStep predict:
                 if (predict.Amount.Literal != 1) problems.Add($"{at}: value");
                 break;
+            case PlayStep play:
+                if (play.Card.Var is null || play.From is not null || play.For is not null || play.Location is not null
+                    || play.Exhausted is not null || play.Cost is not (null or PlayCostMode.IgnoreAll))
+                    problems.Add($"{at}: play");
+                break;
         }
         if (step is TargetStep target && !IsSupportedTarget(target.Target, targets)) problems.Add($"{at}: target");
     }

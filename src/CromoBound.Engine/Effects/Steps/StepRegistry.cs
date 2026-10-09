@@ -18,6 +18,7 @@ internal static class StepRegistry
         [typeof(ChooseCardStep)] = new ChooseCardHandler(),
         [typeof(OptionalStep)] = new OptionalHandler(),
         [typeof(PredictStep)] = new PredictHandler(),
+        [typeof(PlayStep)] = new PlayHandler(),
     };
 
     public static bool Supports(Type stepType) => Handlers.ContainsKey(stepType);
