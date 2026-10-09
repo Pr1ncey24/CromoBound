@@ -9,11 +9,12 @@ namespace CromoBound.Server.Accounts;
 internal static class LoginEndpoints
 {
     public const string Failure = "Invalid username or password.";
+    public const string RateLimitPolicy = "login";
 
     public static void MapAccounts(this IEndpointRouteBuilder app)
     {
         app.MapGet("/login", () => Results.Content(Pages.Login(failed: false), "text/html")).AllowAnonymous();
-        app.MapPost("/login", LoginAsync).AllowAnonymous();
+        app.MapPost("/login", LoginAsync).AllowAnonymous().RequireRateLimiting(RateLimitPolicy);
         app.MapPost("/logout", (Delegate)LogoutAsync).RequireAuthorization(Policies.Seat);
         app.MapGet("/api/me", (ClaimsPrincipal user) => new MeResponse(user.Identity?.Name ?? "", user.IsInRole(Roles.Steward)))
             .RequireAuthorization(Policies.Seat);
@@ -21,14 +22,14 @@ internal static class LoginEndpoints
             .RequireAuthorization(Policies.Seat);
     }
 
-    /// <summary>A form post (redirects home) or JSON (204). Every failure is the same answer; the time of a password check is spent
-    /// even when the account doesn't exist.</summary>
-    private static async Task<IResult> LoginAsync(HttpContext http, UserStore users)
+    /// <summary>A form post (redirects home) or JSON (204). Every failure is the same answer, a locked name included; the time of a
+    /// password check is spent even when the account doesn't exist or the name is locked.</summary>
+    private static async Task<IResult> LoginAsync(HttpContext http, UserStore users, LoginLockout lockout)
     {
         var form = http.Request.HasFormContentType;
         var (userName, password) = await ReadCredentialsAsync(http.Request, form);
         if (userName is null || password is null) return Failed(form);
-        if (UserStore.UserNameProblem(userName) is not null)
+        if (UserStore.UserNameProblem(userName) is not null || lockout.IsLocked(userName))
         {
             users.VerifyNothing(password);
             return Failed(form);
@@ -36,7 +37,12 @@ internal static class LoginEndpoints
         var user = await users.FindAsync(userName);
         if (user is null) users.VerifyNothing(password);
         var valid = user is not null && await users.VerifyAsync(user, password) && !user.Disabled;
-        if (!valid) return Failed(form);
+        if (!valid)
+        {
+            lockout.RecordFailure(userName);
+            return Failed(form);
+        }
+        lockout.Reset(userName);
         await http.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, Sessions.PrincipalFor(user!));
         return form ? Results.Redirect("/") : Results.NoContent();
     }

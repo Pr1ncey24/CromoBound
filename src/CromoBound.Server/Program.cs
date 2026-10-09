@@ -6,11 +6,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
 builder.Services.AddCromoBoundStorage(builder.Configuration);
 builder.Services.AddCromoBoundAccounts(builder.Configuration);
+builder.Services.AddCromoBoundProxies();
 
 var app = builder.Build();
+app.UseForwardedHeaders();
 app.Use(Privacy.NoIndexAsync);
 app.UseExceptionHandler(errors => errors.Run(ServerErrors.WriteGenericAsync));
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAccounts();
