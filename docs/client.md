@@ -193,6 +193,8 @@ These show only when `/api/me` reports `canManageUsers`.
 | I: server side of 4a | The contracts project and the records' move, wire JSON keeping empty lists, hosting the app behind the player role, `GetLobby`, presence and maintenance notices, `GetMatch` without the abandoned notice, server tests |
 | J: the client | The Blazor WebAssembly app: shell, session keeper, game connection, lobby, decks, match placeholder, admin pages, client tests, manual check list |
 
+Before Plan J is written, every screen (lobby with its dialogs, decks, match placeholder, admin users and maintenance, the banners) is mocked as an artifact and reviewed by the owner. The plan builds what the approved mocks show.
+
 ## 14. Decisions log
 | Decision | Choice | Reason |
 |---|---|---|
