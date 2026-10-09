@@ -23,9 +23,21 @@ public sealed class SessionKeeper(IServerApi api, TimeProvider time) : IAsyncDis
         using var timer = new PeriodicTimer(Interval, time);
         try
         {
-            while (await timer.WaitForNextTickAsync(cancel)) await PingAsync();
+            while (await timer.WaitForNextTickAsync(cancel)) await TryPingAsync();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+        {
+        }
+    }
+
+    /// <summary>One failed ping (a timeout, say) must never end the renewals: the next tick tries again.</summary>
+    private async Task TryPingAsync()
+    {
+        try
+        {
+            await PingAsync();
+        }
+        catch (Exception)
         {
         }
     }

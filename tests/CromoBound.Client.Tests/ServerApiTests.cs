@@ -62,6 +62,15 @@ public class ServerApiTests
     }
 
     [Fact]
+    public async Task A_timed_out_request_is_not_reachable_and_does_not_throw()
+    {
+        var api = new ServerApi(new HttpClient(new ThrowingHandler(new TaskCanceledException("timed out"))) { BaseAddress = new Uri("https://play.test/") }, new SessionState());
+
+        Assert.Equal(ServerApi.NotReachable, (await api.MeAsync()).Error);
+        Assert.Equal(ServerApi.NotReachable, (await api.LogoutAsync()).Error);
+    }
+
+    [Fact]
     public async Task Commands_send_the_right_method_route_and_body()
     {
         var (api, _, handler) = Api(HttpStatusCode.NoContent);

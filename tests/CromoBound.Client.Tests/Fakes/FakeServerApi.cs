@@ -14,6 +14,9 @@ internal sealed class FakeServerApi(SessionState session) : IServerApi
     /// <summary>When set, the next command fails with this message (once).</summary>
     public string? NextError { get; set; }
 
+    /// <summary>When set, the next <c>MeAsync</c> throws (once), like a request that timed out.</summary>
+    public bool FailNextMe { get; set; }
+
     public List<UserSummary> Users { get; } = [];
     public MaintenanceStatus Maintenance { get; set; } = new(false, 0);
     public List<string> Calls { get; } = [];
@@ -21,7 +24,10 @@ internal sealed class FakeServerApi(SessionState session) : IServerApi
 
     public Task<ApiResult<MeResponse>> MeAsync()
     {
+        var fail = FailNextMe;
+        FailNextMe = false;
         MeCalls++;
+        if (fail) throw new TaskCanceledException("The request timed out.");
         return Task.FromResult(Answer(() => Me));
     }
 

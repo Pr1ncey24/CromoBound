@@ -26,6 +26,22 @@ public class SessionKeeperTests
     }
 
     [Fact]
+    public async Task A_ping_that_fails_does_not_stop_the_next_one()
+    {
+        var session = new SessionState();
+        var api = new FakeServerApi(session) { FailNextMe = true };
+        var time = new ManualTimeProvider();
+        await using var keeper = new SessionKeeper(api, time);
+
+        keeper.Start();
+        await WaitUntilAsync(() => time.Periods.Count == 1);
+        time.Tick();
+        await WaitUntilAsync(() => api.MeCalls == 1);
+        time.Tick();
+        await WaitUntilAsync(() => api.MeCalls == 2);
+    }
+
+    [Fact]
     public async Task A_ping_that_finds_the_session_over_ends_it()
     {
         var session = new SessionState();

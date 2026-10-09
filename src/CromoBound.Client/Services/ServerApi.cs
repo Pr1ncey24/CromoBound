@@ -73,8 +73,9 @@ public sealed class ServerApi(HttpClient http, SessionState session) : IServerAp
         {
             response = await http.SendAsync(request);
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
         {
+            // A timeout surfaces as a TaskCanceledException, which is an OperationCanceledException.
             return (null, NotReachable);
         }
         if (response.IsSuccessStatusCode) return (response, null);
