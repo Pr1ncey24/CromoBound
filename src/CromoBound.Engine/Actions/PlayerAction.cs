@@ -42,6 +42,8 @@ namespace CromoBound.Engine.Actions;
 [JsonDerivedType(typeof(ManualReveal), "ManualReveal")]
 [JsonDerivedType(typeof(ManualCounter), "ManualCounter")]
 [JsonDerivedType(typeof(AddAbilityToChain), "AddAbilityToChain")]
+[JsonDerivedType(typeof(ManualAttach), "ManualAttach")]
+[JsonDerivedType(typeof(ManualDetach), "ManualDetach")]
 [JsonDerivedType(typeof(ChooseTargets), "ChooseTargets")]
 [JsonDerivedType(typeof(ChoosePlayer), "ChoosePlayer")]
 [JsonDerivedType(typeof(ChooseCards), "ChooseCards")]

@@ -56,6 +56,8 @@ namespace CromoBound.Engine.Events;
 [JsonDerivedType(typeof(TriggerAdded), "TriggerAdded")]
 [JsonDerivedType(typeof(PlayerChosen), "PlayerChosen")]
 [JsonDerivedType(typeof(Predicted), "Predicted")]
+[JsonDerivedType(typeof(Attached), "Attached")]
+[JsonDerivedType(typeof(Detached), "Detached")]
 /// <summary>Something that happened. <see cref="VisibleTo"/> null means public; otherwise only that player may see it.</summary>
 public abstract record GameEvent
 {
@@ -133,3 +135,9 @@ public sealed record PlayerChosen(PlayerId Player, PlayerId Chosen) : GameEvent;
 
 /// <summary>A player looked at the top <see cref="Count"/> cards of their Main Deck. Only their own copy has the card ids.</summary>
 public sealed record Predicted(PlayerId Player, int Count, IReadOnlyList<string>? CardIds) : GameEvent;
+
+/// <summary>Gear was attached to a unit (spec §8.2).</summary>
+public sealed record Attached(ObjectId Gear, ObjectId Unit) : GameEvent;
+
+/// <summary>Gear was detached from its unit.</summary>
+public sealed record Detached(ObjectId Gear) : GameEvent;

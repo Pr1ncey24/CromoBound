@@ -12,7 +12,7 @@ namespace CromoBound.Engine.Views;
 public sealed record CardView(
     ObjectId Id, string CardId, string? PrintingId, PlayerId Owner, PlayerId Controller,
     bool Exhausted, bool Stunned, bool Buffed, bool Empowered, int Damage, int? Might, CombatRole? Role,
-    MappingStatus Effects, IReadOnlyList<int> ManualLines);
+    MappingStatus Effects, IReadOnlyList<int> ManualLines, ObjectId? AttachedTo);
 
 public sealed record PoolView(int Energy, IReadOnlyDictionary<Domain, int> Power, int UniversalPower);
 

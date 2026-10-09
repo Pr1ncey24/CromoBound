@@ -41,6 +41,12 @@ public sealed record ManualReveal(ObjectId Card) : ManualAction;
 
 public sealed record ManualCounter(int ChainItem) : ManualAction;
 
+/// <summary>Attaches gear in play to a unit in play (Equip or Weaponmaster resolved by hand, unmapped Equipment).</summary>
+public sealed record ManualAttach(ObjectId Gear, ObjectId Unit) : ManualAction;
+
+/// <summary>Detaches gear; at a battlefield, cleanup then recalls it to its controller's Base.</summary>
+public sealed record ManualDetach(ObjectId Gear) : ManualAction;
+
 /// <summary>Puts a triggered or activated ability (a line of the source's text, 1-based) on the chain, with an optional cost.</summary>
 public sealed record AddAbilityToChain(ObjectId Source, int Line, AbilityKind Kind) : ManualAction
 {

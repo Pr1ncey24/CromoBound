@@ -120,6 +120,10 @@ public sealed partial class Game
                 return Counter(counter.ChainItem);
             case AddAbilityToChain ability:
                 return AddAbility(ability);
+            case ManualAttach attach:
+                return AttachByHand(attach);
+            case ManualDetach detach:
+                return DetachByHand(detach);
             default:
                 return Reject(RejectionCode.UnexpectedAction, $"{action.GetType().Name} is not a manual action.");
         }

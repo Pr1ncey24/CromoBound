@@ -10,12 +10,14 @@ public sealed partial class Game
 {
     /// <summary>Moves a card. The public event hides the object id of any side that is a deck, a hand or a facedown slot, and
     /// the card's identity when both sides are hidden. If a side is a hand or a facedown slot, the owner (or the facedown card's
-    /// controller) also gets a private copy showing hand and facedown ids, never deck ids (deck order is secret to everyone).</summary>
+    /// controller) also gets a private copy showing hand and facedown ids, never deck ids (deck order is secret to everyone).
+    /// Gear attached to a moving unit goes with it, or is detached when the unit leaves the board.</summary>
     internal ObjectId? MoveCard(ObjectId id, Place to, DeckPosition position = DeckPosition.Top)
     {
         var instance = State[id];
         var from = instance.Place;
         var cardId = instance.CardId;
+        var carries = from.IsLocation && IsUnit(instance);
         var viewer = from.Kind == PlaceKind.Facedown ? instance.Controller : instance.Owner;
         var newId = State.Move(id, to, position);
         var landed = newId is { } moved ? State[moved].Place : to;
@@ -24,6 +26,7 @@ public sealed partial class Game
         if (IsPrivate(from) || IsPrivate(landed))
             Emit(new CardMoved(cardId, IsSecret(from) ? null : id, IsSecret(landed) ? null : newId, from, landed) { VisibleTo = viewer });
         MarkDirty();
+        if (carries) MoveAttachments(id, landed, stayed: newId == id && landed.IsLocation);
         return newId;
     }
 
