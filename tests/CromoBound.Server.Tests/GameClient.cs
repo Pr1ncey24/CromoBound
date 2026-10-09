@@ -20,6 +20,8 @@ internal sealed class GameClient : IAsyncDisposable
         Connection = connection;
         Record<ChallengeNotice>(nameof(IGameClient.ChallengeReceived));
         Record<ChallengeClosedNotice>(nameof(IGameClient.ChallengeClosed));
+        Record<MatchStartedNotice>(nameof(IGameClient.MatchStarted));
+        Record<MatchViewNotice>(nameof(IGameClient.View));
         connection.Closed += _ =>
         {
             _closed.TrySetResult();
@@ -70,6 +72,10 @@ internal sealed class GameClient : IAsyncDisposable
     public Task<HubReply> DeclineAsync(Guid challengeId) => Connection.InvokeAsync<HubReply>("DeclineChallenge", challengeId);
 
     public Task<HubReply> CancelAsync(Guid challengeId) => Connection.InvokeAsync<HubReply>("CancelChallenge", challengeId);
+
+    public Task<HubReply> AcceptAsync(Guid challengeId, Deck? deck) => Connection.InvokeAsync<HubReply>("AcceptChallenge", challengeId, deck);
+
+    public Task<MatchReply> GetMatchAsync() => Connection.InvokeAsync<MatchReply>("GetMatch");
 
     /// <summary>Every notice of this type received so far.</summary>
     public IReadOnlyList<T> All<T>()

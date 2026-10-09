@@ -10,7 +10,7 @@ namespace CromoBound.Server.Hubs;
 
 /// <summary>The one hub (spec §6), at /hub behind the player policy. Every connection joins its user's group, so all of a user's tabs
 /// get their notices. Methods answer with replies; anything unexpected is SignalR's generic error.</summary>
-internal sealed class GameHub(Lobby lobby, LiveConnections connections, CromoDbContext db) : Hub<IGameClient>
+internal sealed class GameHub(Lobby lobby, MatchRegistry matches, LiveConnections connections, CromoDbContext db) : Hub<IGameClient>
 {
     public static string UserGroup(int userId) => "user-" + userId.ToString(CultureInfo.InvariantCulture);
 
@@ -37,7 +37,12 @@ internal sealed class GameHub(Lobby lobby, LiveConnections connections, CromoDbC
 
     public Task<HubReply> Challenge(string? opponent, MatchFormat format, Deck? deck) => lobby.ChallengeAsync(Me, opponent, format, deck);
 
+    public Task<HubReply> AcceptChallenge(Guid challengeId, Deck? deck) => lobby.AcceptAsync(Me, challengeId, deck);
+
     public Task<HubReply> DeclineChallenge(Guid challengeId) => lobby.DeclineAsync(Me, challengeId);
 
     public Task<HubReply> CancelChallenge(Guid challengeId) => lobby.CancelAsync(Me, challengeId);
+
+    /// <summary>The caller's running match and view, on connect and on reconnect.</summary>
+    public Task<MatchReply> GetMatch() => matches.CurrentAsync(Me.UserId);
 }

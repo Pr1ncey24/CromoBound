@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using CromoBound.Data;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
@@ -7,12 +8,17 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace CromoBound.Server.Matches;
 
-/// <summary>Open challenges (spec §6.2), kept in memory: a restart drops them. One gate serializes every change, so the rules can't be
-/// raced.</summary>
-internal sealed class Lobby(CardDatabase cards, IHubContext<GameHub, IGameClient> hub, IServiceScopeFactory scopes)
+/// <summary>Open challenges (spec §6.2), kept in memory: a restart drops them. One gate serializes every change and every match start,
+/// so the rules can't be raced. Players in a match can't make or receive challenges, and starting a match withdraws every other open
+/// challenge of its players, so no open challenge ever involves a player who is in a match.</summary>
+internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry matches, Maintenance maintenance,
+    IHubContext<GameHub, IGameClient> hub, IServiceScopeFactory scopes)
 {
+    public const string InMaintenance = "The server is in maintenance.";
     public const string NoSuchPlayer = "There is no such player.";
     public const string NotYourself = "You can't challenge yourself.";
+    public const string YouArePlaying = "You are already in a match.";
+    public const string TheyArePlaying = "That player is in a match.";
     public const string AlreadyChallenging = "You already have an open challenge.";
     public const string NoSuchChallenge = "There is no such challenge.";
     public const string IllegalDeck = "That deck isn't legal.";
@@ -23,23 +29,59 @@ internal sealed class Lobby(CardDatabase cards, IHubContext<GameHub, IGameClient
 
     private sealed record OpenChallenge(Guid Id, MatchSeat From, MatchSeat To, MatchFormat Format, Deck Deck);
 
-    /// <summary>The opponent must be another enabled user (found in any letter case); the deck must be legal; a challenger has one
-    /// open challenge at a time.</summary>
+    /// <summary>The opponent must be another enabled user (found in any letter case) who isn't in a match; the deck must be legal; a
+    /// challenger has one open challenge at a time.</summary>
     public async Task<HubReply> ChallengeAsync(MatchSeat me, string? opponent, MatchFormat format, Deck? deck)
     {
+        if (maintenance.On) return HubReply.Fail(InMaintenance);
         if (deck is null) return HubReply.Fail(NoDeck);
         await _gate.WaitAsync();
         try
         {
+            if (matches.IsPlaying(me.UserId)) return HubReply.Fail(YouArePlaying);
             if (_open.Values.Any(c => c.From.UserId == me.UserId)) return HubReply.Fail(AlreadyChallenging);
             if (await FindPlayerAsync(opponent) is not { } them) return HubReply.Fail(NoSuchPlayer);
             if (them.UserId == me.UserId) return HubReply.Fail(NotYourself);
+            if (matches.IsPlaying(them.UserId)) return HubReply.Fail(TheyArePlaying);
             var report = DeckValidator.Validate(deck, cards);
             if (!report.IsLegal) return new HubReply(null, IllegalDeck, report.Issues);
             var challenge = new OpenChallenge(Guid.NewGuid(), me, them, format, deck);
             _open.Add(challenge.Id, challenge);
             await hub.Clients.Group(GameHub.UserGroup(them.UserId)).ChallengeReceived(new ChallengeNotice(challenge.Id, me.UserName, format));
             return HubReply.Ok(challenge.Id);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>Only the challenged player accepts, with a legal deck; an illegal one leaves the challenge open. A challenger who is no
+    /// longer an enabled user withdraws the challenge. The match is created with a seed from a cryptographic generator and the
+    /// challenger in seat 0 (the engine's roll-off still decides who plays first), saved, and opened. Every other open challenge of
+    /// either player is withdrawn.</summary>
+    public async Task<HubReply> AcceptAsync(MatchSeat me, Guid challengeId, Deck? deck)
+    {
+        if (maintenance.On) return HubReply.Fail(InMaintenance);
+        if (deck is null) return HubReply.Fail(NoDeck);
+        await _gate.WaitAsync();
+        try
+        {
+            if (!_open.TryGetValue(challengeId, out var challenge) || challenge.To.UserId != me.UserId) return HubReply.Fail(NoSuchChallenge);
+            if (await FindPlayerAsync(challenge.From.UserName) is not { } from || from.UserId != challenge.From.UserId)
+            {
+                await RemoveAsync(challenge, ChallengeEnd.Withdrawn);
+                return HubReply.Fail(NoSuchChallenge);
+            }
+            var created = Match.Create(new MatchSetup(challenge.Format, challenge.Deck, deck, NewSeed()), cards);
+            if (created.Match is not { } match) return new HubReply(null, IllegalDeck, created.Reports[1].Issues);
+            var id = Guid.NewGuid();
+            await store.CreateAsync(id, challenge.From.UserId, challenge.To.UserId, match.ToRecord());
+            var host = matches.Open(id, match, [challenge.From, challenge.To]);
+            foreach (var other in _open.Values.Where(c => Involves(c, challenge.From) || Involves(c, challenge.To)).ToList())
+                await RemoveAsync(other, other.Id == challengeId ? ChallengeEnd.Accepted : ChallengeEnd.Withdrawn);
+            await host.StartAsync();
+            return HubReply.Ok(id);
         }
         finally
         {
@@ -75,6 +117,11 @@ internal sealed class Lobby(CardDatabase cards, IHubContext<GameHub, IGameClient
         await hub.Clients.Groups([GameHub.UserGroup(challenge.From.UserId), GameHub.UserGroup(challenge.To.UserId)])
             .ChallengeClosed(new ChallengeClosedNotice(challenge.Id, reason));
     }
+
+    private static bool Involves(OpenChallenge challenge, MatchSeat player) =>
+        challenge.From.UserId == player.UserId || challenge.To.UserId == player.UserId;
+
+    private static ulong NewSeed() => BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(sizeof(ulong)));
 
     /// <summary>An enabled user by name in any letter case; a missing, disabled or malformed name is no one.</summary>
     private async Task<MatchSeat?> FindPlayerAsync(string? userName)

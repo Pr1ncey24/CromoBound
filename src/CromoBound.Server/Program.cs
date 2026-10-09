@@ -26,6 +26,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapAccounts();
 app.MapAdmin();
+app.MapMaintenance();
 app.MapHub<GameHub>("/hub").RequireAuthorization(Policies.Seat);
 app.Run();
 

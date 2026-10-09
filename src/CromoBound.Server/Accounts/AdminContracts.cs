@@ -10,3 +10,8 @@ public sealed record PasswordRequest(string? Password);
 public sealed record RoleRequest(bool? IsAdmin);
 
 public sealed record DisabledRequest(bool? Disabled);
+
+public sealed record MaintenanceRequest(bool? On);
+
+/// <summary>Whether maintenance is on, and how many matches are still running.</summary>
+public sealed record MaintenanceStatus(bool On, int RunningMatches);
