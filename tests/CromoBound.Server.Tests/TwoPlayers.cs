@@ -46,6 +46,10 @@ internal sealed class TwoPlayers : IAsyncDisposable
         return new TwoPlayers(factory, challenger, opponent, accepted.Id!.Value);
     }
 
+    /// <summary>Connects the two users of a match that is already running, e.g. after a restart.</summary>
+    public static async Task<TwoPlayers> ReconnectAsync(ServerFactory factory, Guid matchId, string first = "alice", string second = "bob") =>
+        new(factory, await GameClient.ConnectAsync(factory, first), await GameClient.ConnectAsync(factory, second), matchId);
+
     /// <summary>The engine tests' scripted Bot plays both seats through the hub, each action sent by the deciding player's own connection,
     /// until the match ends or <paramref name="actions"/> actions are sent. Every action must be accepted.</summary>
     public async Task PlayAsync(int actions = 2000)

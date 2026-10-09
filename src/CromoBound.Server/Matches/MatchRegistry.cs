@@ -15,6 +15,7 @@ internal sealed class MatchRegistry(IMatchStore store, CardDatabase cards, IHubC
 
     private readonly ConcurrentDictionary<Guid, MatchHost> _hosts = new();
     private readonly ConcurrentDictionary<int, MatchHost> _byUser = new();
+    private readonly ConcurrentDictionary<int, MatchEndedNotice> _abandoned = new();
 
     public int Count => _hosts.Count;
 
@@ -27,15 +28,25 @@ internal sealed class MatchRegistry(IMatchStore store, CardDatabase cards, IHubC
     {
         var host = new MatchHost(id, match, saved, seats, store, cards, hub, hostLog, Close);
         _hosts[id] = host;
-        foreach (var seat in seats) _byUser[seat.UserId] = host;
+        foreach (var seat in seats)
+        {
+            _byUser[seat.UserId] = host;
+            _abandoned.TryRemove(seat.UserId, out _);
+        }
         return host;
     }
 
-    /// <summary>The user's running match and their view of it, or nothing.</summary>
-    public async Task<MatchReply> CurrentAsync(int userId) =>
-        _byUser.TryGetValue(userId, out var host) && host.SeatOf(userId) is { } seat
-            ? new MatchReply(host.Id, await host.ViewAsync(seat), null)
-            : MatchReply.None;
+    /// <summary>The user's running match and their view of it; otherwise, once, the notice of a match of theirs abandoned at startup;
+    /// otherwise nothing.</summary>
+    public async Task<MatchReply> CurrentAsync(int userId)
+    {
+        if (_byUser.TryGetValue(userId, out var host) && host.SeatOf(userId) is { } seat)
+            return new MatchReply(host.Id, await host.ViewAsync(seat), null);
+        return _abandoned.TryRemove(userId, out var ended) ? new MatchReply(null, null, ended) : MatchReply.None;
+    }
+
+    /// <summary>Keeps the notice until the user next asks for their match (in memory: a later restart forgets it).</summary>
+    public void NoteAbandoned(int userId, MatchEndedNotice ended) => _abandoned[userId] = ended;
 
     /// <summary>The user acts in their own seat; a match they aren't in reads as missing.</summary>
     public Task<SubmitReply> SubmitAsync(int userId, Guid matchId, PlayerAction? action)
