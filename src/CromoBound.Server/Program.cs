@@ -4,6 +4,9 @@ using CromoBound.Server.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
+// Authorization failures name the roles that were missing; they are logged only from Warning up, so role identifiers never
+// reach the log (spec §4.2) even when Microsoft.AspNetCore is set to log more.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authorization", LogLevel.Warning);
 builder.Services.AddCromoBoundStorage(builder.Configuration);
 builder.Services.AddCromoBoundAccounts(builder.Configuration);
 builder.Services.AddCromoBoundProxies();

@@ -9,7 +9,8 @@ namespace CromoBound.Server.Accounts;
 internal static class AccountsSetup
 {
     /// <summary>Data protection (the keys that encrypt the cookie), cookie sign-in, the two policies with the player policy as the
-    /// fallback (spec §4.1), and the login rate limit and lockout (spec §4.4).</summary>
+    /// fallback and as the default for a bare authorization requirement (spec §4.1), and the login rate limit and lockout
+    /// (spec §4.4).</summary>
     public static IServiceCollection AddCromoBoundAccounts(this IServiceCollection services, IConfiguration configuration)
     {
         var protection = services.AddDataProtection().SetApplicationName("CromoBound");
@@ -35,6 +36,7 @@ internal static class AccountsSetup
             authorization.AddPolicy(Policies.Seat, policy => policy.RequireAuthenticatedUser().RequireRole(Roles.Seat));
             authorization.AddPolicy(Policies.Steward, policy => policy.RequireAuthenticatedUser().RequireRole(Roles.Steward));
             authorization.FallbackPolicy = authorization.GetPolicy(Policies.Seat);
+            authorization.DefaultPolicy = authorization.GetPolicy(Policies.Seat)!;
         });
 
         services.AddSingleton<LoginLockout>();
