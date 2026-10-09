@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CromoBound.Engine\CromoBound.Engine.csproj" />
+    <ProjectReference Include="..\CromoBound.Data\CromoBound.Data.csproj" />
+    <ProjectReference Include="..\CromoBound.Models\CromoBound.Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CromoBound.Server.Tests" />
+  </ItemGroup>
+
+</Project>
