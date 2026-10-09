@@ -8,6 +8,7 @@
     <Project Path="src/CromoBound.Server/CromoBound.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/CromoBound.Client.Tests/CromoBound.Client.Tests.csproj" />
     <Project Path="tests/CromoBound.Engine.Tests/CromoBound.Engine.Tests.csproj" />
     <Project Path="tests/CromoBound.Models.Tests/CromoBound.Models.Tests.csproj" />
     <Project Path="tests/CromoBound.Server.Tests/CromoBound.Server.Tests.csproj" />

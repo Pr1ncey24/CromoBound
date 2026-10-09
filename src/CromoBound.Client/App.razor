@@ -1,4 +1,11 @@
-@* A placeholder until Plan J builds the screens from the approved mocks. *@
-<main>
-    <p>The lobby is on its way.</p>
-</main>
+<Router AppAssembly="typeof(App).Assembly">
+    <Found Context="route">
+        <RouteView RouteData="route" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="route" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(MainLayout)">
+            <main class="cb-main"><p class="cb-sub">There's nothing here. <a href="">Back to the lobby</a></p></main>
+        </LayoutView>
+    </NotFound>
+</Router>
