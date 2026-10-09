@@ -126,15 +126,28 @@ public sealed partial class Game
         if (streak >= 2 && HasWon(opponent)) End(opponent, GameEndReason.BurnOut);
     }
 
-    /// <summary>Top runes of the Rune Deck to the Base, ready; as many as remain (CR 430).</summary>
-    internal void Channel(PlayerId player, int count)
+    /// <summary>Top runes of the Rune Deck to the Base, as many as remain (CR 430): ready, or exhausted when an effect says so.
+    /// Returns the channeled runes.</summary>
+    internal List<ObjectId> Channel(PlayerId player, int count, bool exhausted = false)
     {
+        var channeled = new List<ObjectId>();
         for (var i = 0; i < count; i++)
         {
             var deck = State.At(Place.RuneDeck(player));
-            if (deck.Count == 0) return;
-            MoveCard(deck[0], Place.Base(player));
+            if (deck.Count == 0) break;
+            var rune = MoveCard(deck[0], Place.Base(player))!.Value;
+            if (exhausted) SetStatus(rune, StatusKind.Exhausted, true);
+            channeled.Add(rune);
         }
+        return channeled;
+    }
+
+    internal void GainXp(PlayerId player, int amount)
+    {
+        if (amount <= 0) return;
+        var state = State.Player(player);
+        state.Xp += amount;
+        Emit(new XpChanged(player, state.Xp));
     }
 
     /// <summary>A rune's Reaction Add (CR 429): exhaust for 1 energy, or recycle to the bottom of the Rune Deck for 1 power of its domain.</summary>

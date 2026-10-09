@@ -1,3 +1,5 @@
+using CromoBound.Engine.Actions;
+using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Effects;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.Rules;
@@ -148,5 +150,90 @@ public class StepTests
         Assert.Equal(1, done);
         Assert.Equal(3, game.State.At(Place.Hand(P1)).Count);
         Assert.IsType<Decisions.PriorityDecision>(engine.Pending);
+    }
+
+    [Fact]
+    public void Channel_takes_runes_from_the_rune_deck_exhausted_when_the_step_says_so()
+    {
+        var game = new TestGame();
+        for (var i = 0; i < 3; i++) game.Put("fury-rune", Place.RuneDeck(P1));
+        var engine = game.Start();
+
+        var context = Run(engine, [new ChannelStep { Count = 2, Exhausted = true, Store = "runes" }]);
+
+        Assert.Empty(game.State.At(Place.RuneDeck(P1)));
+        Assert.Equal(3, engine.RunesOf(P1).Count);
+        Assert.Equal(1, engine.RunesOf(P1).Count(r => r.Exhausted));
+        Assert.Single(context.Vars["runes"].Objects);
+    }
+
+    [Fact]
+    public void Gain_xp_adds_experience_and_announces_it()
+    {
+        var game = new TestGame();
+        var engine = game.Start();
+
+        var events = engine.RunNow(new ResolveEffectTask(
+            new EffectContext { Controller = P1, SourceCardId = "spell" }, [new GainXpStep { Amount = 3 }], _ => { }));
+
+        Assert.Equal(3, game.State.Player(P1).Xp);
+        Assert.Contains(events, e => e is XpChanged { Xp: 3 });
+    }
+
+    [Fact]
+    public void Empower_sets_the_status_once()
+    {
+        var game = new TestGame();
+        var unit = game.Put("unit-2", Place.Base(P1));
+        var engine = game.Start();
+        var context = new EffectContext { Controller = P1, Source = unit, SourceCardId = "unit-2" };
+
+        engine.RunNow(new ResolveEffectTask(context,
+            [new EmpowerStep { Target = ObjectRef.Self, Store = "first" }, new EmpowerStep { Target = ObjectRef.Self, Store = "again" }], _ => { }));
+
+        Assert.True(game.State[unit].Empowered);
+        Assert.True(context.Vars["first"].Happened);
+        Assert.False(context.Vars["again"].Happened);
+    }
+
+    [Fact]
+    public void A_game_won_by_burn_out_stops_the_remaining_steps()
+    {
+        var game = new TestGame();
+        game.State.Player(P2).Points = 6;
+        var engine = game.Start(filler: 1);
+        var done = false;
+
+        engine.RunNow(new ResolveEffectTask(new EffectContext { Controller = P1, SourceCardId = "spell" },
+            [new BurnStep { Amount = 2 }, new DrawStep { Amount = 1 }], _ => done = true));
+
+        Assert.Equal(new GameOutcome(P2, GameEndReason.BurnOut), engine.Outcome);
+        Assert.Single(game.State.At(Place.Hand(P1)));
+        Assert.False(done);
+    }
+
+    [Fact]
+    public void An_ability_item_with_steps_resolves_automatically_once_both_players_pass()
+    {
+        var game = new TestGame();
+        var unit = game.Put("unit-2", Place.Base(P1));
+        var engine = game.Start();
+        var hand = game.State.At(Place.Hand(P1)).Count;
+        var context = new EffectContext { Controller = P1, Source = unit, SourceCardId = "unit-2" };
+
+        engine.RunNow(new StepTask(g => g.AddAbilityItem(P1, unit, "unit-2", AbilityKind.Triggered, "draw text", [new DrawStep { Amount = 2 }], context)));
+
+        var item = Assert.Single(game.State.Chain);
+        Assert.Equal(ChainItemKind.Ability, item.Kind);
+        Assert.Equal(ChainItemStatus.Finalized, item.Status);
+        Assert.Equal("draw text", item.Text);
+        Assert.Equal(P1, engine.Decision<PriorityDecision>().Player);
+        engine.Accept(P1, new Pass());
+        var result = engine.Accept(P2, new Pass());
+
+        Assert.Equal(hand + 2, game.State.At(Place.Hand(P1)).Count);
+        Assert.Empty(game.State.Chain);
+        Assert.Contains(result.Events, e => e is ChainItemResolved);
+        Assert.IsType<PriorityDecision>(engine.Pending);
     }
 }

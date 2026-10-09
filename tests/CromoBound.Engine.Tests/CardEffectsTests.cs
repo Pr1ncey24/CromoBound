@@ -66,7 +66,8 @@ public class CardEffectsTests
     }
 
     [Theory]
-    [InlineData("""{ "action": "Channel", "count": 1 }""", "abilities[0].steps[0]: step Channel")]
+    [InlineData("""{ "action": "ExtraTurn" }""", "abilities[0].steps[0]: step ExtraTurn")]
+    [InlineData("""{ "action": "GainXp", "amount": { "var": "x" } }""", "abilities[0].steps[0]: value")]
     [InlineData("""{ "action": "Draw", "amount": { "var": "x" } }""", "abilities[0].steps[0]: value")]
     [InlineData("""{ "action": "Kill", "target": { "select": "Unit", "all": true } }""", "abilities[0].steps[0]: target")]
     [InlineData("""{ "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "tags": ["Mech"] } } }""", "abilities[0].steps[0]: target")]

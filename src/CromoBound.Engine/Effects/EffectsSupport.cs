@@ -59,6 +59,12 @@ internal static class EffectsSupport
                 CheckValue(deal.Amount, at, problems);
                 if (deal.Split is not null || deal.Bonus is not null || deal.Source is not null) problems.Add($"{at}: split, bonus or source");
                 break;
+            case ChannelStep channel:
+                CheckValue(channel.Count, at, problems);
+                break;
+            case GainXpStep xp:
+                CheckValue(xp.Amount, at, problems);
+                break;
         }
         if (step is TargetStep target && !IsSupportedTarget(target.Target)) problems.Add($"{at}: target");
     }

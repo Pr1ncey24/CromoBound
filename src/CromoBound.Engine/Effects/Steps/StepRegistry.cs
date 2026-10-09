@@ -11,6 +11,9 @@ internal static class StepRegistry
         [typeof(BurnStep)] = new BurnHandler(),
         [typeof(DealStep)] = new DealHandler(),
         [typeof(KillStep)] = new KillHandler(),
+        [typeof(ChannelStep)] = new ChannelHandler(),
+        [typeof(GainXpStep)] = new GainXpHandler(),
+        [typeof(EmpowerStep)] = new EmpowerHandler(),
     };
 
     public static bool Supports(Type stepType) => Handlers.ContainsKey(stepType);

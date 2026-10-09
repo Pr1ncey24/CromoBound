@@ -1,4 +1,5 @@
 using CromoBound.Engine.Effects;
+using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.State;
 
@@ -34,4 +35,7 @@ public sealed class ChainItem
 
     /// <summary>The resolution context of a card the engine runs: its targets, chosen while playing (spec §4.2).</summary>
     internal EffectContext? Effect { get; set; }
+
+    /// <summary>The steps of an ability the engine runs (triggers, activations, reflexive blocks); null for abilities resolved by hand.</summary>
+    internal IReadOnlyList<Step>? Steps { get; set; }
 }
