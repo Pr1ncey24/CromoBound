@@ -37,10 +37,10 @@ internal sealed class MatchRegistry(IMatchStore store, CardDatabase cards, IHubC
         return host;
     }
 
-    /// <summary>The user's running match and their view of it, or nothing.</summary>
+    /// <summary>The user's running match, their view of it and their opponent's name, or nothing.</summary>
     public async Task<MatchReply> CurrentAsync(int userId) =>
         _byUser.TryGetValue(userId, out var host) && host.SeatOf(userId) is { } seat
-            ? new MatchReply(host.Id, await host.ViewAsync(seat))
+            ? new MatchReply(host.Id, await host.ViewAsync(seat), host.Seats[1 - seat.Index].UserName)
             : MatchReply.None;
 
     public Guid? MatchOf(int userId) => _byUser.TryGetValue(userId, out var host) ? host.Id : null;

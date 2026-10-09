@@ -49,10 +49,10 @@ public enum MatchEndReason
 /// <summary>A match is over: the game wins by seat, and the winner's name (none when abandoned).</summary>
 public sealed record MatchEndedNotice(Guid MatchId, MatchEndReason Reason, IReadOnlyList<int> GameWins, string? Winner);
 
-/// <summary>GetMatch's answer: the player's running match and their view of it, or nothing.</summary>
-public sealed record MatchReply(Guid? MatchId, PlayerView? View)
+/// <summary>GetMatch's answer: the player's running match, their view of it and their opponent's name, or nothing.</summary>
+public sealed record MatchReply(Guid? MatchId, PlayerView? View, string? Opponent)
 {
-    public static MatchReply None { get; } = new(null, null);
+    public static MatchReply None { get; } = new(null, null, null);
 }
 
 /// <summary>Submit's answer (spec §6.3): whether the engine accepted the action, with the engine's own rejection when it didn't, or the

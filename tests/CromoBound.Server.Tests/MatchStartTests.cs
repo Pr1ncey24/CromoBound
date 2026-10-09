@@ -52,6 +52,16 @@ public class MatchStartTests
     }
 
     [Fact]
+    public async Task GetMatch_names_the_opponent()
+    {
+        using var factory = new ServerFactory();
+        await using var players = await TwoPlayers.StartAsync(factory);
+
+        Assert.Equal("bob", (await players.First.GetMatchAsync()).Opponent);
+        Assert.Equal("alice", (await players.Second.GetMatchAsync()).Opponent);
+    }
+
+    [Fact]
     public async Task An_illegal_deck_doesnt_accept_and_the_challenge_stays_open()
     {
         using var factory = new ServerFactory();
