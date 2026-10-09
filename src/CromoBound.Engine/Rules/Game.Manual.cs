@@ -3,6 +3,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
+using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
@@ -19,13 +20,17 @@ internal sealed class AbilityTask(ChainItem item, TotalCost? cost) : GameTask
 
 public sealed partial class Game
 {
+    /// <summary>A unit moved by hand from the board to a trash, held back until its controller says whether it dies.</summary>
+    private ManualMoveCard? _deathQuestion;
+
     /// <summary>Applies a manual action (spec §8), then lets the rules catch up: the pending decision is asked again with fresh
-    /// options (a hand resolution stays as it is) and cleanup runs.</summary>
+    /// options (a hand resolution stays as it is) and cleanup runs. While a death question is open, it must be answered first.</summary>
     public SubmitResult SubmitManual(PlayerId player, ManualAction action)
     {
         if (ActionShape.Check(action) is { } malformed) return SubmitResult.Reject(RejectionCode.UnexpectedAction, malformed);
         if (!IsPlayer(player)) return SubmitResult.Reject(RejectionCode.NotYourDecision, $"{player} is not in this game.");
         if (Outcome is not null) return SubmitResult.Reject(RejectionCode.MatchOver, "The game is over.");
+        if (_deathQuestion is not null) return SubmitResult.Reject(RejectionCode.UnexpectedAction, "First answer whether the unit dies.");
         if (ApplyManual(player, action) is { } rejection) return new SubmitResult(false, rejection, []);
         var kind = action.GetType().Name;
         Emit(new ManualActionTaken(player, kind, action) { VisibleTo = player });
@@ -36,8 +41,32 @@ public sealed partial class Game
             Pending = null;
             _handler = null;
         }
+        if (_deathQuestion is { } question) AskWhetherItDies(question);
         return new SubmitResult(true, null, Continue());
     }
+
+    /// <summary>The unit's controller says whether the unit moved by hand dies. Yes: it moves as a death (UnitDied first, so its
+    /// death abilities trigger, like a kill). No: it just moves. A hand resolution that was pending comes back afterwards.</summary>
+    private void AskWhetherItDies(ManualMoveCard move)
+    {
+        var unit = State[move.Card];
+        var resolving = Pending as ResolveManuallyDecision;
+        var resolvingHandler = resolving is null ? null : _handler;
+        Ask(new OptionalDecision(unit.Controller, unit.CardId, $"Does {CardOf(unit).Name} die? Its death abilities trigger."), (_, action) =>
+        {
+            if (action is not ChooseOptional choice) return Reject(RejectionCode.UnexpectedAction, "Answer whether the unit dies.");
+            _deathQuestion = null;
+            if (choice.Yes) Emit(new UnitDied(move.Card, unit.CardId, unit.Controller));
+            MoveCard(move.Card, move.Destination, move.Position);
+            if (resolving is not null) Ask(resolving, resolvingHandler!);
+            return null;
+        });
+    }
+
+    /// <summary>Whether the engine runs a death ability of the unit (Deathknell, or another mapped "when I die").</summary>
+    private bool HasDeathAbility(CardInstance unit) =>
+        Effects.For(unit.CardId).Abilities.OfType<TriggeredAbility>()
+            .Any(a => a.Trigger is { Event: TriggerEvent.Dies, Subject.Ref: RefKind.Self });
 
     private bool IsPlayer(PlayerId player) => player.Index >= 0 && player.Index < State.Players.Count;
 
@@ -143,6 +172,12 @@ public sealed partial class Game
         if (to.Kind == PlaceKind.Facedown && State.At(to).Count(id => id != move.Card) >= BattlefieldState.FacedownCapacity)
             return Reject(RejectionCode.IllegalLocation, "That battlefield already has a facedown card.");
 
+        var moving = State[move.Card];
+        if (to.Kind == PlaceKind.Trash && moving.Place.IsLocation && IsUnit(moving) && HasDeathAbility(moving))
+        {
+            _deathQuestion = move;
+            return null;
+        }
         if (MoveCard(move.Card, to, move.Position) is not { } moved) return null;
         var card = State[moved];
         if (to.Kind == PlaceKind.Facedown)
