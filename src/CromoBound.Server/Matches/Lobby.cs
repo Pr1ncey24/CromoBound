@@ -33,11 +33,11 @@ internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry
     /// challenger has one open challenge at a time.</summary>
     public async Task<HubReply> ChallengeAsync(MatchSeat me, string? opponent, MatchFormat format, Deck? deck)
     {
-        if (maintenance.On) return HubReply.Fail(InMaintenance);
         if (deck is null) return HubReply.Fail(NoDeck);
         await _gate.WaitAsync();
         try
         {
+            if (maintenance.On) return HubReply.Fail(InMaintenance);
             if (matches.IsPlaying(me.UserId)) return HubReply.Fail(YouArePlaying);
             if (_open.Values.Any(c => c.From.UserId == me.UserId)) return HubReply.Fail(AlreadyChallenging);
             if (await FindPlayerAsync(opponent) is not { } them) return HubReply.Fail(NoSuchPlayer);
@@ -62,11 +62,11 @@ internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry
     /// either player is withdrawn.</summary>
     public async Task<HubReply> AcceptAsync(MatchSeat me, Guid challengeId, Deck? deck)
     {
-        if (maintenance.On) return HubReply.Fail(InMaintenance);
         if (deck is null) return HubReply.Fail(NoDeck);
         await _gate.WaitAsync();
         try
         {
+            if (maintenance.On) return HubReply.Fail(InMaintenance);
             if (!_open.TryGetValue(challengeId, out var challenge) || challenge.To.UserId != me.UserId) return HubReply.Fail(NoSuchChallenge);
             if (await FindPlayerAsync(challenge.From.UserName) is not { } from || from.UserId != challenge.From.UserId)
             {
