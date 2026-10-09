@@ -11,7 +11,7 @@ internal static class StorageSetup
     /// <summary>Settings, the database, the clock, password hashing, the user store, and the startup setup.</summary>
     public static IServiceCollection AddCromoBoundStorage(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<ServerOptions>(configuration.GetSection(ServerOptions.Section));
+        ServerOptions.AddTo(services, configuration);
         services.AddDbContext<CromoDbContext>((provider, db) =>
             db.UseSqlite($"Data Source={provider.GetRequiredService<IOptions<ServerOptions>>().Value.DatabasePath}"));
         services.TryAddSingleton(TimeProvider.System);

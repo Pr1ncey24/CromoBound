@@ -42,6 +42,20 @@ public class StartupTests
         Assert.Contains("at least 12 characters", error.ToString());
     }
 
+    [Theory]
+    [InlineData("LoginRequestsPerMinute")]
+    [InlineData("LockoutFailures")]
+    [InlineData("LockoutMinutes")]
+    [InlineData("CookieHours")]
+    public void A_setting_below_one_stops_the_server_and_is_named(string setting)
+    {
+        using var factory = new ServerFactory(new() { [$"CromoBound:{setting}"] = "0" });
+
+        var error = Assert.ThrowsAny<Exception>(() => factory.Services);
+
+        Assert.Contains($"CromoBound:{setting}", error.ToString());
+    }
+
     [Fact]
     public async Task A_database_with_users_keeps_them_and_ignores_the_first_admin_settings()
     {

@@ -19,4 +19,23 @@ internal sealed class ServerOptions
 
     /// <summary>Addresses of the reverse proxies whose forwarded headers are trusted.</summary>
     public List<string> KnownProxies { get; set; } = [];
+
+    /// <summary>Networks (CIDR, e.g. <c>172.16.0.0/12</c>) whose proxies' forwarded headers are trusted, for a proxy whose
+    /// address isn't fixed.</summary>
+    public List<string> KnownNetworks { get; set; } = [];
+
+    /// <summary>Binds the section and checks the numbers at startup: a setting below one stops the server and names itself.</summary>
+    public static void AddTo(IServiceCollection services, IConfiguration configuration)
+    {
+        var options = services.AddOptions<ServerOptions>().Bind(configuration.GetSection(Section));
+        foreach (var (setting, value) in new (string, Func<ServerOptions, int>)[]
+        {
+            (nameof(LoginRequestsPerMinute), o => o.LoginRequestsPerMinute),
+            (nameof(LockoutFailures), o => o.LockoutFailures),
+            (nameof(LockoutMinutes), o => o.LockoutMinutes),
+            (nameof(CookieHours), o => o.CookieHours),
+        })
+            options.Validate(o => value(o) >= 1, $"{Section}:{setting} must be at least 1.");
+        options.ValidateOnStart();
+    }
 }
