@@ -36,11 +36,38 @@ internal sealed class CardEffects(CardDatabase db)
         if (unsupported.Count > 0) return Unmapped(card, all, unsupported);
 
         IReadOnlySet<DisplayKeyword> keywords = file.Keywords.Select(k => Enum.Parse<DisplayKeyword>(k.Keyword.ToString())).ToHashSet();
-        if (file.Status == MappingStatus.Full) return new(MappingStatus.Full, file.Abilities, keywords, [], []);
+        IReadOnlyList<Ability> abilities = [.. file.Abilities, .. KeywordAbilities(file)];
+        if (file.Status == MappingStatus.Full) return new(MappingStatus.Full, abilities, keywords, [], []);
         var covered = file.Abilities.Where(a => a.Line is not null).SelectMany(a => a.Line!.Lines).ToHashSet();
         List<int> manual = [.. all.Where(n => !covered.Contains(n) && !CardKeywords.IsKeywordLine(lines[n - 1]))];
-        return new(MappingStatus.Partial, file.Abilities, keywords, manual, []);
+        return new(MappingStatus.Partial, abilities, keywords, manual, []);
     }
+
+    /// <summary>The abilities keywords stand for (spec §8.1), listed after the file's own so ability indices follow the JSON.</summary>
+    private static IEnumerable<Ability> KeywordAbilities(EffectsFile file)
+    {
+        foreach (var entry in file.Keywords)
+        {
+            switch (entry.Keyword)
+            {
+                case MechanicalKeyword.Deathknell:
+                    yield return OwnTrigger(TriggerEvent.Dies, entry.Steps);
+                    break;
+                case MechanicalKeyword.Vision:
+                    yield return OwnTrigger(TriggerEvent.Played, [new PredictStep()]);
+                    break;
+                case MechanicalKeyword.Hunt:
+                    IReadOnlyList<Step> gain = [new GainXpStep { Amount = entry.Value!.Value }];
+                    yield return OwnTrigger(TriggerEvent.Conquer, gain);
+                    yield return OwnTrigger(TriggerEvent.Hold, gain);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>"When I ...": a trigger on the card's own event.</summary>
+    private static TriggeredAbility OwnTrigger(TriggerEvent kind, IReadOnlyList<Step> steps) =>
+        new() { Trigger = new Trigger { Event = kind, Subject = ObjectRef.Self }, Steps = steps };
 
     private static CardEffectInfo Unmapped(Card card, List<int> lines, IReadOnlyList<string> unsupported) =>
         new(MappingStatus.Unmapped, [], CardKeywords.Own(card), lines, unsupported);

@@ -32,6 +32,9 @@ public sealed partial class Game
     /// <summary>What each card does as this engine runs it (spec §4.1).</summary>
     internal CardEffects Effects { get; }
 
+    /// <summary>Triggered abilities that fired and wait to go on the chain (spec §5.2).</summary>
+    internal List<PendingTrigger> PendingTriggers { get; } = [];
+
     /// <summary>What the engine waits for. Null only when the game is over.</summary>
     public PendingDecision? Pending { get; private set; }
 
@@ -118,10 +121,12 @@ public sealed partial class Game
 
     internal static Rejection Reject(RejectionCode code, string message) => new(code, message);
 
+    /// <summary>Records an event; every public one passes through the <see cref="TriggerWatcher"/> (spec §4.6).</summary>
     internal void Emit(GameEvent gameEvent)
     {
         gameEvent.Sequence = _nextSequence++;
         _events.Add(gameEvent);
+        if (gameEvent.VisibleTo is null) PendingTriggers.AddRange(TriggerWatcher.Collect(this, gameEvent));
     }
 
     internal void Enqueue(GameTask task) => _tasks.Add(task);
@@ -175,17 +180,24 @@ public sealed partial class Game
 
     /// <summary>Handle outstanding tasks, then the chain, the showdown, the Main phase (CR 334-336).
     /// A turn-structure task (<see cref="GameTask.WaitsForNeutralOpen"/>) waits while a chain or showdown is running,
-    /// even after it started, and a cleanup may run while such a task is paused on its decision.</summary>
+    /// even after it started. A cleanup, then the pending triggers, run between tasks or while such a task is paused on its
+    /// decision; never in the middle of another started task or of a hand resolution (CR 321, spec §5.2).</summary>
     private void RunLoop()
     {
         while (Outcome is null && Pending is null)
         {
             var head = _tasks.Count > 0 ? _tasks[0] : null;
             var paused = head is { WaitsForNeutralOpen: true } && (IsClosed || State.Showdown is not null);
-            if (_cleanupNeeded && !ResolvingManually && (head is null || !head.Started || head.WaitsForNeutralOpen))
+            var between = !ResolvingManually && (head is null || !head.Started || head.WaitsForNeutralOpen);
+            if (_cleanupNeeded && between)
             {
                 _cleanupNeeded = false;
                 Push(new CleanupTask(CleanupMode.Normal));
+                continue;
+            }
+            if (PendingTriggers.Count > 0 && between && head is not PutTriggersOnChainTask)
+            {
+                Push(new PutTriggersOnChainTask());
                 continue;
             }
             if (head is not null && !paused)

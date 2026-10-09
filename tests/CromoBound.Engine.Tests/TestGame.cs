@@ -15,12 +15,13 @@ internal sealed class TestGame
     public static readonly PlayerId P1 = new(0);
     public static readonly PlayerId P2 = new(1);
 
-    public TestGame(ulong seed = 1, CardDatabase? db = null)
+    /// <summary>Two battlefields, the first owned by P1 and the second by P2. A real battlefield card can replace a test one.</summary>
+    public TestGame(ulong seed = 1, CardDatabase? db = null, string firstBattlefield = "bf-a", string secondBattlefield = "bf-b")
     {
         Db = db ?? EngineTestDb.Create();
         State = new GameState(2, new SeededRandom(seed));
-        AddBattlefield("bf-a", P1);
-        AddBattlefield("bf-b", P2);
+        AddBattlefield(firstBattlefield, P1);
+        AddBattlefield(secondBattlefield, P2);
     }
 
     public CardDatabase Db { get; }

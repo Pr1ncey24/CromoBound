@@ -6,12 +6,12 @@ namespace CromoBound.Engine.Effects;
 /// <summary>What this engine can run (spec §7). A card whose file uses anything else plays by hand, like an Unmapped card.</summary>
 internal static class EffectsSupport
 {
-    /// <summary>Keywords the 2a rules core already enforces. The others arrive with Plans E and F.</summary>
+    /// <summary>Keywords the engine runs: those the 2a rules core enforces and the keyword abilities of Plan E. The others arrive with Plan F.</summary>
     private static readonly HashSet<MechanicalKeyword> Keywords =
     [
         MechanicalKeyword.Accelerate, MechanicalKeyword.Action, MechanicalKeyword.Reaction, MechanicalKeyword.Hidden,
         MechanicalKeyword.Ganking, MechanicalKeyword.Tank, MechanicalKeyword.Backline, MechanicalKeyword.Temporary,
-        MechanicalKeyword.Unique,
+        MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt,
     ];
 
     /// <summary>One line per construct the engine can't run; empty when it runs the whole file.</summary>
@@ -21,22 +21,59 @@ internal static class EffectsSupport
         if (file.Overrides is not null) problems.Add("overrides");
         if (file.AdditionalCosts.Count > 0) problems.Add("additionalCosts");
         if (file.AsYouPlay.Count > 0) problems.Add("asYouPlay");
-        foreach (var entry in file.Keywords)
-            if (!Keywords.Contains(entry.Keyword)) problems.Add($"keyword {entry.Keyword}");
+        for (var k = 0; k < file.Keywords.Count; k++) CheckKeyword(file.Keywords[k], $"keywords[{k}]", problems);
         for (var i = 0; i < file.Abilities.Count; i++) CheckAbility(file.Abilities[i], $"abilities[{i}]", problems);
         return problems;
     }
 
+    /// <summary>Keyword abilities need their parameter: Deathknell's steps (they run like a trigger's), Hunt's value.</summary>
+    private static void CheckKeyword(KeywordEntry entry, string at, List<string> problems)
+    {
+        if (!Keywords.Contains(entry.Keyword))
+        {
+            problems.Add($"keyword {entry.Keyword}");
+            return;
+        }
+        if (entry.Keyword == MechanicalKeyword.Deathknell) CheckSteps(entry.Steps, at, problems, targets: false);
+        if (entry.Keyword == MechanicalKeyword.Hunt && entry.Value is null) problems.Add($"{at}: value");
+    }
+
     private static void CheckAbility(Ability ability, string at, List<string> problems)
     {
-        if (ability is not SpellAbility spell)
+        if (ability is not (SpellAbility or TriggeredAbility))
         {
             problems.Add($"{at}: {ability.GetType().Name.Replace("Ability", "")} ability");
             return;
         }
-        if (spell.Condition is not null || spell.ActiveIn is not null || spell.Script is not null)
+        if (ability.Condition is not null || ability.ActiveIn is not null || ability.Script is not null)
             problems.Add($"{at}: condition, activeIn or script");
-        CheckSteps(spell.Steps, at, problems, targets: true);
+        switch (ability)
+        {
+            case SpellAbility spell:
+                CheckSteps(spell.Steps, at, problems, targets: true);
+                break;
+            case TriggeredAbility triggered:
+                if (!IsSupportedTrigger(triggered.Trigger)) problems.Add($"{at}: trigger");
+                if (triggered.If is not null || triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
+                    problems.Add($"{at}: if, optional, cost or limit");
+                CheckSteps(triggered.Steps, at, problems, targets: false);
+                break;
+        }
+    }
+
+    /// <summary>The forms the <see cref="TriggerWatcher"/> maps: the source's own Dies, BecameEmpowered, Played, Hold or Conquer,
+    /// and a battlefield's "when you hold (or conquer) here".</summary>
+    private static bool IsSupportedTrigger(Trigger trigger)
+    {
+        if (trigger.Filter is not null || trigger.Phase is not null) return false;
+        var own = trigger.Subject?.Ref == RefKind.Self && trigger.By is null && trigger.Where is null;
+        var here = trigger.Subject is null && trigger.By?.Kind == PlayerKind.You && trigger.Where?.Ref == RefKind.Here;
+        return trigger.Event switch
+        {
+            TriggerEvent.Dies or TriggerEvent.BecameEmpowered or TriggerEvent.Played => own,
+            TriggerEvent.Hold or TriggerEvent.Conquer => own || here,
+            _ => false,
+        };
     }
 
     private static void CheckSteps(IReadOnlyList<Step> steps, string at, List<string> problems, bool targets)

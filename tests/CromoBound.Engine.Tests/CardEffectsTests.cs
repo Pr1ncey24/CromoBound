@@ -1,4 +1,5 @@
 using CromoBound.Engine.Effects;
+using CromoBound.Engine.Effects.Steps;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
@@ -62,7 +63,7 @@ public class CardEffectsTests
 
         Assert.Equal(MappingStatus.Unmapped, info.Status);
         Assert.Contains(DisplayKeyword.Tank, info.Keywords);
-        Assert.Equal(new[] { "keyword Shield", "abilities[0]: Triggered ability" }, info.Unsupported);
+        Assert.Equal(new[] { "keyword Shield", "abilities[0]: trigger" }, info.Unsupported);
     }
 
     [Theory]
@@ -94,5 +95,53 @@ public class CardEffectsTests
         var engine = game.Start();
 
         Assert.True(engine.Has(game.State[unit], DisplayKeyword.Tank));
+    }
+
+    [Fact]
+    public void Keywords_stand_for_triggered_abilities_listed_after_the_files_own()
+    {
+        var db = EngineTestDb.Create(("unit-3", """
+            { "cardId": "unit-3", "status": "Full",
+              "keywords": [ { "keyword": "Vision" }, { "keyword": "Hunt", "value": 2 },
+                            { "keyword": "Deathknell", "steps": [ { "action": "Draw", "amount": 1 } ] } ],
+              "abilities": [ { "kind": "Triggered", "trigger": { "event": "Dies", "subject": { "ref": "Self" } },
+                               "steps": [ { "action": "Burn", "amount": 1 } ] } ] }
+            """));
+
+        var info = new CardEffects(db).For("unit-3");
+        var abilities = info.Abilities.Cast<TriggeredAbility>().ToList();
+
+        Assert.Equal(MappingStatus.Full, info.Status);
+        Assert.Equal(
+            new[] { TriggerEvent.Dies, TriggerEvent.Played, TriggerEvent.Conquer, TriggerEvent.Hold, TriggerEvent.Dies },
+            abilities.Select(a => a.Trigger.Event));
+        Assert.All(abilities, a => Assert.Equal(RefKind.Self, a.Trigger.Subject?.Ref));
+        Assert.IsType<PredictStep>(Assert.Single(abilities[1].Steps));
+        Assert.Equal(2, Assert.IsType<GainXpStep>(Assert.Single(abilities[3].Steps)).Amount.Literal);
+        Assert.IsType<DrawStep>(Assert.Single(abilities[4].Steps));
+    }
+
+    [Theory]
+    [InlineData("""{ "event": "Dies" }""")]
+    [InlineData("""{ "event": "Attack", "subject": { "ref": "Self" } }""")]
+    [InlineData("""{ "event": "Played", "by": "You", "where": { "ref": "Here" } }""")]
+    public void Unsupported_triggers_are_named(string trigger)
+    {
+        var file = CromoJson.Deserialize<EffectsFile>(
+            $$"""{ "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered", "trigger": {{trigger}}, "steps": [] } ] }""");
+
+        Assert.Equal(new[] { "abilities[0]: trigger" }, EffectsSupport.Problems(file));
+    }
+
+    [Fact]
+    public void A_triggered_ability_cant_have_target_selectors_yet()
+    {
+        var file = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered",
+              "trigger": { "event": "Dies", "subject": { "ref": "Self" } },
+              "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] } ] }
+            """);
+
+        Assert.Equal(new[] { "abilities[0].steps[0]: target" }, EffectsSupport.Problems(file));
     }
 }

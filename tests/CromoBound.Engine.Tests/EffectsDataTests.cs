@@ -16,14 +16,18 @@ public class EffectsDataTests
     [InlineData("vanguard-sergeant")]
     [InlineData("horns-of-the-dragon")]
     [InlineData("token-sprite")]
+    [InlineData("shadow-temple")]
+    [InlineData("soaring-scout")]
+    [InlineData("mystic-poro")]
+    [InlineData("voracious-gromp")]
     public void Cards_the_engine_runs_today_are_full(string cardId) => Assert.Equal(MappingStatus.Full, Real.For(cardId).Status);
 
     [Theory]
-    [InlineData("kharox", "Triggered ability")]
+    [InlineData("kharox", "keyword Empower")]
     [InlineData("garbage-grabber", "Activated ability")]
     [InlineData("noxus-hopeful", "Passive ability")]
     [InlineData("daring-poro", "keyword Assault")]
-    [InlineData("soaring-scout", "keyword Deathknell")]
+    [InlineData("jeweled-colossus", "keyword Shield")]
     public void Cards_needing_later_plans_play_by_hand_for_now(string cardId, string missing)
     {
         var info = Real.For(cardId);

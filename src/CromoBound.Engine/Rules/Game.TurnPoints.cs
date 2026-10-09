@@ -72,7 +72,7 @@ public sealed partial class Game
     }
 
     /// <summary>A battlefield's abilities belong to its controller, or the turn player when uncontrolled (CR 190.6).</summary>
-    private PlayerId HandledBy(CardInstance instance) =>
+    internal PlayerId HandledBy(CardInstance instance) =>
         instance.Place.Kind == PlaceKind.BattlefieldCard
             ? State.Battlefields[instance.Place.Index!.Value].Controller ?? State.Turn.TurnPlayer
             : instance.Controller;

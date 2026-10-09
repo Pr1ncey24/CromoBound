@@ -76,6 +76,14 @@ public sealed partial class Game
         return item;
     }
 
+    /// <summary>The card text lines an ability implements, or null when its file names none (the abilities keywords stand for).</summary>
+    internal string? AbilityText(string cardId, Ability ability)
+    {
+        if (ability.Line is not { } line) return null;
+        var lines = RichText.Lines(Db.Cards[cardId].Text.Rich);
+        return string.Join("<br />", line.Lines.Where(n => n >= 1 && n <= lines.Count).Select(n => lines[n - 1]));
+    }
+
     /// <summary>2a hand resolution of the item, or of just the lines in <paramref name="text"/> (a Partial spell's manual lines).</summary>
     private void ResolveByHand(ChainItem item, string? text)
     {
