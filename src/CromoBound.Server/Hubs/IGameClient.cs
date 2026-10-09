@@ -11,4 +11,6 @@ public interface IGameClient
 
     /// <summary>The receiving player's own view, never the other seat's.</summary>
     Task View(MatchViewNotice view);
+
+    Task MatchEnded(MatchEndedNotice ended);
 }

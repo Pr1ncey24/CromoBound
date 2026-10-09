@@ -76,8 +76,9 @@ internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry
             var created = Match.Create(new MatchSetup(challenge.Format, challenge.Deck, deck, NewSeed()), cards);
             if (created.Match is not { } match) return new HubReply(null, IllegalDeck, created.Reports[1].Issues);
             var id = Guid.NewGuid();
-            await store.CreateAsync(id, challenge.From.UserId, challenge.To.UserId, match.ToRecord());
-            var host = matches.Open(id, match, [challenge.From, challenge.To]);
+            var record = match.ToRecord();
+            await store.CreateAsync(id, challenge.From.UserId, challenge.To.UserId, record);
+            var host = matches.Open(id, match, record, [challenge.From, challenge.To]);
             foreach (var other in _open.Values.Where(c => Involves(c, challenge.From) || Involves(c, challenge.To)).ToList())
                 await RemoveAsync(other, other.Id == challengeId ? ChallengeEnd.Accepted : ChallengeEnd.Withdrawn);
             await host.StartAsync();

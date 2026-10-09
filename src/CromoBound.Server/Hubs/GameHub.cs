@@ -1,4 +1,5 @@
 using System.Globalization;
+using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
 using CromoBound.Server.Accounts;
@@ -45,4 +46,7 @@ internal sealed class GameHub(Lobby lobby, MatchRegistry matches, LiveConnection
 
     /// <summary>The caller's running match and view, on connect and on reconnect.</summary>
     public Task<MatchReply> GetMatch() => matches.CurrentAsync(Me.UserId);
+
+    /// <summary>Any action, manual ones, undo and concede included, in the caller's own seat (spec §6.3).</summary>
+    public Task<SubmitReply> Submit(Guid matchId, PlayerAction? action) => matches.SubmitAsync(Me.UserId, matchId, action);
 }

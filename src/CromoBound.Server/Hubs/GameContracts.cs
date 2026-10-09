@@ -1,4 +1,5 @@
 using CromoBound.Data;
+using CromoBound.Engine;
 using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
 using CromoBound.Engine.Views;
@@ -54,3 +55,7 @@ public sealed record MatchReply(Guid? MatchId, PlayerView? View, MatchEndedNotic
 {
     public static MatchReply None { get; } = new(null, null, null);
 }
+
+/// <summary>Submit's answer (spec §6.3): whether the engine accepted the action, with the engine's own rejection when it didn't, or the
+/// server's reason (no such match, an unreadable action, a save that failed).</summary>
+public sealed record SubmitReply(bool Accepted, Rejection? Rejection, string? Error);

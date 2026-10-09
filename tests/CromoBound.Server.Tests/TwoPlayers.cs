@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CromoBound.Engine.State;
+using CromoBound.Engine.Tests;
 using CromoBound.Engine.Views;
 using CromoBound.Models.Json;
 using CromoBound.Server.Matches;
@@ -11,6 +12,7 @@ namespace CromoBound.Server.Tests;
 internal sealed class TwoPlayers : IAsyncDisposable
 {
     private readonly ServerFactory _factory;
+    private readonly Bot[] _bots = [new(), new()];
 
     private TwoPlayers(ServerFactory factory, GameClient first, GameClient second, Guid matchId)
     {
@@ -42,6 +44,20 @@ internal sealed class TwoPlayers : IAsyncDisposable
         var accepted = await opponent.AcceptAsync(challenge.Id!.Value, Decks.Second);
         Assert.Null(accepted.Error);
         return new TwoPlayers(factory, challenger, opponent, accepted.Id!.Value);
+    }
+
+    /// <summary>The engine tests' scripted Bot plays both seats through the hub, each action sent by the deciding player's own connection,
+    /// until the match ends or <paramref name="actions"/> actions are sent. Every action must be accepted.</summary>
+    public async Task PlayAsync(int actions = 2000)
+    {
+        var matches = _factory.Services.GetRequiredService<MatchRegistry>();
+        for (var i = 0; i < actions && matches.Find(MatchId) is { } host; i++)
+        {
+            var match = host.Match;
+            var seat = match.Pending!.Players[0];
+            var reply = await this[seat].SubmitAsync(MatchId, _bots[seat.Index].Choose(match));
+            Assert.True(reply.Accepted, reply.Rejection?.Message ?? reply.Error);
+        }
     }
 
     /// <summary>A view as a player receives it: written by the server and read back by the client, where empty lists read back as

@@ -1,20 +1,29 @@
+using CromoBound.Data;
+using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
 using CromoBound.Engine.Views;
 using CromoBound.Server.Hubs;
+using CromoBound.Server.Storage;
 using Microsoft.AspNetCore.SignalR;
 
 namespace CromoBound.Server.Matches;
 
-/// <summary>One running match (spec §6.6): the engine's match and its two seats. A lock serializes everything that reads or changes
-/// the match, so each player's view is built from a settled state.</summary>
-internal sealed class MatchHost(Guid id, Match match, IReadOnlyList<MatchSeat> seats, IHubContext<GameHub, IGameClient> hub)
+/// <summary>One running match (spec §6.6): the engine's match, its two seats and its last saved record. A lock serializes everything
+/// that reads or changes the match: an accepted action is saved before anyone sees it, and each player's view is built from a settled
+/// state. <paramref name="finished"/> takes the match out of the registry when it ends.</summary>
+internal sealed class MatchHost(Guid id, Match match, MatchRecord saved, IReadOnlyList<MatchSeat> seats, IMatchStore store,
+    CardDatabase cards, IHubContext<GameHub, IGameClient> hub, ILogger log, Action<MatchHost> finished)
 {
+    public const string SaveFailed = "The action couldn't be saved, try again.";
+
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private MatchRecord _saved = saved;
 
     public Guid Id => id;
 
-    public Match Match { get; } = match;
+    /// <summary>The engine's match; replaced by a reload of the last saved record when a save fails.</summary>
+    public Match Match { get; private set; } = match;
 
     public IReadOnlyList<MatchSeat> Seats => seats;
 
@@ -55,10 +64,53 @@ internal sealed class MatchHost(Guid id, Match match, IReadOnlyList<MatchSeat> s
         }
     }
 
+    /// <summary>Under the lock, the engine decides; a rejected action changes and saves nothing. An accepted one is saved, then each
+    /// player is sent their view. If the save fails, the match goes back to its last saved record, the action is lost and the caller is
+    /// asked to try again. A finished match is saved as Finished, leaves the registry, and both players are told.</summary>
+    public async Task<SubmitReply> SubmitAsync(PlayerId seat, PlayerAction action)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            var result = Match.Submit(seat, action);
+            if (!result.Accepted) return new SubmitReply(false, result.Rejection, null);
+            var record = Match.ToRecord();
+            var over = Match.Stage == MatchStage.Over;
+            try
+            {
+                await store.SaveAsync(id, record, over ? MatchStatus.Finished : MatchStatus.Running);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Saving match {MatchId} failed; it goes back to its last saved state.", id);
+                Match = Match.Load(_saved, cards);
+                return new SubmitReply(false, null, SaveFailed);
+            }
+            _saved = record;
+            await PushViewsAsync();
+            if (over) await EndAsync();
+            return new SubmitReply(true, null, null);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     /// <summary>Each player gets their own seat's view, and only that.</summary>
     private async Task PushViewsAsync()
     {
         for (var i = 0; i < seats.Count; i++)
             await hub.Clients.Group(GameHub.UserGroup(seats[i].UserId)).View(new MatchViewNotice(id, Match.ViewFor(new PlayerId(i))));
+    }
+
+    /// <summary>Leaves the registry first, so the players are free to play again by the time they hear the match ended.</summary>
+    private async Task EndAsync()
+    {
+        finished(this);
+        var result = Match.Result;
+        var winner = result.Winner is { } seat ? seats[seat.Index].UserName : null;
+        await hub.Clients.Groups([.. seats.Select(s => GameHub.UserGroup(s.UserId))])
+            .MatchEnded(new MatchEndedNotice(id, MatchEndReason.Finished, result.GameWins, winner));
     }
 }

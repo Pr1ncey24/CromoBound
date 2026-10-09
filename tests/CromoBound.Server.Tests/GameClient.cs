@@ -1,3 +1,5 @@
+using System.Text.Json;
+using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
 using CromoBound.Server.Hubs;
@@ -22,6 +24,7 @@ internal sealed class GameClient : IAsyncDisposable
         Record<ChallengeClosedNotice>(nameof(IGameClient.ChallengeClosed));
         Record<MatchStartedNotice>(nameof(IGameClient.MatchStarted));
         Record<MatchViewNotice>(nameof(IGameClient.View));
+        Record<MatchEndedNotice>(nameof(IGameClient.MatchEnded));
         connection.Closed += _ =>
         {
             _closed.TrySetResult();
@@ -76,6 +79,13 @@ internal sealed class GameClient : IAsyncDisposable
     public Task<HubReply> AcceptAsync(Guid challengeId, Deck? deck) => Connection.InvokeAsync<HubReply>("AcceptChallenge", challengeId, deck);
 
     public Task<MatchReply> GetMatchAsync() => Connection.InvokeAsync<MatchReply>("GetMatch");
+
+    /// <summary>Sends the action as a <see cref="PlayerAction"/>, so its type name travels with it.</summary>
+    public Task<SubmitReply> SubmitAsync(Guid matchId, PlayerAction action) =>
+        Connection.InvokeAsync<SubmitReply>("Submit", matchId, JsonSerializer.SerializeToElement(action, ServerJson.Options));
+
+    /// <summary>Sends the value as it is: a payload without a "type" name doesn't say which action it is.</summary>
+    public Task<SubmitReply> SubmitRawAsync(Guid matchId, object? action) => Connection.InvokeAsync<SubmitReply>("Submit", matchId, action);
 
     /// <summary>Every notice of this type received so far.</summary>
     public IReadOnlyList<T> All<T>()

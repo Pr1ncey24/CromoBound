@@ -20,6 +20,7 @@
     <!-- The engine tests' card pool, legal decks and repository paths, compiled in here too: they're internal to the engine tests. -->
     <Compile Include="..\CromoBound.Engine.Tests\EngineTestDb.cs" Link="Engine\EngineTestDb.cs" />
     <Compile Include="..\CromoBound.Engine.Tests\RepoPaths.cs" Link="Engine\RepoPaths.cs" />
+    <Compile Include="..\CromoBound.Engine.Tests\Bot.cs" Link="Engine\Bot.cs" />
   </ItemGroup>
 
   <ItemGroup>
