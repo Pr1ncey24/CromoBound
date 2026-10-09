@@ -25,6 +25,9 @@ internal sealed class GameClient : IAsyncDisposable
         Record<MatchStartedNotice>(nameof(IGameClient.MatchStarted));
         Record<MatchViewNotice>(nameof(IGameClient.View));
         Record<MatchEndedNotice>(nameof(IGameClient.MatchEnded));
+        Record<PlayerPresence>(nameof(IGameClient.PlayerChanged));
+        Record<PlayerLeftNotice>(nameof(IGameClient.PlayerLeft));
+        Record<MaintenanceNotice>(nameof(IGameClient.MaintenanceChanged));
         connection.Closed += _ =>
         {
             _closed.TrySetResult();
@@ -85,6 +88,8 @@ internal sealed class GameClient : IAsyncDisposable
 
     public Task<MatchReply> GetMatchAsync() => Connection.InvokeAsync<MatchReply>("GetMatch");
 
+    public Task<LobbyReply> GetLobbyAsync() => Connection.InvokeAsync<LobbyReply>("GetLobby");
+
     /// <summary>Sends the action as a <see cref="PlayerAction"/>, so its type name travels with it.</summary>
     public Task<SubmitReply> SubmitAsync(Guid matchId, PlayerAction action) =>
         Connection.InvokeAsync<SubmitReply>("Submit", matchId, JsonSerializer.SerializeToElement(action, WireJson.Options));
@@ -99,14 +104,18 @@ internal sealed class GameClient : IAsyncDisposable
     }
 
     /// <summary>The first notice of this type (matching <paramref name="match"/>, if given), waiting up to ten seconds for it.</summary>
-    public async Task<T> WaitForAsync<T>(Func<T, bool>? match = null)
+    public Task<T> WaitForAsync<T>(Func<T, bool>? match = null) => WaitForAsync(match ?? (_ => true), after: 0);
+
+    /// <summary>The first notice of this type matching <paramref name="match"/> among those after the first <paramref name="after"/>
+    /// of its type, waiting up to ten seconds for it.</summary>
+    public async Task<T> WaitForAsync<T>(Func<T, bool> match, int after)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         while (true)
         {
             lock (_received)
-                foreach (var notice in _received.OfType<T>())
-                    if (match?.Invoke(notice) ?? true) return notice;
+                foreach (var notice in _received.OfType<T>().Skip(after))
+                    if (match(notice)) return notice;
             await _arrived.WaitAsync(timeout.Token);
         }
     }

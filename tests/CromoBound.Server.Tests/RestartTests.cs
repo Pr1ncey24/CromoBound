@@ -93,14 +93,14 @@ public class RestartTests
             using var second = new ServerFactory(databasePath: path);
             await using var alice = await GameClient.ConnectAsync(second, "alice");
             await using var bob = await GameClient.ConnectAsync(second, "bob");
-            var told = await alice.GetMatchAsync();
+            var told = await alice.GetLobbyAsync();
 
             Assert.Equal(0, second.Services.GetRequiredService<MatchRegistry>().Count);
             await second.WithDbAsync(async db => Assert.Equal(MatchStatus.Abandoned, (await db.Matches.SingleAsync()).Status));
             Assert.Null(told.MatchId);
             Assert.Equal((matchId, MatchEndReason.Abandoned, (string?)null), (told.Ended!.MatchId, told.Ended.Reason, told.Ended.Winner));
-            Assert.Equal(MatchReply.None, await alice.GetMatchAsync());
-            Assert.Equal(MatchEndReason.Abandoned, (await bob.GetMatchAsync()).Ended!.Reason);
+            Assert.Null((await alice.GetLobbyAsync()).Ended);
+            Assert.Equal(MatchEndReason.Abandoned, (await bob.GetLobbyAsync()).Ended!.Reason);
             Assert.Null((await alice.ChallengeAsync("bob", Decks.First)).Error);
         }
         finally
@@ -122,7 +122,7 @@ public class RestartTests
 
             await second.WithDbAsync(async db => Assert.Equal(MatchStatus.Abandoned, (await db.Matches.SingleAsync()).Status));
             Assert.Equal(0, second.Services.GetRequiredService<MatchRegistry>().Count);
-            Assert.Equal(matchId, (await alice.GetMatchAsync()).Ended!.MatchId);
+            Assert.Equal(matchId, (await alice.GetLobbyAsync()).Ended!.MatchId);
         }
         finally
         {
@@ -145,12 +145,12 @@ public class RestartTests
 
             using var second = new ServerFactory(databasePath: path);
             await using var alice = await GameClient.ConnectAsync(second, "alice");
-            var told = await alice.GetMatchAsync();
+            var told = await alice.GetLobbyAsync();
 
             Assert.Equal(0, second.Services.GetRequiredService<MatchRegistry>().Count);
             await second.WithDbAsync(async db => Assert.Equal(MatchStatus.Abandoned, (await db.Matches.SingleAsync()).Status));
             Assert.Equal((matchId, MatchEndReason.Abandoned), (told.Ended!.MatchId, told.Ended.Reason));
-            Assert.Equal(MatchReply.None, await alice.GetMatchAsync());
+            Assert.Null((await alice.GetLobbyAsync()).Ended);
         }
         finally
         {

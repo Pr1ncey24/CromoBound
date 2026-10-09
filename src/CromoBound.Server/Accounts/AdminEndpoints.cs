@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CromoBound.Contracts;
+using CromoBound.Server.Hubs;
 using CromoBound.Server.Storage;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -29,10 +30,12 @@ internal static class AdminEndpoints
     private static async Task<IResult> ListAsync(CromoDbContext db) =>
         Results.Ok(await db.Users.OrderBy(u => u.Id).Select(u => new UserSummary(u.Id, u.UserName, u.IsAdmin, u.Disabled)).ToListAsync());
 
-    private static async Task<IResult> CreateAsync(CreateUserRequest request, UserStore users)
+    private static async Task<IResult> CreateAsync(CreateUserRequest request, UserStore users, Presence presence)
     {
         var (user, error) = await users.CreateAsync(request.UserName ?? "", request.Password ?? "", request.IsAdmin);
-        return user is null ? Results.BadRequest(new ErrorResponse(error!)) : Results.Created($"/api/admin/users/{user.Id}", Summary(user));
+        if (user is null) return Results.BadRequest(new ErrorResponse(error!));
+        await presence.AnnounceAsync(user.Id);
+        return Results.Created($"/api/admin/users/{user.Id}", Summary(user));
     }
 
     /// <summary>Ends the user's sessions; an admin changing their own password is signed in again with the new stamp.</summary>
@@ -57,14 +60,16 @@ internal static class AdminEndpoints
         return Results.NoContent();
     }
 
-    /// <summary>The body must say which; a flag the user already has changes nothing (their sessions go on).</summary>
-    private static async Task<IResult> SetDisabledAsync(int id, DisabledRequest request, UserStore users, ClaimsPrincipal me)
+    /// <summary>The body must say which; a flag the user already has changes nothing (their sessions go on). The other players hear that
+    /// the user left or came back.</summary>
+    private static async Task<IResult> SetDisabledAsync(int id, DisabledRequest request, UserStore users, ClaimsPrincipal me, Presence presence)
     {
         if (request.Disabled is not { } disabled) return Results.BadRequest(new ErrorResponse(SayDisabled));
         if (await users.FindAsync(id) is not { } user) return Results.NotFound();
         if (user.Disabled == disabled) return Results.NoContent();
         if (disabled && await RefusalAsync(user, me, users) is { } problem) return Results.BadRequest(new ErrorResponse(problem));
         await users.SetDisabledAsync(user, disabled);
+        await presence.AnnounceAsync(user.Id);
         return Results.NoContent();
     }
 

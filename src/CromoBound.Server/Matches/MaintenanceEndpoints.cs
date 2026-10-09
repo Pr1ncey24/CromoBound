@@ -1,5 +1,7 @@
 using CromoBound.Contracts;
 using CromoBound.Server.Accounts;
+using CromoBound.Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace CromoBound.Server.Matches;
 
@@ -13,15 +15,17 @@ internal static class MaintenanceEndpoints
     {
         var maintenance = app.MapGroup("/api/admin/maintenance").RequireAuthorization(Policies.Steward);
         maintenance.MapGet("", (Maintenance state, MatchRegistry matches) => Status(state, matches));
-        maintenance.MapPost("", Switch);
+        maintenance.MapPost("", SwitchAsync);
     }
 
-    /// <summary>The body must say which.</summary>
-    private static IResult Switch(MaintenanceRequest request, Maintenance state, MatchRegistry matches, ILogger<Maintenance> log)
+    /// <summary>The body must say which. Every connected player hears the switch.</summary>
+    private static async Task<IResult> SwitchAsync(MaintenanceRequest request, Maintenance state, MatchRegistry matches,
+        IHubContext<GameHub, IGameClient> hub, ILogger<Maintenance> log)
     {
         if (request.On is not { } on) return Results.BadRequest(new ErrorResponse(SayOn));
         state.On = on;
         log.LogInformation("Maintenance is {State}.", on ? "on" : "off");
+        await hub.Clients.All.MaintenanceChanged(new MaintenanceNotice(on));
         return Results.Ok(Status(state, matches));
     }
 

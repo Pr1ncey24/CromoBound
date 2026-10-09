@@ -37,16 +37,18 @@ internal sealed class MatchRegistry(IMatchStore store, CardDatabase cards, IHubC
         return host;
     }
 
-    /// <summary>The user's running match and their view of it; otherwise, once, the notice of a match of theirs abandoned at startup;
-    /// otherwise nothing.</summary>
-    public async Task<MatchReply> CurrentAsync(int userId)
-    {
-        if (_byUser.TryGetValue(userId, out var host) && host.SeatOf(userId) is { } seat)
-            return new MatchReply(host.Id, await host.ViewAsync(seat), null);
-        return _abandoned.TryRemove(userId, out var ended) ? new MatchReply(null, null, ended) : MatchReply.None;
-    }
+    /// <summary>The user's running match and their view of it, or nothing.</summary>
+    public async Task<MatchReply> CurrentAsync(int userId) =>
+        _byUser.TryGetValue(userId, out var host) && host.SeatOf(userId) is { } seat
+            ? new MatchReply(host.Id, await host.ViewAsync(seat))
+            : MatchReply.None;
 
-    /// <summary>Keeps the notice until the user next asks for their match (in memory: a later restart forgets it).</summary>
+    public Guid? MatchOf(int userId) => _byUser.TryGetValue(userId, out var host) ? host.Id : null;
+
+    /// <summary>The notice of a match of the user's abandoned at startup, handed out once.</summary>
+    public MatchEndedNotice? TakeAbandoned(int userId) => _abandoned.TryRemove(userId, out var ended) ? ended : null;
+
+    /// <summary>Keeps the notice until the user next asks for their lobby (in memory: a later restart forgets it).</summary>
     public void NoteAbandoned(int userId, MatchEndedNotice ended) => _abandoned[userId] = ended;
 
     /// <summary>The user acts in their own seat; a match they aren't in reads as missing.</summary>

@@ -9,7 +9,7 @@ namespace CromoBound.Server.Matches;
 internal static class MatchesSetup
 {
     /// <summary>The card data (loaded once, shared read-only), the match store, the running matches, the maintenance switch, the lobby,
-    /// the hub and the startup work. Call after <c>AddCromoBoundStorage</c>, so the database is ready before
+    /// the presence announcements, the hub and the startup work. Call after <c>AddCromoBoundStorage</c>, so the database is ready before
     /// <see cref="MatchStartup"/> runs.</summary>
     public static IServiceCollection AddCromoBoundMatches(this IServiceCollection services)
     {
@@ -18,6 +18,7 @@ internal static class MatchesSetup
         services.AddHostedService<MatchStartup>();
         services.AddSingleton<MatchRegistry>();
         services.AddSingleton<Maintenance>();
+        services.AddSingleton<Presence>();
         services.AddSingleton<Lobby>();
         services.AddSignalR(hub =>
         {

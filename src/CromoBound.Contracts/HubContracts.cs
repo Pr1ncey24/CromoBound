@@ -49,13 +49,28 @@ public enum MatchEndReason
 /// <summary>A match is over: the game wins by seat, and the winner's name (none when abandoned).</summary>
 public sealed record MatchEndedNotice(Guid MatchId, MatchEndReason Reason, IReadOnlyList<int> GameWins, string? Winner);
 
-/// <summary>GetMatch's answer: the player's running match and their view of it; or, once, the notice of a match of theirs that was
-/// abandoned when the server restarted; or nothing.</summary>
-public sealed record MatchReply(Guid? MatchId, PlayerView? View, MatchEndedNotice? Ended)
+/// <summary>GetMatch's answer: the player's running match and their view of it, or nothing.</summary>
+public sealed record MatchReply(Guid? MatchId, PlayerView? View)
 {
-    public static MatchReply None { get; } = new(null, null, null);
+    public static MatchReply None { get; } = new(null, null);
 }
 
 /// <summary>Submit's answer (spec ยง6.3): whether the engine accepted the action, with the engine's own rejection when it didn't, or the
 /// server's reason (no such match, an unreadable action, a save that failed).</summary>
 public sealed record SubmitReply(bool Accepted, Rejection? Rejection, string? Error);
+
+/// <summary>How another player stands: connected (at least one open tab) and in a running match.</summary>
+public sealed record PlayerPresence(string UserName, bool Online, bool InMatch);
+
+/// <summary>An open challenge the receiving player made or received.</summary>
+public sealed record ChallengeInfo(Guid ChallengeId, string From, string To, MatchFormat Format);
+
+/// <summary>GetLobby's answer (spec ง6.1): every other enabled player by name, the caller's open challenges, their running match,
+/// once the notice of a match of theirs abandoned when the server restarted, and whether maintenance is on.</summary>
+public sealed record LobbyReply(
+    IReadOnlyList<PlayerPresence> Players, IReadOnlyList<ChallengeInfo> Challenges, Guid? MatchId, MatchEndedNotice? Ended, bool Maintenance);
+
+/// <summary>A player was disabled and leaves the lobby.</summary>
+public sealed record PlayerLeftNotice(string UserName);
+
+public sealed record MaintenanceNotice(bool On);

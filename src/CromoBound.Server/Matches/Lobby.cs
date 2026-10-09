@@ -13,7 +13,7 @@ namespace CromoBound.Server.Matches;
 /// so the rules can't be raced. Players in a match can't make or receive challenges, and starting a match withdraws every other open
 /// challenge of its players, so no open challenge ever involves a player who is in a match.</summary>
 internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry matches, Maintenance maintenance,
-    IHubContext<GameHub, IGameClient> hub, IServiceScopeFactory scopes)
+    Presence presence, IHubContext<GameHub, IGameClient> hub, IServiceScopeFactory scopes)
 {
     public const string InMaintenance = "The server is in maintenance.";
     public const string NoSuchPlayer = "There is no such player.";
@@ -83,6 +83,8 @@ internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry
             foreach (var other in _open.Values.Where(c => Involves(c, challenge.From) || Involves(c, challenge.To)).ToList())
                 await RemoveAsync(other, other.Id == challengeId ? ChallengeEnd.Accepted : ChallengeEnd.Withdrawn);
             await host.StartAsync();
+            await presence.AnnounceAsync(challenge.From.UserId);
+            await presence.AnnounceAsync(challenge.To.UserId);
             return HubReply.Ok(id);
         }
         finally
@@ -96,6 +98,21 @@ internal sealed class Lobby(CardDatabase cards, IMatchStore store, MatchRegistry
 
     public Task<HubReply> CancelAsync(MatchSeat me, Guid challengeId) =>
         CloseAsync(challengeId, c => c.From.UserId == me.UserId, ChallengeEnd.Cancelled);
+
+    /// <summary>The user's open challenges, made and received (spec §6.1).</summary>
+    public async Task<IReadOnlyList<ChallengeInfo>> ChallengesOfAsync(int userId)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            return [.. _open.Values.Where(c => c.From.UserId == userId || c.To.UserId == userId)
+                .Select(c => new ChallengeInfo(c.Id, c.From.UserName, c.To.UserName, c.Format))];
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
     /// <summary>A challenge the caller may not close reads as missing.</summary>
     private async Task<HubReply> CloseAsync(Guid challengeId, Func<OpenChallenge, bool> mayClose, ChallengeEnd reason)

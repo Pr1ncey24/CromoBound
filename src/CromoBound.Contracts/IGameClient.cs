@@ -13,4 +13,11 @@ public interface IGameClient
     Task View(MatchViewNotice view);
 
     Task MatchEnded(MatchEndedNotice ended);
+
+    /// <summary>Another player came, went, or started or ended a match, or an admin created or re-enabled them.</summary>
+    Task PlayerChanged(PlayerPresence player);
+
+    Task PlayerLeft(PlayerLeftNotice left);
+
+    Task MaintenanceChanged(MaintenanceNotice maintenance);
 }
