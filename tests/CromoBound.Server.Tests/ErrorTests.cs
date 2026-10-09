@@ -25,5 +25,6 @@ public class ErrorTests
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Equal("Something went wrong.", await response.Content.ReadAsStringAsync());
+        Assert.Equal("noindex, nofollow", Assert.Single(response.Headers.GetValues("X-Robots-Tag")));
     }
 }

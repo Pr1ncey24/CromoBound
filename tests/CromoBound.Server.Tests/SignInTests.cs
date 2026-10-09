@@ -28,8 +28,11 @@ public class SignInTests
             var response = await client.SendAsync(Page(path));
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
             Assert.Equal("/login", response.Headers.Location?.OriginalString);
+            Assert.Equal("noindex, nofollow", Assert.Single(response.Headers.GetValues("X-Robots-Tag")));
         }
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/me")).StatusCode);
+        var unauthorized = await client.GetAsync("/api/me");
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
+        Assert.Equal("noindex, nofollow", Assert.Single(unauthorized.Headers.GetValues("X-Robots-Tag")));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(Page("/api/me"))).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/logout", null)).StatusCode);
     }
@@ -119,6 +122,7 @@ public class SignInTests
     [InlineData("not json", "application/json")]
     [InlineData("""{ "userName": 5 }""", "application/json")]
     [InlineData("userName=admin", "text/plain")]
+    [InlineData("userName=admin&password=x", "multipart/form-data")]
     public async Task A_malformed_sign_in_is_a_plain_failure(string body, string contentType)
     {
         using var factory = new ServerFactory();

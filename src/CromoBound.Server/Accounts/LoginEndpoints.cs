@@ -50,17 +50,17 @@ internal static class LoginEndpoints
     /// <summary>The two fields from a form or a JSON body; anything unreadable gives nulls (a plain failure, never a 500).</summary>
     private static async Task<(string? UserName, string? Password)> ReadCredentialsAsync(HttpRequest request, bool form)
     {
-        if (form)
-        {
-            var fields = await request.ReadFormAsync();
-            return (fields["userName"].FirstOrDefault(), fields["password"].FirstOrDefault());
-        }
         try
         {
+            if (form)
+            {
+                var fields = await request.ReadFormAsync();
+                return (fields["userName"].FirstOrDefault(), fields["password"].FirstOrDefault());
+            }
             var body = await request.ReadFromJsonAsync<LoginRequest>();
             return (body?.UserName, body?.Password);
         }
-        catch (Exception error) when (error is JsonException or InvalidOperationException)
+        catch (Exception error) when (error is JsonException or InvalidOperationException or InvalidDataException or BadHttpRequestException or IOException)
         {
             return (null, null);
         }

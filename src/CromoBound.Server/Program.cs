@@ -8,8 +8,8 @@ builder.Services.AddCromoBoundStorage(builder.Configuration);
 builder.Services.AddCromoBoundAccounts(builder.Configuration);
 
 var app = builder.Build();
-app.UseExceptionHandler(errors => errors.Run(ServerErrors.WriteGenericAsync));
 app.Use(Privacy.NoIndexAsync);
+app.UseExceptionHandler(errors => errors.Run(ServerErrors.WriteGenericAsync));
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
