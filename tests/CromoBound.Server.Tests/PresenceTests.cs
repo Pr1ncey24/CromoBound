@@ -1,6 +1,9 @@
 using System.Net.Http.Json;
 using CromoBound.Contracts;
 using CromoBound.Engine.Actions;
+using CromoBound.Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CromoBound.Server.Tests;
 
@@ -83,5 +86,48 @@ public class PresenceTests
         await bob.WaitForAsync<PlayerLeftNotice>(n => n.UserName == "carol", after: 1);
         Assert.DoesNotContain(bob.All<PlayerPresence>().Skip(seen), p => p.UserName == "carol");
         Assert.DoesNotContain((await bob.GetLobbyAsync()).Players, p => p.UserName == "carol");
+    }
+
+    [Fact]
+    public async Task A_failing_announcement_breaks_neither_a_connection_nor_an_admin_creating_a_user()
+    {
+        using var factory = new ServerFactory(services: services => services.AddSingleton<IHubContext<GameHub, IGameClient>, ThrowingHubContext>());
+        await using var bob = await GameClient.NewPlayerAsync(factory, "bob");
+        var admin = await factory.SignInAdminAsync();
+
+        var created = await admin.PostAsJsonAsync("/api/admin/users", new CreateUserRequest("erin", ServerFactory.PlayerPassword, false));
+
+        Assert.Equal(System.Net.HttpStatusCode.Created, created.StatusCode);
+        Assert.False(bob.Closed.IsCompleted);
+        Assert.Contains((await bob.GetLobbyAsync()).Players, p => p.UserName == "erin");
+    }
+
+    /// <summary>A hub context whose broadcast to everyone but some connections always fails, as a broken backplane would.</summary>
+    private sealed class ThrowingHubContext : IHubContext<GameHub, IGameClient>
+    {
+        public IHubClients<IGameClient> Clients { get; } = new ThrowingClients();
+
+        public IGroupManager Groups => throw new NotSupportedException();
+
+        private sealed class ThrowingClients : IHubClients<IGameClient>
+        {
+            public IGameClient All => throw new NotSupportedException();
+
+            public IGameClient AllExcept(IReadOnlyList<string> excludedConnectionIds) => throw new InvalidOperationException("The broadcast failed.");
+
+            public IGameClient Client(string connectionId) => throw new NotSupportedException();
+
+            public IGameClient Clients(IReadOnlyList<string> connectionIds) => throw new NotSupportedException();
+
+            public IGameClient Group(string groupName) => throw new NotSupportedException();
+
+            public IGameClient Groups(IReadOnlyList<string> groupNames) => throw new NotSupportedException();
+
+            public IGameClient GroupExcept(string groupName, IReadOnlyList<string> excludedConnectionIds) => throw new NotSupportedException();
+
+            public IGameClient User(string userId) => throw new NotSupportedException();
+
+            public IGameClient Users(IReadOnlyList<string> userIds) => throw new NotSupportedException();
+        }
     }
 }
