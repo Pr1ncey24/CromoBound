@@ -27,7 +27,8 @@ app.UseAuthorization();
 app.MapAccounts();
 app.MapAdmin();
 app.MapMaintenance();
-app.MapHub<GameHub>("/hub").RequireAuthorization(Policies.Seat);
+// A hub connection can outlive the sign-in cookie, so it is closed when the cookie expires.
+app.MapHub<GameHub>("/hub", options => options.CloseOnAuthenticationExpiration = true).RequireAuthorization(Policies.Seat);
 app.Run();
 
 /// <summary>The entry point; public so the test host can start the server.</summary>
