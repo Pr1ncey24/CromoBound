@@ -1,5 +1,6 @@
 using CromoBound.Server;
 using CromoBound.Server.Accounts;
+using CromoBound.Server.Hubs;
 using CromoBound.Server.Matches;
 using CromoBound.Server.Storage;
 
@@ -25,6 +26,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapAccounts();
 app.MapAdmin();
+app.MapHub<GameHub>("/hub").RequireAuthorization(Policies.Seat);
 app.Run();
 
 /// <summary>The entry point; public so the test host can start the server.</summary>

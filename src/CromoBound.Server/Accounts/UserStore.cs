@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace CromoBound.Server.Accounts;
 
 /// <summary>Accounts (spec §5): the rules for names and passwords, hashing, and every change to a user. A change to the password,
-/// the role or the disabled flag replaces the security stamp, which ends the user's sessions (spec §4.3).</summary>
-internal sealed partial class UserStore(CromoDbContext db, IPasswordHasher<UserEntity> hasher, TimeProvider time)
+/// the role or the disabled flag replaces the security stamp, which ends the user's sessions and closes their live hub connections (spec §4.3).</summary>
+internal sealed partial class UserStore(CromoDbContext db, IPasswordHasher<UserEntity> hasher, TimeProvider time, LiveConnections connections)
 {
     public const int MinPasswordLength = 12;
 
@@ -92,10 +92,11 @@ internal sealed partial class UserStore(CromoDbContext db, IPasswordHasher<UserE
         return ChangedAsync(user, cancel);
     }
 
-    private Task ChangedAsync(UserEntity user, CancellationToken cancel)
+    private async Task ChangedAsync(UserEntity user, CancellationToken cancel)
     {
         user.SecurityStamp = NewStamp();
-        return db.SaveChangesAsync(cancel);
+        await db.SaveChangesAsync(cancel);
+        connections.EndAll(user.Id);
     }
 
     private static string NewStamp() => Convert.ToHexString(RandomNumberGenerator.GetBytes(16));

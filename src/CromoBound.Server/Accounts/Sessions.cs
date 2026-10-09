@@ -29,18 +29,24 @@ internal static class Sessions
     public static int? UserId(ClaimsPrincipal principal) =>
         int.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null;
 
-    /// <summary>On every request: the account must still exist, be enabled and carry the same security stamp; otherwise the session
-    /// ends (a changed password, role or disabled flag takes effect at once).</summary>
+    /// <summary>On every request: the session must still be current (<see cref="IsCurrentAsync"/>); otherwise it ends (a changed
+    /// password, role or disabled flag takes effect at once).</summary>
     public static async Task ValidateAsync(CookieValidatePrincipalContext context)
     {
-        var principal = context.Principal!;
-        var id = UserId(principal);
-        var stamp = principal.FindFirstValue(StampClaim);
         var db = context.HttpContext.RequestServices.GetRequiredService<CromoDbContext>();
-        var user = id is null ? null : await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id);
-        if (user is { Disabled: false } && user.SecurityStamp == stamp) return;
+        if (await IsCurrentAsync(context.Principal!, db)) return;
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>Whether the session's account still exists, is enabled and carries the session's security stamp. Also checked on
+    /// every hub call, because a hub connection outlives the request that opened it.</summary>
+    public static async Task<bool> IsCurrentAsync(ClaimsPrincipal principal, CromoDbContext db)
+    {
+        var id = UserId(principal);
+        var stamp = principal.FindFirstValue(StampClaim);
+        var user = id is null ? null : await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id);
+        return user is { Disabled: false } && user.SecurityStamp == stamp;
     }
 
     /// <summary>Signed out: a page request goes to the login page, anything else gets a bare 401.</summary>

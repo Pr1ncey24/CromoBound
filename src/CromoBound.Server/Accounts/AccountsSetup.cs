@@ -40,6 +40,7 @@ internal static class AccountsSetup
         });
 
         services.AddSingleton<LoginLockout>();
+        services.AddSingleton<LiveConnections>();
         services.AddRateLimiter(limiter =>
         {
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

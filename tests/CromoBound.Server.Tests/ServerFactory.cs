@@ -87,6 +87,18 @@ internal sealed class ServerFactory : WebApplicationFactory<Program>
 
     public Task<HttpClient> SignInAdminAsync() => SignInAsync(AdminName, AdminPassword);
 
+    /// <summary>Signs in and returns the session cookie as a request header value ("name=value"), for a hub connection.</summary>
+    public async Task<string> SessionCookieAsync(string userName, string password)
+    {
+        var client = CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false, HandleCookies = false,
+        });
+        var response = await client.PostAsJsonAsync("/login", new LoginRequest(userName, password));
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        return response.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("__Host-session=", StringComparison.Ordinal)).Split(';')[0];
+    }
+
     /// <summary>Adds a user with <see cref="PlayerPassword"/> straight through the store.</summary>
     public async Task<UserEntity> AddUserAsync(string userName, bool isAdmin = false)
     {
