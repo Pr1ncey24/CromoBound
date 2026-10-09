@@ -7,7 +7,7 @@ file and the keys that encrypt session cookies live on named volumes, so they su
 - A Linux VPS (1 vCPU and 1 GB of RAM are plenty) with Docker Engine and the Compose plugin.
 - A domain name whose A (and AAAA) record points at the VPS. Pick a name that says nothing about the site: HTTPS certificates are
   listed in public Certificate Transparency logs, so the host name is public even though nothing behind the login is.
-- Ports 80 and 443 open, and nothing else.
+- Ports 80 and 443 open, plus SSH for administration, and nothing else.
 
 ## 2. Build the image
 On the VPS, in a clone of the repository at the commit to deploy:
@@ -81,8 +81,7 @@ Replace `play.example.com` in both files with the domain. Caddy gets the certifi
 through, and sends the client's address in `X-Forwarded-For`.
 
 `CromoBound__KnownNetworks__0` must be the `web` network's subnet. The server trusts forwarded headers only from there. Without it,
-the server takes Caddy for the client of every request: every login would share one rate limit, and lockouts couldn't tell people
-apart. The app service has no `ports:`, so Kestrel's port 8080 is reachable only from Caddy.
+the server takes Caddy for the client of every request, so every login would share one rate limit. The app service has no `ports:`, so Kestrel's port 8080 is reachable only from Caddy.
 
 ## 4. Settings
 Environment variables on the `app` service. List settings take `__0`, `__1` and so on.
@@ -146,9 +145,34 @@ docker run --rm -v cromobound_db:/db -v /opt/cromobound/backups:/backup alpine:3
   sh -c 'apk add --no-cache sqlite >/dev/null && sqlite3 /db/cromobound.db ".backup /backup/cromobound-$(date +%F).db"'
 ```
 
-Run it daily from cron, and copy `/opt/cromobound/backups` off the VPS. To restore a backup:
+To run it daily, put the command in a script, `/opt/cromobound/backup.sh`, and call that from cron. (In a crontab line, `%` has to be
+written `\%`, so a script is simpler.)
+
+```bash
+#!/bin/sh
+mkdir -p /opt/cromobound/backups
+docker run --rm -v cromobound_db:/db -v /opt/cromobound/backups:/backup alpine:3.20 \
+  sh -c 'apk add --no-cache sqlite >/dev/null && sqlite3 /db/cromobound.db ".backup /backup/cromobound-$(date +%F).db"'
+```
+
+```
+0 3 * * * /bin/sh /opt/cromobound/backup.sh
+```
+
+Copy `/opt/cromobound/backups` off the VPS as well.
+
+To restore a backup, the database runs in WAL mode, so the old `-wal` and `-shm` files must go, and the app runs as a non-root user
+(`1654`, the image's `$APP_UID`), so the restored file must be handed to it:
 1. Stop the app with `docker compose stop app`.
-2. Copy the backup over `cromobound.db` in the `cromobound_db` volume, with a throwaway container as above.
+2. In one throwaway container with both volumes, delete the stale `-wal` and `-shm` files, copy the backup over `cromobound.db` and
+   give the app's user the file (replace the date with the backup to restore):
+
+   ```bash
+   docker run --rm -v cromobound_db:/db -v /opt/cromobound/backups:/backup alpine:3.20 \
+     sh -c 'rm -f /db/cromobound.db-wal /db/cromobound.db-shm \
+       && cp /backup/cromobound-2026-01-31.db /db/cromobound.db \
+       && chown 1654:1654 /db/cromobound.db'
+   ```
 3. Start the app again with `docker compose start app`.
 
 The `keys` volume doesn't need a backup: losing it only signs everyone out.
