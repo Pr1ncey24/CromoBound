@@ -61,6 +61,8 @@ namespace CromoBound.Engine.Events;
 /// <summary>Something that happened. <see cref="VisibleTo"/> null means public; otherwise only that player may see it.</summary>
 public abstract record GameEvent
 {
+    /// <summary>The event's place in the match, from 1. Its setter is the engine's, so it is included explicitly to read back from JSON.</summary>
+    [JsonInclude]
     public int Sequence { get; internal set; }
     public PlayerId? VisibleTo { get; init; }
 }

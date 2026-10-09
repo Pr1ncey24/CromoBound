@@ -4,7 +4,7 @@ using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
 using CromoBound.Engine.Views;
 
-namespace CromoBound.Server.Hubs;
+namespace CromoBound.Contracts;
 
 /// <summary>The answer to a challenge call: the challenge's or match's id, or why not (with the deck's problems for an illegal deck).</summary>
 public sealed record HubReply(Guid? Id, string? Error, IReadOnlyList<DeckIssue>? DeckIssues = null)

@@ -164,7 +164,7 @@ These show only when `/api/me` reports `canManageUsers`.
 ## 10. Wire JSON
 - The hub and the saved match records use the engine's JSON settings without indentation, as in Phase 3, plus one change: empty lists are written as `[]` instead of being left out.
 - This way a view the client reads back is exactly the view the engine built. Before, empty lists read back as null.
-- Records saved the old way still load, because a missing list reads as empty where the engine's records have defaults, and saved records already round-trip.
+- Saved records are written the same way, so a match saved before its first action keeps its empty log. A record written before this change with an empty log can't be replayed and is abandoned at startup; none were deployed.
 
 ## 11. Errors
 - An HTTP refusal shows the server's message in a notification.

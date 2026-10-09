@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CromoBound.Contracts;
 using CromoBound.Server.Storage;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;

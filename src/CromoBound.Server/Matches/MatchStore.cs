@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CromoBound.Contracts;
 using CromoBound.Engine.Matches;
 using CromoBound.Server.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -23,10 +24,10 @@ internal interface IMatchStore
 /// <summary>The Matches table. Each call uses its own database context, so match hosts can save from any thread.</summary>
 internal sealed class MatchStore(IServiceScopeFactory scopes, TimeProvider time) : IMatchStore
 {
-    public static string Json(MatchRecord record) => JsonSerializer.Serialize(record, ServerJson.Options);
+    public static string Json(MatchRecord record) => JsonSerializer.Serialize(record, WireJson.Options);
 
     public static MatchRecord Read(string json) =>
-        JsonSerializer.Deserialize<MatchRecord>(json, ServerJson.Options) ?? throw new JsonException("A match record was null.");
+        JsonSerializer.Deserialize<MatchRecord>(json, WireJson.Options) ?? throw new JsonException("A match record was null.");
 
     public async Task CreateAsync(Guid id, int seat0UserId, int seat1UserId, MatchRecord record)
     {

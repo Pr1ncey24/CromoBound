@@ -1,8 +1,8 @@
 using System.Text.Json;
+using CromoBound.Contracts;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
-using CromoBound.Server.Hubs;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,7 +62,7 @@ internal sealed class GameClient : IAsyncDisposable
                     return await socket.ConnectAsync(context.Uri, cancel);
                 };
             })
-            .AddJsonProtocol(json => json.PayloadSerializerOptions = ServerJson.Options)
+            .AddJsonProtocol(json => json.PayloadSerializerOptions = WireJson.Options)
             .Build();
         var client = new GameClient(connection);
         await connection.StartAsync();
@@ -87,7 +87,7 @@ internal sealed class GameClient : IAsyncDisposable
 
     /// <summary>Sends the action as a <see cref="PlayerAction"/>, so its type name travels with it.</summary>
     public Task<SubmitReply> SubmitAsync(Guid matchId, PlayerAction action) =>
-        Connection.InvokeAsync<SubmitReply>("Submit", matchId, JsonSerializer.SerializeToElement(action, ServerJson.Options));
+        Connection.InvokeAsync<SubmitReply>("Submit", matchId, JsonSerializer.SerializeToElement(action, WireJson.Options));
 
     /// <summary>Sends the value as it is: a payload without a "type" name doesn't say which action it is.</summary>
     public Task<SubmitReply> SubmitRawAsync(Guid matchId, object? action) => Connection.InvokeAsync<SubmitReply>("Submit", matchId, action);

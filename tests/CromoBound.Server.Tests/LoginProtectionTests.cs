@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using CromoBound.Server.Accounts;
+using CromoBound.Contracts;
 using CromoBound.Server.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;

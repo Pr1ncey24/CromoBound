@@ -4,6 +4,7 @@
     <ProjectReference Include="..\CromoBound.Engine\CromoBound.Engine.csproj" />
     <ProjectReference Include="..\CromoBound.Data\CromoBound.Data.csproj" />
     <ProjectReference Include="..\CromoBound.Models\CromoBound.Models.csproj" />
+    <ProjectReference Include="..\CromoBound.Contracts\CromoBound.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

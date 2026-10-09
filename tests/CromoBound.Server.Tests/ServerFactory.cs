@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using CromoBound.Contracts;
 using CromoBound.Data;
 using CromoBound.Engine.Tests;
 using CromoBound.Server.Accounts;

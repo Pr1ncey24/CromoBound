@@ -12,6 +12,19 @@ namespace CromoBound.Engine.Tests;
 public class MatchJsonTests
 {
     [Fact]
+    public void Events_keep_their_sequence_through_json()
+    {
+        var match = Match.Create(TestDecks.Setup(MatchFormat.Bo1), EngineTestDb.Create()).Match!;
+        var events = match.Events;
+
+        var back = CromoJson.Deserialize<List<GameEvent>>(CromoJson.Serialize(events));
+
+        Assert.True(events.Count > 2);
+        Assert.Equal(events.Select(e => e.Sequence), back.Select(e => e.Sequence));
+        Assert.All(back, e => Assert.True(e.Sequence > 0));
+    }
+
+    [Fact]
     public void A_match_record_round_trips_with_every_kind_of_action()
     {
         var deck = new Deck { Name = "d", Legend = "l", Champion = "c", Main = [new DeckEntry { Printing = "p", Count = 3 }] };

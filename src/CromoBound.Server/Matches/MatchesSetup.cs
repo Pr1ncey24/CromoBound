@@ -1,3 +1,4 @@
+using CromoBound.Contracts;
 using CromoBound.Data;
 using CromoBound.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
@@ -22,7 +23,7 @@ internal static class MatchesSetup
         {
             hub.EnableDetailedErrors = false;
             hub.AddFilter<SessionFilter>();
-        }).AddJsonProtocol(json => json.PayloadSerializerOptions = ServerJson.Options);
+        }).AddJsonProtocol(json => json.PayloadSerializerOptions = WireJson.Options);
         return services;
     }
 

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using CromoBound.Contracts;
 using CromoBound.Data;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;

@@ -1,4 +1,4 @@
-namespace CromoBound.Server.Hubs;
+namespace CromoBound.Contracts;
 
 /// <summary>What the server pushes to a player's connections (spec §6.4). Public: SignalR builds the typed proxy at run time.</summary>
 public interface IGameClient

@@ -1,4 +1,5 @@
 using System.Globalization;
+using CromoBound.Contracts;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;

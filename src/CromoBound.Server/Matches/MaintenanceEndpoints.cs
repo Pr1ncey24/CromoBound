@@ -1,3 +1,4 @@
+using CromoBound.Contracts;
 using CromoBound.Server.Accounts;
 
 namespace CromoBound.Server.Matches;

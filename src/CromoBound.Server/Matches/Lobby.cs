@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using CromoBound.Contracts;
 using CromoBound.Data;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;

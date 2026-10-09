@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CromoBound.Engine\CromoBound.Engine.csproj" />
+    <ProjectReference Include="..\CromoBound.Data\CromoBound.Data.csproj" />
+    <ProjectReference Include="..\CromoBound.Models\CromoBound.Models.csproj" />
+  </ItemGroup>
+
+</Project>

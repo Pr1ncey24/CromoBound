@@ -1,6 +1,6 @@
+using CromoBound.Contracts;
 using CromoBound.Engine.Actions;
 using CromoBound.Models.Json;
-using CromoBound.Server.Hubs;
 using CromoBound.Server.Matches;
 using CromoBound.Server.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +51,27 @@ public class RestartTests
             Assert.Equal(matchId, current.MatchId);
             Assert.Equal(firstView, CromoJson.Serialize(current.View));
             Assert.Equal(secondView, CromoJson.Serialize((await again.Second.GetMatchAsync()).View));
+            await again.PlayAsync();
+            Assert.Equal(MatchEndReason.Finished, (await again.First.WaitForAsync<MatchEndedNotice>()).Reason);
+        }
+        finally
+        {
+            ServerFactory.DeleteDatabase(path);
+        }
+    }
+
+    [Fact]
+    public async Task A_match_restarted_before_its_first_action_resumes()
+    {
+        var path = ServerFactory.NewDatabasePath();
+        try
+        {
+            var matchId = await FirstServerAsync(path, (_, _) => Task.CompletedTask);
+
+            using var second = new ServerFactory(databasePath: path);
+            await using var again = await TwoPlayers.ReconnectAsync(second, matchId);
+
+            Assert.Equal(matchId, (await again.First.GetMatchAsync()).MatchId);
             await again.PlayAsync();
             Assert.Equal(MatchEndReason.Finished, (await again.First.WaitForAsync<MatchEndedNotice>()).Reason);
         }

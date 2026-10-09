@@ -1,6 +1,6 @@
+using CromoBound.Contracts;
 using CromoBound.Data;
 using CromoBound.Engine.Matches;
-using CromoBound.Server.Hubs;
 using CromoBound.Server.Matches;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;

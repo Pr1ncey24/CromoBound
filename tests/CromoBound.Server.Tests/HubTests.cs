@@ -1,5 +1,5 @@
 using System.Net;
-using CromoBound.Server.Hubs;
+using CromoBound.Contracts;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 
