@@ -1,3 +1,4 @@
+using CromoBound.Data;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
@@ -100,5 +101,72 @@ public class MatchEffectsTests
         Assert.Empty(Assert.Single(theirs.Chain).Card!.ManualLines);
         Assert.All(theirs.Players[player.Index].Base, card => Assert.Equal(MappingStatus.Unmapped, card.Effects));
         Assert.Contains("\"ChooseTargets\"", CromoJson.Serialize(mine));
+    }
+
+    /// <summary>A legal Jinx deck with three Mystic Poros in place of filler-13.</summary>
+    private static Deck PoroDeck(params string[] battlefields) => TestDecks.Jinx(battlefields) with
+    {
+        Main = [.. Enumerable.Range(1, 12).Select(i => new DeckEntry { Printing = $"p-filler-{i}", Count = 3 }), new DeckEntry { Printing = "p-mystic-poro", Count = 3 }],
+    };
+
+    private static CardDatabase PoroDb() => EngineTestDb.WithRealCards("mystic-poro");
+
+    /// <summary>To play; the first player brings a Mystic Poro to hand, plays it with the suggested payment, and both players pass
+    /// on its Vision trigger, stopping at the choice to recycle the predicted card. Everything goes through logged actions.</summary>
+    private static (Match Match, PlayerId Player) AtPredictChoice()
+    {
+        var setup = new MatchSetup(MatchFormat.Bo1, PoroDeck("bf-a", "bf-b", "bf-c"), PoroDeck("bf-d", "bf-e", "bf-f"), 7);
+        var match = Match.Create(setup, PoroDb()).Match!.ToPlay();
+        var player = match.Decision<PriorityDecision>().Player;
+        var state = match.Game!.State;
+        if (!state.At(Place.Hand(player)).Any(id => state[id].CardId == "mystic-poro"))
+            match.Accept(player, new ManualMoveCard(state.At(Place.MainDeck(player)).First(id => state[id].CardId == "mystic-poro"), Place.Hand(player)));
+        match.Accept(player, new PlayCard(state.At(Place.Hand(player)).First(id => state[id].CardId == "mystic-poro")));
+        var pay = match.Decision<PayCostDecision>().Suggested!;
+        match.Accept(player, new PayCost { Exhaust = pay.Exhaust, Recycle = pay.Recycle });
+        match.Accept(player, new Pass());
+        match.Accept(Other(player), new Pass());
+        match.Decision<OptionalDecision>();
+        return (match, player);
+    }
+
+    [Fact]
+    public void Undo_after_answering_a_trigger_choice_equals_never_answering()
+    {
+        var (undone, player) = AtPredictChoice();
+        var (reference, _) = AtPredictChoice();
+        undone.Accept(player, new ChooseOptional(true));
+
+        undone.Accept(player, new RequestUndo());
+        undone.Accept(Other(player), new AnswerUndo(true));
+
+        Assert.IsType<OptionalDecision>(undone.Pending);
+        Assert.Equal(reference.Snapshot(), undone.Snapshot());
+    }
+
+    [Fact]
+    public void A_saved_match_with_a_trigger_and_an_effect_choice_loads_identically()
+    {
+        var (match, player) = AtPredictChoice();
+        match.Accept(player, new ChooseOptional(true));
+
+        var loaded = Match.Load(CromoJson.Deserialize<MatchRecord>(CromoJson.Serialize(match.ToRecord())), PoroDb());
+
+        Assert.Equal(match.Snapshot(), loaded.Snapshot());
+    }
+
+    [Fact]
+    public void Only_the_predicting_player_sees_the_predicted_card()
+    {
+        var (match, player) = AtPredictChoice();
+
+        var mine = match.ViewFor(player);
+        var theirs = match.ViewFor(Other(player));
+
+        Assert.NotNull(Assert.Single(mine.Log.OfType<Predicted>(), p => p.CardIds is not null).CardIds);
+        Assert.Null(Assert.Single(theirs.Log.OfType<Predicted>()).CardIds);
+        Assert.IsType<OptionalDecision>(mine.Decision);
+        Assert.Null(theirs.Decision);
+        Assert.Equal("Optional", theirs.DecisionKind);
     }
 }
