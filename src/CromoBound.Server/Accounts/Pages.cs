@@ -1,9 +1,6 @@
-using System.Text.Encodings.Web;
-
 namespace CromoBound.Server.Accounts;
 
-/// <summary>The two server-made pages. The login page names nothing about the site (spec §1); the home page is a placeholder
-/// until the Phase 4 UI.</summary>
+/// <summary>The server-made login page, which names nothing about the site (spec §1). Everything else is the Blazor app.</summary>
 internal static class Pages
 {
     public static string Login(bool failed) => $$"""
@@ -29,24 +26,6 @@ internal static class Pages
         <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
         <button type="submit">Sign in</button>
         </form>
-        </main>
-        </body>
-        </html>
-        """;
-
-    public static string Home(string userName) => $$"""
-        <!doctype html>
-        <html lang="en">
-        <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="robots" content="noindex, nofollow">
-        <title>CromoBound</title>
-        </head>
-        <body>
-        <main>
-        <p>Signed in as {{HtmlEncoder.Default.Encode(userName)}}.</p>
-        <form method="post" action="/logout"><button type="submit">Sign out</button></form>
         </main>
         </body>
         </html>

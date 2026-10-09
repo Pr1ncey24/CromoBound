@@ -66,6 +66,8 @@ internal sealed class ServerFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Production");
+        // Outside Development the app's static files are only found in a published build; this makes the test host read them from the build output.
+        builder.UseStaticWebAssets();
         builder.ConfigureAppConfiguration(configuration => configuration.AddInMemoryCollection(_settings));
         builder.ConfigureTestServices(services =>
         {

@@ -90,7 +90,7 @@ public class SignInTests
         Assert.Equal(HttpStatusCode.Redirect, signedIn.StatusCode);
         Assert.Equal("/", signedIn.Headers.Location?.OriginalString);
         Assert.Equal(HttpStatusCode.OK, home.StatusCode);
-        Assert.Contains($"Signed in as {ServerFactory.AdminName}", await home.Content.ReadAsStringAsync());
+        Assert.Contains("_framework/blazor.webassembly.js", await home.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.Unauthorized, failed.StatusCode);
         Assert.Contains(LoginEndpoints.Failure, await failed.Content.ReadAsStringAsync());
     }

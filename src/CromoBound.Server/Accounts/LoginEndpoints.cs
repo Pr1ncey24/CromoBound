@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CromoBound.Server.Accounts;
 
-/// <summary>Sign-in, sign-out, who am I, and the home page (spec §4.4, §5.2).</summary>
+/// <summary>Sign-in, sign-out and who am I (spec §4.4, §5.2); the home page is the Blazor app.</summary>
 internal static class LoginEndpoints
 {
     public const string Failure = "Invalid username or password.";
@@ -23,8 +23,6 @@ internal static class LoginEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(MaxLoginBody));
         app.MapPost("/logout", (Delegate)LogoutAsync).RequireAuthorization(Policies.Seat);
         app.MapGet("/api/me", (ClaimsPrincipal user) => new MeResponse(user.Identity?.Name ?? "", user.IsInRole(Roles.Steward)))
-            .RequireAuthorization(Policies.Seat);
-        app.MapGet("/", (ClaimsPrincipal user) => Results.Content(Pages.Home(user.Identity?.Name ?? ""), "text/html"))
             .RequireAuthorization(Policies.Seat);
     }
 

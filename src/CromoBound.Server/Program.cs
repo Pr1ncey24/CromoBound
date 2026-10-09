@@ -20,6 +20,8 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 app.Use(Privacy.HeadersAsync);
 app.UseExceptionHandler(errors => errors.Run(ServerErrors.WriteGenericAsync));
+// The app's routes are served its index.html (behind the player policy, like all of its files).
+app.Use(ClientApp.RewriteAsync);
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -29,6 +31,8 @@ app.MapAdmin();
 app.MapMaintenance();
 // A hub connection can outlive the sign-in cookie, so it is closed when the cookie expires.
 app.MapHub<GameHub>("/hub", options => options.CloseOnAuthenticationExpiration = true).RequireAuthorization(Policies.Seat);
+// The Blazor app's files, as endpoints, so the fallback policy keeps them behind sign-in.
+app.MapStaticAssets();
 app.Run();
 
 /// <summary>The entry point; public so the test host can start the server.</summary>
