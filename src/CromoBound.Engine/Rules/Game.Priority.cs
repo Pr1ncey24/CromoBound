@@ -34,7 +34,7 @@ public sealed partial class Game
             [.. RunesOf(player).Select(r => new RuneOption(r.Id, !r.Exhausted))],
             neutralOpenMain ? [.. MoveOptions(player)] : [],
             neutralOpenMain ? [.. HideOptions(player)] : [],
-            [],
+            [.. ActivateOptions(player)],
             CanPass: IsClosed || State.Showdown is not null,
             CanEndTurn: neutralOpenMain && State.StagedShowdowns.Count == 0 && State.StagedCombats.Count == 0);
     }

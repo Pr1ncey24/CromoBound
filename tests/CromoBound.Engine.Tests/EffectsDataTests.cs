@@ -20,11 +20,12 @@ public class EffectsDataTests
     [InlineData("soaring-scout")]
     [InlineData("mystic-poro")]
     [InlineData("voracious-gromp")]
+    [InlineData("kharox")]
+    [InlineData("garbage-grabber")]
+    [InlineData("fury-rune")]
     public void Cards_the_engine_runs_today_are_full(string cardId) => Assert.Equal(MappingStatus.Full, Real.For(cardId).Status);
 
     [Theory]
-    [InlineData("kharox", "keyword Empower")]
-    [InlineData("garbage-grabber", "Activated ability")]
     [InlineData("noxus-hopeful", "Passive ability")]
     [InlineData("daring-poro", "keyword Assault")]
     [InlineData("jeweled-colossus", "keyword Shield")]

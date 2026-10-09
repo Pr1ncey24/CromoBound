@@ -1,3 +1,4 @@
+using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.State;
 
@@ -15,6 +16,9 @@ public sealed partial class Game
                 return UseRuneNow(player, use);
             case PlayCard play when options.Playable.Contains(play.Card):
                 StartPlay(player, play.Card);
+                return null;
+            case ActivateAbility activate when options.Activations.Contains(new ActivateOption(activate.Source, activate.Ability)):
+                Push(new ActivationTask(player, activate.Source, activate.Ability));
                 return null;
             case StandardMove move when options.Moves.Count > 0:
                 return MoveUnits(player, move, options);

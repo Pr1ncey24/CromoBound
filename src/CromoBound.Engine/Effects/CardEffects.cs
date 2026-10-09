@@ -14,7 +14,7 @@ internal sealed record CardEffectInfo(
     IReadOnlyList<int> ManualLines,
     IReadOnlyList<string> Unsupported);
 
-/// <summary>Effects per card id, cached. A file the engine can't fully run yet is treated as Unmapped, so the card plays by hand as in 2a.</summary>
+/// <summary>Effects per card id, cached. A file the engine can't fully run yet is treated as Unmapped, so the card plays by hand as in 2a. Runes get no abilities: basic runes keep 2a's UseRune (spec §13).</summary>
 internal sealed class CardEffects(CardDatabase db)
 {
     private readonly Dictionary<string, CardEffectInfo> _cache = new(StringComparer.Ordinal);
@@ -32,6 +32,7 @@ internal sealed class CardEffects(CardDatabase db)
         if (!db.Effects.TryGetValue(card.Id, out var loaded) || loaded.File.Status == MappingStatus.Unmapped)
             return Unmapped(card, all, []);
         var file = loaded.File;
+        if (card.Type == CardType.Rune) return new(file.Status, [], new HashSet<DisplayKeyword>(), [], []);
         var unsupported = EffectsSupport.Problems(file);
         if (unsupported.Count > 0) return Unmapped(card, all, unsupported);
 
@@ -60,6 +61,14 @@ internal sealed class CardEffects(CardDatabase db)
                     IReadOnlyList<Step> gain = [new GainXpStep { Amount = entry.Value!.Value }];
                     yield return OwnTrigger(TriggerEvent.Conquer, gain);
                     yield return OwnTrigger(TriggerEvent.Hold, gain);
+                    break;
+                case MechanicalKeyword.Empower:
+                    yield return new ActivatedAbility
+                    {
+                        Cost = entry.Cost,
+                        UseOnlyIf = new Condition { Not = new Condition { Empowered = true } },
+                        Steps = [new EmpowerStep { Target = ObjectRef.Self }],
+                    };
                     break;
             }
         }

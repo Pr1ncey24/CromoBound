@@ -11,7 +11,7 @@ internal static class EffectsSupport
     [
         MechanicalKeyword.Accelerate, MechanicalKeyword.Action, MechanicalKeyword.Reaction, MechanicalKeyword.Hidden,
         MechanicalKeyword.Ganking, MechanicalKeyword.Tank, MechanicalKeyword.Backline, MechanicalKeyword.Temporary,
-        MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt,
+        MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt, MechanicalKeyword.Empower,
     ];
 
     /// <summary>One line per construct the engine can't run; empty when it runs the whole file.</summary>
@@ -26,7 +26,7 @@ internal static class EffectsSupport
         return problems;
     }
 
-    /// <summary>Keyword abilities need their parameter: Deathknell's steps (they run like a trigger's), Hunt's value.</summary>
+    /// <summary>Keyword abilities need their parameter: Deathknell's steps (they run like a trigger's), Hunt's value, Empower's plain cost.</summary>
     private static void CheckKeyword(KeywordEntry entry, string at, List<string> problems)
     {
         if (!Keywords.Contains(entry.Keyword))
@@ -36,11 +36,13 @@ internal static class EffectsSupport
         }
         if (entry.Keyword == MechanicalKeyword.Deathknell) CheckSteps(entry.Steps, at, problems, targets: false);
         if (entry.Keyword == MechanicalKeyword.Hunt && entry.Value is null) problems.Add($"{at}: value");
+        if (entry.Keyword == MechanicalKeyword.Empower && (entry.Cost is null || entry.Cost.Actions.Count > 0 || entry.Cost.ExhaustSelf is not null))
+            problems.Add($"{at}: cost");
     }
 
     private static void CheckAbility(Ability ability, string at, List<string> problems)
     {
-        if (ability is not (SpellAbility or TriggeredAbility))
+        if (ability is not (SpellAbility or TriggeredAbility or ActivatedAbility))
         {
             problems.Add($"{at}: {ability.GetType().Name.Replace("Ability", "")} ability");
             return;
@@ -57,6 +59,11 @@ internal static class EffectsSupport
                 if (triggered.If is not null || triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
                     problems.Add($"{at}: if, optional, cost or limit");
                 CheckSteps(triggered.Steps, at, problems, targets: false);
+                break;
+            case ActivatedAbility activated:
+                if (activated.UseOnlyIf is not null || activated.Limit is not null) problems.Add($"{at}: useOnlyIf or limit");
+                if (activated.Cost is { } cost && !IsSupportedCost(cost)) problems.Add($"{at}: cost");
+                CheckSteps(activated.Steps, at, problems, targets: false);
                 break;
         }
     }
@@ -75,6 +82,16 @@ internal static class EffectsSupport
             _ => false,
         };
     }
+
+    /// <summary>Energy, power, exhausting the source, and at most one cost action: recycling a number of cards from your trash.</summary>
+    private static bool IsSupportedCost(Cost cost) => cost.Actions switch
+    {
+        [] => true,
+        [RecycleStep recycle] => recycle.Target is null && recycle.Count?.Literal is not null
+            && recycle.From is { Zone: Zone.Trash, Position: null } from && (from.Owner is null || from.Owner.Kind == PlayerKind.You)
+            && recycle.Player is null && recycle.Chooser is null && recycle.Script is null && recycle.Store is null,
+        _ => false,
+    };
 
     private static void CheckSteps(IReadOnlyList<Step> steps, string at, List<string> problems, bool targets)
     {
