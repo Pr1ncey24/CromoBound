@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using CromoBound.Server.Accounts;
 
 namespace CromoBound.Server.Tests;
@@ -170,5 +171,55 @@ public class AdminTests
 
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
         Assert.Single((await admin.GetFromJsonAsync<List<UserSummary>>("/api/admin/users"))!);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("{")]
+    [InlineData("")]
+    public async Task A_malformed_json_body_is_a_400_and_creates_nothing(string body)
+    {
+        using var factory = new ServerFactory();
+        var admin = await factory.SignInAdminAsync();
+
+        var response = await admin.PostAsync("/api/admin/users", new StringContent(body, Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Single((await admin.GetFromJsonAsync<List<UserSummary>>("/api/admin/users"))!);
+    }
+
+    [Theory]
+    [InlineData("role", "Say whether the user is an admin.")]
+    [InlineData("disabled", "Say whether the user is disabled.")]
+    public async Task A_role_or_disabled_change_that_doesnt_say_which_is_refused(string change, string reason)
+    {
+        using var factory = new ServerFactory();
+        var admin = await factory.SignInAdminAsync();
+        var player = await CreateAsync(admin, "player1");
+        var session = await factory.SignInAsync("player1", ServerFactory.PlayerPassword);
+
+        var response = await admin.PutAsync($"/api/admin/users/{player.Id}/{change}", new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(reason, (await response.Content.ReadFromJsonAsync<ErrorResponse>())!.Error);
+        Assert.Equal(HttpStatusCode.OK, (await session.GetAsync("/api/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Setting_a_role_or_disabled_flag_to_what_it_already_is_keeps_the_users_sessions()
+    {
+        using var factory = new ServerFactory();
+        var admin = await factory.SignInAdminAsync();
+        var player = await CreateAsync(admin, "player1");
+        var session = await factory.SignInAsync("player1", ServerFactory.PlayerPassword);
+
+        var role = await admin.PutAsJsonAsync($"/api/admin/users/{player.Id}/role", new RoleRequest(false));
+        var disabled = await admin.PutAsJsonAsync($"/api/admin/users/{player.Id}/disabled", new DisabledRequest(false));
+
+        Assert.Equal(HttpStatusCode.NoContent, role.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await session.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(new UserSummary(player.Id, "player1", false, false),
+            (await admin.GetFromJsonAsync<List<UserSummary>>("/api/admin/users"))!.Single(u => u.Id == player.Id));
     }
 }

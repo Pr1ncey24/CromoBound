@@ -12,6 +12,8 @@ internal static class AdminEndpoints
 {
     public const string NotYourself = "You can't do that to your own account.";
     public const string LastAdmin = "The last admin can't be removed.";
+    public const string SayAdmin = "Say whether the user is an admin.";
+    public const string SayDisabled = "Say whether the user is disabled.";
 
     public static void MapAdmin(this IEndpointRouteBuilder app)
     {
@@ -43,19 +45,25 @@ internal static class AdminEndpoints
         return Results.NoContent();
     }
 
+    /// <summary>The body must say which; a role the user already has changes nothing (their sessions go on).</summary>
     private static async Task<IResult> SetRoleAsync(int id, RoleRequest request, UserStore users, ClaimsPrincipal me)
     {
+        if (request.IsAdmin is not { } isAdmin) return Results.BadRequest(new ErrorResponse(SayAdmin));
         if (await users.FindAsync(id) is not { } user) return Results.NotFound();
-        if (!request.IsAdmin && await RefusalAsync(user, me, users) is { } problem) return Results.BadRequest(new ErrorResponse(problem));
-        await users.SetAdminAsync(user, request.IsAdmin);
+        if (user.IsAdmin == isAdmin) return Results.NoContent();
+        if (!isAdmin && await RefusalAsync(user, me, users) is { } problem) return Results.BadRequest(new ErrorResponse(problem));
+        await users.SetAdminAsync(user, isAdmin);
         return Results.NoContent();
     }
 
+    /// <summary>The body must say which; a flag the user already has changes nothing (their sessions go on).</summary>
     private static async Task<IResult> SetDisabledAsync(int id, DisabledRequest request, UserStore users, ClaimsPrincipal me)
     {
+        if (request.Disabled is not { } disabled) return Results.BadRequest(new ErrorResponse(SayDisabled));
         if (await users.FindAsync(id) is not { } user) return Results.NotFound();
-        if (request.Disabled && await RefusalAsync(user, me, users) is { } problem) return Results.BadRequest(new ErrorResponse(problem));
-        await users.SetDisabledAsync(user, request.Disabled);
+        if (user.Disabled == disabled) return Results.NoContent();
+        if (disabled && await RefusalAsync(user, me, users) is { } problem) return Results.BadRequest(new ErrorResponse(problem));
+        await users.SetDisabledAsync(user, disabled);
         return Results.NoContent();
     }
 

@@ -10,10 +10,12 @@ builder.Logging.AddFilter("Microsoft.AspNetCore.Authorization", LogLevel.Warning
 builder.Services.AddCromoBoundStorage(builder.Configuration);
 builder.Services.AddCromoBoundAccounts(builder.Configuration);
 builder.Services.AddCromoBoundProxies();
+// A body that can't be read is a plain 400 in every environment, never an exception (a 500).
+builder.Services.Configure<RouteHandlerOptions>(handlers => handlers.ThrowOnBadRequest = false);
 
 var app = builder.Build();
 app.UseForwardedHeaders();
-app.Use(Privacy.NoIndexAsync);
+app.Use(Privacy.HeadersAsync);
 app.UseExceptionHandler(errors => errors.Run(ServerErrors.WriteGenericAsync));
 app.UseRouting();
 app.UseRateLimiter();

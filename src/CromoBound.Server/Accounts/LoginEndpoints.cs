@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CromoBound.Server.Accounts;
 
@@ -11,10 +12,14 @@ internal static class LoginEndpoints
     public const string Failure = "Invalid username or password.";
     public const string RateLimitPolicy = "login";
 
+    /// <summary>A sign-in body is two short fields; anything bigger is a plain failure, read no further.</summary>
+    public const int MaxLoginBody = 4096;
+
     public static void MapAccounts(this IEndpointRouteBuilder app)
     {
         app.MapGet("/login", () => Results.Content(Pages.Login(failed: false), "text/html")).AllowAnonymous();
-        app.MapPost("/login", LoginAsync).AllowAnonymous().RequireRateLimiting(RateLimitPolicy);
+        app.MapPost("/login", LoginAsync).AllowAnonymous().RequireRateLimiting(RateLimitPolicy)
+            .WithMetadata(new RequestSizeLimitAttribute(MaxLoginBody));
         app.MapPost("/logout", (Delegate)LogoutAsync).RequireAuthorization(Policies.Seat);
         app.MapGet("/api/me", (ClaimsPrincipal user) => new MeResponse(user.Identity?.Name ?? "", user.IsInRole(Roles.Steward)))
             .RequireAuthorization(Policies.Seat);
@@ -59,11 +64,18 @@ internal static class LoginEndpoints
         return http.Request.HasFormContentType ? Results.Redirect("/login") : Results.NoContent();
     }
 
-    /// <summary>The two fields from a form or a JSON body; anything unreadable gives nulls (a plain failure, never a 500).</summary>
+    /// <summary>The two fields from a form or a JSON body of at most <see cref="MaxLoginBody"/> bytes; anything bigger or unreadable
+    /// gives nulls (a plain failure, never a 500).</summary>
     private static async Task<(string? UserName, string? Password)> ReadCredentialsAsync(HttpRequest request, bool form)
     {
         try
         {
+            // At most MaxLoginBody bytes are read, whatever the server or the Content-Length says; a bigger body is a failure.
+            if (request.ContentLength > MaxLoginBody) return (null, null);
+            var buffer = new byte[MaxLoginBody + 1];
+            var length = await request.Body.ReadAtLeastAsync(buffer, buffer.Length, throwOnEndOfStream: false);
+            if (length > MaxLoginBody) return (null, null);
+            request.Body = new MemoryStream(buffer, 0, length, writable: false);
             if (form)
             {
                 var fields = await request.ReadFormAsync();

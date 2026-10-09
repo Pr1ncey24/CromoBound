@@ -11,8 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CromoBound.Server.Tests;
 
-/// <summary>The whole server in memory over its own temporary SQLite file, with a first admin. Clients use https, so the Secure
-/// session cookie is sent back.</summary>
+/// <summary>The whole server in memory, in the Production environment, over its own temporary SQLite file, with a first admin.
+/// Clients use https, so the Secure session cookie is sent back.</summary>
 internal sealed class ServerFactory : WebApplicationFactory<Program>
 {
     public const string AdminName = "admin";
@@ -45,6 +45,7 @@ internal sealed class ServerFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Production");
         builder.ConfigureAppConfiguration(configuration => configuration.AddInMemoryCollection(_settings));
         if (_services is not null) builder.ConfigureTestServices(_services);
     }

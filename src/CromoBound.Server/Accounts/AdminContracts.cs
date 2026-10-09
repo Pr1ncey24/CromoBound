@@ -7,6 +7,6 @@ public sealed record CreateUserRequest(string? UserName, string? Password, bool 
 
 public sealed record PasswordRequest(string? Password);
 
-public sealed record RoleRequest(bool IsAdmin);
+public sealed record RoleRequest(bool? IsAdmin);
 
-public sealed record DisabledRequest(bool Disabled);
+public sealed record DisabledRequest(bool? Disabled);

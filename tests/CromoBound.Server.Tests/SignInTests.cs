@@ -134,6 +134,41 @@ public class SignInTests
     }
 
     [Fact]
+    public async Task An_oversize_sign_in_is_a_plain_failure()
+    {
+        using var factory = new ServerFactory();
+        var padding = new string('x', 1024 * 1024);
+
+        var huge = await factory.NewClient().PostAsJsonAsync("/login", new LoginRequest(ServerFactory.AdminName, padding));
+        var padded = await factory.NewClient().PostAsync("/login", new StringContent(
+            $$"""{ "userName": "{{ServerFactory.AdminName}}", "password": "{{ServerFactory.AdminPassword}}", "padding": "{{padding}}" }""",
+            Encoding.UTF8, "application/json"));
+        var form = await factory.NewClient().PostAsync("/login", new StringContent(
+            $"userName={ServerFactory.AdminName}&password={ServerFactory.AdminPassword}&padding={padding}", Encoding.UTF8, "application/x-www-form-urlencoded"));
+
+        Assert.Contains(huge.StatusCode, new[] { HttpStatusCode.Unauthorized, HttpStatusCode.RequestEntityTooLarge });
+        Assert.Contains(padded.StatusCode, new[] { HttpStatusCode.Unauthorized, HttpStatusCode.RequestEntityTooLarge });
+        Assert.Contains(form.StatusCode, new[] { HttpStatusCode.Unauthorized, HttpStatusCode.RequestEntityTooLarge });
+        await factory.SignInAdminAsync();
+    }
+
+    [Fact]
+    public async Task Pages_and_refusals_carry_the_hardening_headers()
+    {
+        using var factory = new ServerFactory();
+        var client = factory.NewClient();
+
+        foreach (var response in new[] { await client.SendAsync(Page("/login")), await client.GetAsync("/api/me") })
+        {
+            Assert.Equal("nosniff", Assert.Single(response.Headers.GetValues("X-Content-Type-Options")));
+            Assert.Equal("DENY", Assert.Single(response.Headers.GetValues("X-Frame-Options")));
+            Assert.Equal("no-referrer", Assert.Single(response.Headers.GetValues("Referrer-Policy")));
+            Assert.Equal("frame-ancestors 'none'", Assert.Single(response.Headers.GetValues("Content-Security-Policy")));
+            Assert.True(response.Headers.CacheControl?.NoStore, $"{response.RequestMessage?.RequestUri} can be stored.");
+        }
+    }
+
+    [Fact]
     public async Task The_session_cookie_is_http_only_secure_and_strict()
     {
         using var factory = new ServerFactory();
