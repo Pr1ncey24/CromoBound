@@ -100,7 +100,36 @@ public class RestartTests
             await using var alice = await GameClient.ConnectAsync(second, "alice");
 
             await second.WithDbAsync(async db => Assert.Equal(MatchStatus.Abandoned, (await db.Matches.SingleAsync()).Status));
+            Assert.Equal(0, second.Services.GetRequiredService<MatchRegistry>().Count);
             Assert.Equal(matchId, (await alice.GetMatchAsync()).Ended!.MatchId);
+        }
+        finally
+        {
+            ServerFactory.DeleteDatabase(path);
+        }
+    }
+
+    [Fact]
+    public async Task A_match_whose_seat_user_no_longer_exists_is_abandoned_and_the_server_still_starts()
+    {
+        var path = ServerFactory.NewDatabasePath();
+        try
+        {
+            var matchId = await FirstServerAsync(path, (first, _) => first.WithDbAsync(async db =>
+            {
+                // The owner may delete users by hand with foreign keys off, so do the same here.
+                await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF; UPDATE Matches SET Seat1UserId = 9999;");
+                Assert.Equal(9999, (await db.Matches.AsNoTracking().SingleAsync()).Seat1UserId);
+            }));
+
+            using var second = new ServerFactory(databasePath: path);
+            await using var alice = await GameClient.ConnectAsync(second, "alice");
+            var told = await alice.GetMatchAsync();
+
+            Assert.Equal(0, second.Services.GetRequiredService<MatchRegistry>().Count);
+            await second.WithDbAsync(async db => Assert.Equal(MatchStatus.Abandoned, (await db.Matches.SingleAsync()).Status));
+            Assert.Equal((matchId, MatchEndReason.Abandoned), (told.Ended!.MatchId, told.Ended.Reason));
+            Assert.Equal(MatchReply.None, await alice.GetMatchAsync());
         }
         finally
         {

@@ -9,7 +9,8 @@ namespace CromoBound.Server.Matches;
 /// <summary>Runs at startup, after the database is ready (spec §6.6). Taking the card data loads it, so a data folder that can't be
 /// loaded stops the server. Every Running match is replayed from its record. A match that can't be replayed is marked Abandoned, and
 /// its players are told the next time they ask for their match. That covers a record from another engine build or other card data,
-/// and one that can't be read at all. Nothing in a saved match can stop the server from starting.</summary>
+/// one that can't be read at all, and one whose player no longer exists. Nothing in a saved match can stop the server from
+/// starting.</summary>
 internal sealed class MatchStartup(CardDatabase cards, IMatchStore store, MatchRegistry matches, IServiceScopeFactory scopes,
     ILogger<MatchStartup> log) : IHostedService
 {
@@ -21,9 +22,10 @@ internal sealed class MatchStartup(CardDatabase cards, IMatchStore store, MatchR
         var names = await UserNamesAsync(cancellationToken);
         foreach (var row in running)
         {
-            IReadOnlyList<MatchSeat> seats = [new(row.Seat0UserId, names[row.Seat0UserId]), new(row.Seat1UserId, names[row.Seat1UserId])];
             try
             {
+                IReadOnlyList<MatchSeat> seats =
+                    [new(row.Seat0UserId, names[row.Seat0UserId]), new(row.Seat1UserId, names[row.Seat1UserId])];
                 var record = MatchStore.Read(row.RecordJson);
                 matches.Open(row.Id, Match.Load(record, cards), record, seats);
             }
@@ -33,7 +35,7 @@ internal sealed class MatchStartup(CardDatabase cards, IMatchStore store, MatchR
                 else log.LogError(ex, "Match {MatchId} can't be reloaded and is abandoned.", row.Id);
                 await store.SetStatusAsync(row.Id, MatchStatus.Abandoned);
                 var ended = new MatchEndedNotice(row.Id, MatchEndReason.Abandoned, [0, 0], null);
-                foreach (var seat in seats) matches.NoteAbandoned(seat.UserId, ended);
+                foreach (var userId in (int[])[row.Seat0UserId, row.Seat1UserId]) matches.NoteAbandoned(userId, ended);
             }
         }
         log.LogInformation("Reloaded {Reloaded} of {Running} running matches.", matches.Count, running.Count);
