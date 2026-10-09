@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.git/
+.vs/
+.config/
+.superpowers/
+docs/
+schema/
+tests/
+tools/
+data/raw/
+data/import-report.md
+*.db
+*.db-shm
+*.db-wal

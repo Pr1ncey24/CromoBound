@@ -41,19 +41,19 @@ CromoBound is a Riftbound simulator for a handful of friends. This first part of
 
 ```
 src/CromoBound.Server/
-  Program.cs                 composition: auth, rate limiting, EF Core, SignalR, endpoints
-  Accounts/                  users, roles, password rules, login, admin endpoints, session validation
-  Matches/                   challenges, MatchRegistry, MatchHost, persistence
-  Hubs/GameHub.cs            the SignalR hub
+  Program.cs                 composition: storage, accounts, proxies, matches, endpoints, the hub
+  ServerJson.cs              the engine's JSON without indentation, for the hub and saved records
+  Accounts/                  users, roles, password rules, login and home pages, admin endpoints, sessions, live hub connections
+  Matches/                   lobby (challenges), MatchRegistry, MatchHost, match store, startup reload, maintenance switch
+  Hubs/                      GameHub, its replies and notices, the client interface, the session filter
   Storage/                   CromoDbContext, entities, migrations
-  wwwroot/login.html         the only public page
 tests/CromoBound.Server.Tests/   WebApplicationFactory + SignalR client tests
-Dockerfile
+Dockerfile, .dockerignore
 docs/server-deploy.md
 ```
 
 - `CromoBound.Server` references `CromoBound.Engine` and `CromoBound.Data`. Card data is loaded once at startup from the configured data folder with `CardRepository` and shared read-only.
-- NuGet packages: EF Core SQLite and `Microsoft.Extensions.Identity.Core` (for `PasswordHasher` only). The test project adds the ASP.NET Core test host and the SignalR client. The engine and models keep their no-package rule.
+- NuGet packages: EF Core SQLite, plus EF Core Design for the `dotnet ef` tool at design time only. The password hasher and SignalR come with ASP.NET Core. The test project adds the ASP.NET Core test host and the SignalR client. The engine and models keep their no-package rule.
 
 ## 4. Security model
 
@@ -147,13 +147,28 @@ Challenges live in memory; a restart drops open ones. While maintenance is on, `
 In memory, off at startup. While on, no new challenges or matches; running matches continue, so they can finish before a deploy.
 
 ## 7. Configuration
-`appsettings.json` plus environment variables: database path, data folder, data-protection key folder, first-admin username and password, rate-limit numbers, known proxy addresses, cookie lifetime.
+`appsettings.json` plus environment variables (`CromoBound__<Setting>`; list items as `__0`, `__1`):
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `DatabasePath` | `cromobound.db` | The SQLite file |
+| `DataFolder` | `data` | The card data folder; one that can't be loaded stops the server |
+| `KeysFolder` | the framework's folder | Where the keys that encrypt session cookies are kept |
+| `LoginRequestsPerMinute` | 10 | Login requests per client address per minute |
+| `LockoutFailures`, `LockoutMinutes` | 5, 15 | Failed sign-ins that lock a username, and for how long |
+| `CookieHours` | 12 | Sliding session lifetime |
+| `KnownProxies` | none | Proxy addresses whose forwarded headers are trusted |
+| `KnownNetworks` | none | Proxy networks (CIDR) whose forwarded headers are trusted, for a proxy without a fixed address |
+
+The first admin comes from `CROMOBOUND_ADMIN_USER` and `CROMOBOUND_ADMIN_PASSWORD` (§5.3). A number below 1, or a proxy entry that can't be read, stops the server, and the log names the setting.
 
 ## 8. Deployment
 - A multi-stage `Dockerfile` (.NET 10), running as a non-root user.
 - Mounted volumes for the SQLite file and the data-protection keys, so data and sessions survive redeploys.
 - HTTPS is terminated by the reverse proxy; the app trusts forwarded headers from it only.
 - `docs/server-deploy.md`: VPS setup, an example Caddy config, the environment variables, backing up the SQLite file.
+- The image is built with the commit it comes from (`--build-arg SOURCE_REVISION`), which becomes part of the engine version saved in every match. Without it every image would carry the same version, and a changed engine would replay old matches wrongly.
+- Before a deploy, maintenance goes on and running matches are left to finish. A match still running when a new build starts is abandoned (§6.6).
 
 ## 9. Testing
 Server tests run the whole app in memory (`WebApplicationFactory`) with a temporary SQLite file per test, driven by an HTTP client and the SignalR .NET client. Nothing is mocked.
