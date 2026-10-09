@@ -19,6 +19,8 @@ internal static class StepRegistry
         [typeof(OptionalStep)] = new OptionalHandler(),
         [typeof(PredictStep)] = new PredictHandler(),
         [typeof(PlayStep)] = new PlayHandler(),
+        [typeof(AttachStep)] = new AttachHandler(),
+        [typeof(WeaponmasterStep)] = new WeaponmasterHandler(),
     };
 
     public static bool Supports(Type stepType) => Handlers.ContainsKey(stepType);

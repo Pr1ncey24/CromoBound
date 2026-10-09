@@ -14,7 +14,7 @@ internal static class EffectsSupport
         MechanicalKeyword.Ganking, MechanicalKeyword.Tank, MechanicalKeyword.Backline, MechanicalKeyword.Temporary,
         MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt, MechanicalKeyword.Empower,
         MechanicalKeyword.Assault, MechanicalKeyword.Shield, MechanicalKeyword.Deflect,
-        MechanicalKeyword.Ambush,
+        MechanicalKeyword.Ambush, MechanicalKeyword.Equip, MechanicalKeyword.Weaponmaster,
     ];
 
     /// <summary>The keywords that take a value (Hunt 3, Assault 2), a cost (Empower, Equip) or steps (Deathknell). Any other
@@ -173,6 +173,9 @@ internal static class EffectsSupport
                 break;
             case PredictStep predict:
                 if (predict.Amount.Literal != 1) problems.Add($"{at}: value");
+                break;
+            case AttachStep:
+                problems.Add($"{at}: attach");
                 break;
             case PlayStep play:
                 if (play.Card.Var is null || play.From is not null || play.For is not null || play.Location is not null

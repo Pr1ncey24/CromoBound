@@ -1,48 +1,23 @@
 using CromoBound.Data;
 using CromoBound.Engine.Effects;
-using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Tests;
 
-/// <summary>Which real cards (data/effects) the engine runs today. Plans E and F move cards from the second list to the first.</summary>
+/// <summary>The load-time check of spec §7, as a data test: every effects file in data/effects runs with the status it declares.</summary>
 public class EffectsDataTests
 {
-    private static readonly CardEffects Real = new(CardRepository.Load(RepoPaths.Data));
+    private static readonly CardDatabase Data = CardRepository.Load(RepoPaths.Data);
+    private static readonly CardEffects Real = new(Data);
 
-    [Theory]
-    [InlineData("progress-day")]
-    [InlineData("falling-star")]
-    [InlineData("vengeance")]
-    [InlineData("vanguard-sergeant")]
-    [InlineData("horns-of-the-dragon")]
-    [InlineData("token-sprite")]
-    [InlineData("shadow-temple")]
-    [InlineData("soaring-scout")]
-    [InlineData("mystic-poro")]
-    [InlineData("voracious-gromp")]
-    [InlineData("kharox")]
-    [InlineData("garbage-grabber")]
-    [InlineData("fury-rune")]
-    [InlineData("daring-poro")]
-    [InlineData("mutated-mouser")]
-    [InlineData("jeweled-colossus")]
-    [InlineData("noxus-hopeful")]
-    [InlineData("navori-scout")]
-    [InlineData("pouty-poro")]
-    [InlineData("token-bird")]
-    [InlineData("soulspinner")]
-    [InlineData("inferna")]
-    [InlineData("rengar-trophy-hunter")]
-    [InlineData("rengar-unseen")]
-    public void Cards_the_engine_runs_today_are_full(string cardId) => Assert.Equal(MappingStatus.Full, Real.For(cardId).Status);
-
-    [Theory]
-    [InlineData("veteran-poro", "keyword Weaponmaster")]
-    public void Cards_needing_later_plans_play_by_hand_for_now(string cardId, string missing)
+    [Fact]
+    public void Every_mapped_card_runs_as_mapped()
     {
-        var info = Real.For(cardId);
-
-        Assert.Equal(MappingStatus.Unmapped, info.Status);
-        Assert.Contains(info.Unsupported, p => p.Contains(missing, StringComparison.Ordinal));
+        Assert.NotEmpty(Data.Effects);
+        Assert.All(Data.Effects, effects =>
+        {
+            var info = Real.For(effects.Key);
+            Assert.True(info.Unsupported.Count == 0, $"{effects.Key}: {string.Join(", ", info.Unsupported)}");
+            Assert.Equal(effects.Value.File.Status, info.Status);
+        });
     }
 }

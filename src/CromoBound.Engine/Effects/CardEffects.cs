@@ -1,4 +1,5 @@
 using CromoBound.Data;
+using CromoBound.Engine.Effects.Steps;
 using CromoBound.Engine.Rules;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
@@ -74,6 +75,24 @@ internal sealed class CardEffects(CardDatabase db)
                         UseOnlyIf = new Condition { Not = new Condition { Empowered = true } },
                         Steps = [new EmpowerStep { Target = ObjectRef.Self }],
                     };
+                    break;
+                case MechanicalKeyword.Equip:
+                    yield return new ActivatedAbility
+                    {
+                        Line = line,
+                        Cost = entry.Cost,
+                        Steps =
+                        [
+                            new AttachStep
+                            {
+                                Target = ObjectRef.Self,
+                                To = new ObjectRef { Select = SelectKind.Unit, Count = 1, Filter = new Filter { Relation = Relation.Friendly } },
+                            },
+                        ],
+                    };
+                    break;
+                case MechanicalKeyword.Weaponmaster:
+                    yield return OwnTrigger(TriggerEvent.Played, [new WeaponmasterStep()], line);
                     break;
             }
         }
