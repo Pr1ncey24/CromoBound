@@ -8,7 +8,7 @@ using CromoBound.Models.Cards;
 namespace CromoBound.Engine.Tests;
 
 /// <summary>A deterministic scripted player: plays the first affordable unit to its Base, sends ready units from Base to a
-/// battlefield it doesn't control, passes whenever it can, resolves by hand immediately and takes every suggestion.</summary>
+/// battlefield it doesn't control, passes whenever it can, resolves by hand immediately, takes every suggestion, picks the first offered player and cards, declines optional parts and keeps triggers in the offered order.</summary>
 internal sealed class Bot
 {
     private readonly HashSet<string> _unaffordable = [];
@@ -42,6 +42,10 @@ internal sealed class Bot
             ChooseShowdownDecision showdown => new ChooseShowdown(showdown.Battlefields[0]),
             ResolveManuallyDecision => new ResolveDone(),
             TurnPointDecision => new ContinueTurn(),
+            ChoosePlayerDecision choose => new ChoosePlayer(choose.Options[0]),
+            ChooseCardsDecision cards => new ChooseCards { Cards = [.. cards.Options.Take(cards.Min)] },
+            OptionalDecision => new ChooseOptional(false),
+            OrderTriggersDecision order => new OrderTriggers { Order = [.. Enumerable.Range(0, order.Triggers.Count)] },
             ChooseTargetsDecision targets => new ChooseTargets { Targets = [.. targets.Options.Take(Math.Max(targets.Min, Math.Min(1, targets.Max)))] },
             _ => throw new InvalidOperationException($"Unexpected decision {game.Pending}."),
         };

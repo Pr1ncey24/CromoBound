@@ -43,6 +43,11 @@ namespace CromoBound.Engine.Actions;
 [JsonDerivedType(typeof(ManualCounter), "ManualCounter")]
 [JsonDerivedType(typeof(AddAbilityToChain), "AddAbilityToChain")]
 [JsonDerivedType(typeof(ChooseTargets), "ChooseTargets")]
+[JsonDerivedType(typeof(ChoosePlayer), "ChoosePlayer")]
+[JsonDerivedType(typeof(ChooseCards), "ChooseCards")]
+[JsonDerivedType(typeof(ChooseOptional), "ChooseOptional")]
+[JsonDerivedType(typeof(OrderTriggers), "OrderTriggers")]
+[JsonDerivedType(typeof(ActivateAbility), "ActivateAbility")]
 public abstract record PlayerAction;
 
 /// <summary>Start playing a card from hand, the Champion Zone, or face down.</summary>
@@ -105,3 +110,24 @@ public sealed record ChooseTargets : PlayerAction
 {
     public IReadOnlyList<ObjectId> Targets { get; init; } = [];
 }
+
+/// <summary>The player chosen for a ChoosePlayerDecision.</summary>
+public sealed record ChoosePlayer(PlayerId Player) : PlayerAction;
+
+/// <summary>The cards chosen for a ChooseCardsDecision.</summary>
+public sealed record ChooseCards : PlayerAction
+{
+    public IReadOnlyList<ObjectId> Cards { get; init; } = [];
+}
+
+/// <summary>Yes or no to an OptionalDecision.</summary>
+public sealed record ChooseOptional(bool Yes) : PlayerAction;
+
+/// <summary>The offered triggers' indices in the order they go on the chain: the first goes on first, so the last resolves first.</summary>
+public sealed record OrderTriggers : PlayerAction
+{
+    public IReadOnlyList<int> Order { get; init; } = [];
+}
+
+/// <summary>Start activating an ability the priority decision offers (spec §5.3).</summary>
+public sealed record ActivateAbility(ObjectId Source, int Ability) : PlayerAction;

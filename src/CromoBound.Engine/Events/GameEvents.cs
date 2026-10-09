@@ -51,6 +51,11 @@ namespace CromoBound.Engine.Events;
 [JsonDerivedType(typeof(ChainItemCountered), "ChainItemCountered")]
 [JsonDerivedType(typeof(ChoiceMade), "ChoiceMade")]
 [JsonDerivedType(typeof(TargetsChosen), "TargetsChosen")]
+[JsonDerivedType(typeof(CardPlayed), "CardPlayed")]
+[JsonDerivedType(typeof(AbilityActivated), "AbilityActivated")]
+[JsonDerivedType(typeof(TriggerAdded), "TriggerAdded")]
+[JsonDerivedType(typeof(PlayerChosen), "PlayerChosen")]
+[JsonDerivedType(typeof(Predicted), "Predicted")]
 /// <summary>Something that happened. <see cref="VisibleTo"/> null means public; otherwise only that player may see it.</summary>
 public abstract record GameEvent
 {
@@ -113,3 +118,18 @@ public sealed record ChoiceMade(PlayerId Player, string Kind, IReadOnlyList<Obje
 
 /// <summary>Public: the targets of one target slot of a chain item, whether chosen or forced (spec §6.4).</summary>
 public sealed record TargetsChosen(int ItemId, int Slot, IReadOnlyList<ObjectId> Targets) : GameEvent;
+
+/// <summary>A play finalized. <see cref="Card"/> is the card where it ended up: the board, or the chain for a spell.</summary>
+public sealed record CardPlayed(ObjectId Card, string CardId, PlayerId Controller) : GameEvent;
+
+/// <summary>An activated ability's costs were paid; <see cref="Ability"/> is its index in the card's abilities.</summary>
+public sealed record AbilityActivated(ObjectId Source, int Ability, PlayerId Controller) : GameEvent;
+
+/// <summary>A triggered ability went on the chain as item <see cref="ItemId"/>.</summary>
+public sealed record TriggerAdded(int ItemId, ObjectId Source, PlayerId Controller) : GameEvent;
+
+/// <summary>Public: <see cref="Player"/> chose (or was forced to choose) <see cref="Chosen"/> for an effect.</summary>
+public sealed record PlayerChosen(PlayerId Player, PlayerId Chosen) : GameEvent;
+
+/// <summary>A player looked at the top <see cref="Count"/> cards of their Main Deck. Only their own copy has the card ids.</summary>
+public sealed record Predicted(PlayerId Player, int Count, IReadOnlyList<string>? CardIds) : GameEvent;

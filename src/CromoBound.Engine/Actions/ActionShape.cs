@@ -19,6 +19,8 @@ internal static class ActionShape
         ManualCreateToken token => token.TokenId is null ? Missing(nameof(token.TokenId)) : null,
         AddAbilityToChain ability => ability.Cost is { Power: null } ? "The cost has no power list." : null,
         ChooseTargets choose => choose.Targets is null ? Missing(nameof(choose.Targets)) : null,
+        ChooseCards cards => cards.Cards is null ? Missing(nameof(cards.Cards)) : null,
+        OrderTriggers order => order.Order is null ? Missing(nameof(order.Order)) : null,
         _ => null,
     };
 
