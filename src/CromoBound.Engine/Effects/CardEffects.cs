@@ -6,13 +6,15 @@ using CromoBound.Models.Effects;
 namespace CromoBound.Engine.Effects;
 
 /// <summary>What a card does as the engine runs it (spec §4.1). <see cref="ManualLines"/> are the 1-based text lines players
-/// resolve by hand; <see cref="Unsupported"/> says why a mapped file is played as Unmapped.</summary>
+/// resolve by hand; <see cref="Unsupported"/> says why a mapped file is played as Unmapped. <see cref="KeywordEntries"/> are the
+/// file's keywords with their values and costs (empty for Unmapped cards, whose keywords come from their text).</summary>
 internal sealed record CardEffectInfo(
     MappingStatus Status,
     IReadOnlyList<Ability> Abilities,
     IReadOnlySet<DisplayKeyword> Keywords,
     IReadOnlyList<int> ManualLines,
-    IReadOnlyList<string> Unsupported);
+    IReadOnlyList<string> Unsupported,
+    IReadOnlyList<KeywordEntry> KeywordEntries);
 
 /// <summary>Effects per card id, cached. A file the engine can't fully run yet is treated as Unmapped, so the card plays by hand as in 2a. Runes get no abilities: basic runes keep 2a's UseRune (spec §13).</summary>
 internal sealed class CardEffects(CardDatabase db)
@@ -32,16 +34,16 @@ internal sealed class CardEffects(CardDatabase db)
         if (!db.Effects.TryGetValue(card.Id, out var loaded) || loaded.File.Status == MappingStatus.Unmapped)
             return Unmapped(card, all, []);
         var file = loaded.File;
-        if (card.Type == CardType.Rune) return new(file.Status, [], new HashSet<DisplayKeyword>(), [], []);
-        var unsupported = EffectsSupport.Problems(file);
+        if (card.Type == CardType.Rune) return new(file.Status, [], new HashSet<DisplayKeyword>(), [], [], []);
+        var unsupported = EffectsSupport.Problems(file, card.Type);
         if (unsupported.Count > 0) return Unmapped(card, all, unsupported);
 
         IReadOnlySet<DisplayKeyword> keywords = file.Keywords.Select(k => Enum.Parse<DisplayKeyword>(k.Keyword.ToString())).ToHashSet();
         IReadOnlyList<Ability> abilities = [.. file.Abilities, .. KeywordAbilities(file)];
-        if (file.Status == MappingStatus.Full) return new(MappingStatus.Full, abilities, keywords, [], []);
+        if (file.Status == MappingStatus.Full) return new(MappingStatus.Full, abilities, keywords, [], [], file.Keywords);
         var covered = file.Abilities.Where(a => a.Line is not null).SelectMany(a => a.Line!.Lines).ToHashSet();
         List<int> manual = [.. all.Where(n => !covered.Contains(n) && !CardKeywords.IsKeywordLine(lines[n - 1]))];
-        return new(MappingStatus.Partial, abilities, keywords, manual, []);
+        return new(MappingStatus.Partial, abilities, keywords, manual, [], file.Keywords);
     }
 
     /// <summary>The abilities keywords stand for (spec §8.1), listed after the file's own so ability indices follow the JSON.</summary>
@@ -79,5 +81,5 @@ internal sealed class CardEffects(CardDatabase db)
         new() { Trigger = new Trigger { Event = kind, Subject = ObjectRef.Self }, Steps = steps };
 
     private static CardEffectInfo Unmapped(Card card, List<int> lines, IReadOnlyList<string> unsupported) =>
-        new(MappingStatus.Unmapped, [], CardKeywords.Own(card), lines, unsupported);
+        new(MappingStatus.Unmapped, [], CardKeywords.Own(card), lines, unsupported, []);
 }

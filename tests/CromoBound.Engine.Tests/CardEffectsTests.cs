@@ -79,12 +79,14 @@ public class CardEffectsTests
     [InlineData("""{ "action": "ChooseCard", "from": { "zone": "Hand" } }""", "abilities[0].steps[0]: from")]
     [InlineData("""{ "action": "ChoosePlayer", "filter": { "relation": "Friendly" } }""", "abilities[0].steps[0]: filter")]
     [InlineData("""{ "action": "Predict", "amount": 2 }""", "abilities[0].steps[0]: value")]
+    [InlineData("""{ "action": "Kill", "player": "Opponent", "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: player")]
+    [InlineData("""{ "action": "Deal", "amount": 1, "player": "You", "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: player")]
     public void Unsupported_steps_targets_values_and_players_are_named(string step, string problem)
     {
         var file = CromoJson.Deserialize<EffectsFile>(
             $$"""{ "cardId": "spell", "status": "Full", "abilities": [ { "kind": "Spell", "steps": [ {{step}} ] } ] }""");
 
-        Assert.Equal(new[] { problem }, EffectsSupport.Problems(file));
+        Assert.Equal(new[] { problem }, EffectsSupport.Problems(file, CardType.Spell));
     }
 
     [Fact]
@@ -130,7 +132,7 @@ public class CardEffectsTests
         var file = CromoJson.Deserialize<EffectsFile>(
             $$"""{ "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered", "trigger": {{trigger}}, "steps": [] } ] }""");
 
-        Assert.Equal(new[] { "abilities[0]: trigger" }, EffectsSupport.Problems(file));
+        Assert.Equal(new[] { "abilities[0]: trigger" }, EffectsSupport.Problems(file, CardType.Unit));
     }
 
     [Fact]
@@ -142,6 +144,48 @@ public class CardEffectsTests
               "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] } ] }
             """);
 
-        Assert.Equal(new[] { "abilities[0].steps[0]: target" }, EffectsSupport.Problems(file));
+        Assert.Equal(new[] { "abilities[0].steps[0]: target" }, EffectsSupport.Problems(file, CardType.Unit));
+    }
+
+    [Theory]
+    [InlineData("""{ "keyword": "Tank", "value": 2 }""", "keywords[0]: value")]
+    [InlineData("""{ "keyword": "Accelerate", "cost": { "energy": 1 } }""", "keywords[0]: cost")]
+    [InlineData("""{ "keyword": "Vision", "steps": [ { "action": "Draw" } ] }""", "keywords[0]: steps")]
+    [InlineData("""{ "keyword": "Hunt", "value": 1, "cost": { "energy": 1 } }""", "keywords[0]: cost")]
+    [InlineData("""{ "keyword": "Empower", "cost": { "energy": 1, "exhaustSelf": true } }""", "keywords[0]: cost")]
+    public void Keyword_parameters_the_engine_would_ignore_are_named(string keyword, string problem)
+    {
+        var file = CromoJson.Deserialize<EffectsFile>($$"""{ "cardId": "unit-3", "status": "Full", "keywords": [ {{keyword}} ] }""");
+
+        Assert.Equal(new[] { problem }, EffectsSupport.Problems(file, CardType.Unit));
+    }
+
+    [Theory]
+    [InlineData("""{ "event": "Hold", "subject": { "ref": "Self" } }""", CardType.Battlefield)]
+    [InlineData("""{ "event": "Played", "subject": { "ref": "Self" } }""", CardType.Battlefield)]
+    [InlineData("""{ "event": "Hold", "by": "You", "where": { "ref": "Here" } }""", CardType.Unit)]
+    public void Trigger_forms_must_fit_the_card_type(string trigger, CardType type)
+    {
+        var file = CromoJson.Deserialize<EffectsFile>(
+            $$"""{ "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered", "trigger": {{trigger}}, "steps": [] } ] }""");
+
+        Assert.Equal(new[] { "abilities[0]: trigger" }, EffectsSupport.Problems(file, type));
+    }
+
+    [Fact]
+    public void Every_mechanical_keyword_has_a_display_keyword()
+    {
+        Assert.All(Enum.GetValues<MechanicalKeyword>(),
+            keyword => Assert.True(Enum.TryParse<DisplayKeyword>(keyword.ToString(), out _), $"{keyword} has no DisplayKeyword"));
+    }
+
+    [Fact]
+    public void Mapped_cards_keep_their_keyword_entries_and_unmapped_ones_have_none()
+    {
+        var db = EngineTestDb.Create(("unit-2", FullTank));
+        var effects = new CardEffects(db);
+
+        Assert.Equal(MechanicalKeyword.Tank, Assert.Single(effects.For("unit-2").KeywordEntries).Keyword);
+        Assert.Empty(effects.For("tank-2").KeywordEntries);
     }
 }

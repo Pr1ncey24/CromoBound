@@ -1,4 +1,5 @@
 using CromoBound.Engine.Effects.Steps;
+using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Effects;
@@ -14,19 +15,28 @@ internal static class EffectsSupport
         MechanicalKeyword.Unique, MechanicalKeyword.Deathknell, MechanicalKeyword.Vision, MechanicalKeyword.Hunt, MechanicalKeyword.Empower,
     ];
 
-    /// <summary>One line per construct the engine can't run; empty when it runs the whole file.</summary>
-    public static IReadOnlyList<string> Problems(EffectsFile file)
+    /// <summary>The keywords that take a value (Hunt 3, Assault 2), a cost (Empower, Equip) or steps (Deathknell). Any other
+    /// parameter would be ignored by the engine, so it is reported (spec §7: never silent).</summary>
+    private static readonly HashSet<MechanicalKeyword> WithValue =
+        [MechanicalKeyword.Hunt, MechanicalKeyword.Assault, MechanicalKeyword.Shield, MechanicalKeyword.Deflect];
+    private static readonly HashSet<MechanicalKeyword> WithCost = [MechanicalKeyword.Empower, MechanicalKeyword.Equip];
+    private static readonly HashSet<MechanicalKeyword> WithSteps = [MechanicalKeyword.Deathknell];
+
+    /// <summary>One line per construct the engine can't run; empty when it runs the whole file. <paramref name="type"/> is the
+    /// card's type: which trigger forms make sense depends on it.</summary>
+    public static IReadOnlyList<string> Problems(EffectsFile file, CardType type)
     {
         var problems = new List<string>();
         if (file.Overrides is not null) problems.Add("overrides");
         if (file.AdditionalCosts.Count > 0) problems.Add("additionalCosts");
         if (file.AsYouPlay.Count > 0) problems.Add("asYouPlay");
         for (var k = 0; k < file.Keywords.Count; k++) CheckKeyword(file.Keywords[k], $"keywords[{k}]", problems);
-        for (var i = 0; i < file.Abilities.Count; i++) CheckAbility(file.Abilities[i], $"abilities[{i}]", problems);
+        for (var i = 0; i < file.Abilities.Count; i++) CheckAbility(file.Abilities[i], type, $"abilities[{i}]", problems);
         return problems;
     }
 
-    /// <summary>Keyword abilities need their parameter: Deathknell's steps (they run like a trigger's), Hunt's value, Empower's plain cost.</summary>
+    /// <summary>A keyword's parameters must be ones it takes; Hunt needs its value, Empower and Equip a plain cost, and Deathknell's
+    /// steps run like a trigger's.</summary>
     private static void CheckKeyword(KeywordEntry entry, string at, List<string> problems)
     {
         if (!Keywords.Contains(entry.Keyword))
@@ -34,13 +44,16 @@ internal static class EffectsSupport
             problems.Add($"keyword {entry.Keyword}");
             return;
         }
+        if (entry.Value is not null && !WithValue.Contains(entry.Keyword)) problems.Add($"{at}: value");
+        if (entry.Cost is not null && !WithCost.Contains(entry.Keyword)) problems.Add($"{at}: cost");
+        if (entry.Steps.Count > 0 && !WithSteps.Contains(entry.Keyword)) problems.Add($"{at}: steps");
         if (entry.Keyword == MechanicalKeyword.Deathknell) CheckSteps(entry.Steps, at, problems, targets: false);
         if (entry.Keyword == MechanicalKeyword.Hunt && entry.Value is null) problems.Add($"{at}: value");
-        if (entry.Keyword == MechanicalKeyword.Empower && (entry.Cost is null || entry.Cost.Actions.Count > 0 || entry.Cost.ExhaustSelf is not null))
+        if (WithCost.Contains(entry.Keyword) && (entry.Cost is null || entry.Cost.Actions.Count > 0 || entry.Cost.ExhaustSelf is not null))
             problems.Add($"{at}: cost");
     }
 
-    private static void CheckAbility(Ability ability, string at, List<string> problems)
+    private static void CheckAbility(Ability ability, CardType type, string at, List<string> problems)
     {
         if (ability is not (SpellAbility or TriggeredAbility or ActivatedAbility))
         {
@@ -55,7 +68,7 @@ internal static class EffectsSupport
                 CheckSteps(spell.Steps, at, problems, targets: true);
                 break;
             case TriggeredAbility triggered:
-                if (!IsSupportedTrigger(triggered.Trigger)) problems.Add($"{at}: trigger");
+                if (!IsSupportedTrigger(triggered.Trigger, type)) problems.Add($"{at}: trigger");
                 if (triggered.If is not null || triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
                     problems.Add($"{at}: if, optional, cost or limit");
                 CheckSteps(triggered.Steps, at, problems, targets: false);
@@ -68,13 +81,14 @@ internal static class EffectsSupport
         }
     }
 
-    /// <summary>The forms the <see cref="TriggerWatcher"/> maps: the source's own Dies, BecameEmpowered, Played, Hold or Conquer,
-    /// and a battlefield's "when you hold (or conquer) here".</summary>
-    private static bool IsSupportedTrigger(Trigger trigger)
+    /// <summary>The forms the <see cref="TriggerWatcher"/> maps: the source's own Dies, BecameEmpowered, Played, Hold or Conquer
+    /// (a card that can be their subject, so not a battlefield), and a battlefield's "when you hold (or conquer) here".</summary>
+    private static bool IsSupportedTrigger(Trigger trigger, CardType type)
     {
         if (trigger.Filter is not null || trigger.Phase is not null) return false;
-        var own = trigger.Subject?.Ref == RefKind.Self && trigger.By is null && trigger.Where is null;
-        var here = trigger.Subject is null && trigger.By?.Kind == PlayerKind.You && trigger.Where?.Ref == RefKind.Here;
+        var own = type != CardType.Battlefield && trigger.Subject?.Ref == RefKind.Self && trigger.By is null && trigger.Where is null;
+        var here = type == CardType.Battlefield && trigger.Subject is null && trigger.By?.Kind == PlayerKind.You
+            && trigger.Where?.Ref == RefKind.Here;
         return trigger.Event switch
         {
             TriggerEvent.Dies or TriggerEvent.BecameEmpowered or TriggerEvent.Played => own,
@@ -107,7 +121,8 @@ internal static class EffectsSupport
             return;
         }
         if (step.Script is not null || step.Chooser is not null) problems.Add($"{at}: script or chooser");
-        if (step.Player is { Kind: null, Var: null }) problems.Add($"{at}: player");
+        if (step.Player is not null && !UsesPlayer(step)) problems.Add($"{at}: player");
+        else if (step.Player is { Kind: null, Var: null }) problems.Add($"{at}: player");
         switch (step)
         {
             case DrawStep draw:
@@ -150,6 +165,9 @@ internal static class EffectsSupport
         }
         if (step is TargetStep target && !IsSupportedTarget(target.Target, targets)) problems.Add($"{at}: target");
     }
+
+    /// <summary>The steps that act for a player; on any other step a "player" would be ignored.</summary>
+    private static bool UsesPlayer(Step step) => step is DrawStep or BurnStep or ChannelStep or GainXpStep or PredictStep;
 
     private static void CheckValue(Value value, string at, List<string> problems)
     {
