@@ -1,6 +1,7 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
+using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
@@ -92,6 +93,14 @@ public sealed partial class Game
 
     /// <summary>Returns a permanent to its controller's Base. Not a move (CR 454): damage and statuses stay.</summary>
     internal void Recall(ObjectId id) => MoveCard(id, Place.Base(State[id].Controller));
+
+    /// <summary>Puts a card on the bottom of its owner's deck: a rune's Rune Deck, any other card's Main Deck.</summary>
+    internal void Recycle(ObjectId card)
+    {
+        var instance = State[card];
+        var deck = CardOf(instance).Type == CardType.Rune ? Place.RuneDeck(instance.Owner) : Place.MainDeck(instance.Owner);
+        MoveCard(card, deck, DeckPosition.Bottom);
+    }
 
     /// <summary>Draws one card at a time; an empty Main Deck burns out first (CR 413, 431).</summary>
     internal void Draw(PlayerId player, int count) => MoveTopCards(player, count, Place.Hand(player));

@@ -14,6 +14,10 @@ internal static class StepRegistry
         [typeof(ChannelStep)] = new ChannelHandler(),
         [typeof(GainXpStep)] = new GainXpHandler(),
         [typeof(EmpowerStep)] = new EmpowerHandler(),
+        [typeof(ChoosePlayerStep)] = new ChoosePlayerHandler(),
+        [typeof(ChooseCardStep)] = new ChooseCardHandler(),
+        [typeof(OptionalStep)] = new OptionalHandler(),
+        [typeof(PredictStep)] = new PredictHandler(),
     };
 
     public static bool Supports(Type stepType) => Handlers.ContainsKey(stepType);

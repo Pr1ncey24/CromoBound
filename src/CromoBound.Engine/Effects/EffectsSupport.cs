@@ -23,22 +23,29 @@ internal static class EffectsSupport
         if (file.AsYouPlay.Count > 0) problems.Add("asYouPlay");
         foreach (var entry in file.Keywords)
             if (!Keywords.Contains(entry.Keyword)) problems.Add($"keyword {entry.Keyword}");
-        for (var i = 0; i < file.Abilities.Count; i++)
-        {
-            var at = $"abilities[{i}]";
-            if (file.Abilities[i] is not SpellAbility spell)
-            {
-                problems.Add($"{at}: {file.Abilities[i].GetType().Name.Replace("Ability", "")} ability");
-                continue;
-            }
-            if (spell.Condition is not null || spell.ActiveIn is not null || spell.Script is not null)
-                problems.Add($"{at}: condition, activeIn or script");
-            for (var j = 0; j < spell.Steps.Count; j++) CheckStep(spell.Steps[j], $"{at}.steps[{j}]", problems);
-        }
+        for (var i = 0; i < file.Abilities.Count; i++) CheckAbility(file.Abilities[i], $"abilities[{i}]", problems);
         return problems;
     }
 
-    private static void CheckStep(Step step, string at, List<string> problems)
+    private static void CheckAbility(Ability ability, string at, List<string> problems)
+    {
+        if (ability is not SpellAbility spell)
+        {
+            problems.Add($"{at}: {ability.GetType().Name.Replace("Ability", "")} ability");
+            return;
+        }
+        if (spell.Condition is not null || spell.ActiveIn is not null || spell.Script is not null)
+            problems.Add($"{at}: condition, activeIn or script");
+        CheckSteps(spell.Steps, at, problems, targets: true);
+    }
+
+    private static void CheckSteps(IReadOnlyList<Step> steps, string at, List<string> problems, bool targets)
+    {
+        for (var j = 0; j < steps.Count; j++) CheckStep(steps[j], $"{at}.steps[{j}]", problems, targets);
+    }
+
+    /// <summary><paramref name="targets"/>: target selectors are allowed (a spell's steps, chosen while playing); elsewhere only Self.</summary>
+    private static void CheckStep(Step step, string at, List<string> problems, bool targets)
     {
         if (!StepRegistry.Supports(step.GetType()))
         {
@@ -46,7 +53,7 @@ internal static class EffectsSupport
             return;
         }
         if (step.Script is not null || step.Chooser is not null) problems.Add($"{at}: script or chooser");
-        if (step.Player is { Kind: null }) problems.Add($"{at}: player");
+        if (step.Player is { Kind: null, Var: null }) problems.Add($"{at}: player");
         switch (step)
         {
             case DrawStep draw:
@@ -65,8 +72,24 @@ internal static class EffectsSupport
             case GainXpStep xp:
                 CheckValue(xp.Amount, at, problems);
                 break;
+            case ChoosePlayerStep choose:
+                if (choose.Filter is not null && !IsPlayerFilter(choose.Filter)) problems.Add($"{at}: filter");
+                break;
+            case ChooseCardStep card:
+                if (card.From is not { Zone: Zone.Trash, Position: null } || card.From.Owner is { Kind: null, Var: null })
+                    problems.Add($"{at}: from");
+                if (!IsSupportedFilter(card.Filter)) problems.Add($"{at}: filter");
+                CheckValue(card.Count, at, problems);
+                break;
+            case OptionalStep optional:
+                if (optional.Reflexive != true || optional.Cost is not null) problems.Add($"{at}: optional");
+                CheckSteps(optional.Steps, at, problems, targets: false);
+                break;
+            case PredictStep predict:
+                if (predict.Amount.Literal != 1) problems.Add($"{at}: value");
+                break;
         }
-        if (step is TargetStep target && !IsSupportedTarget(target.Target)) problems.Add($"{at}: target");
+        if (step is TargetStep target && !IsSupportedTarget(target.Target, targets)) problems.Add($"{at}: target");
     }
 
     private static void CheckValue(Value value, string at, List<string> problems)
@@ -74,14 +97,22 @@ internal static class EffectsSupport
         if (value.Literal is null) problems.Add($"{at}: value");
     }
 
-    private static bool IsSupportedTarget(ObjectRef reference) =>
-        reference.Ref == RefKind.Self || (TargetSlots.IsTarget(reference) && IsSupportedFilter(reference.Filter));
+    private static bool IsSupportedTarget(ObjectRef reference, bool targets) =>
+        reference.Ref == RefKind.Self || (targets && TargetSlots.IsTarget(reference) && IsSupportedFilter(reference.Filter));
 
-    /// <summary>Filters may use relation (Friendly or Enemy), type, token and other; nothing else yet.</summary>
-    private static bool IsSupportedFilter(Filter? filter) => filter is null
-        || ((filter.Relation is null or Relation.Friendly or Relation.Enemy)
-            && filter.Controller is null && filter.Owner is null && filter.Location is null && filter.Zone is null
-            && filter.Supertype is null && filter.Tags.Count == 0 && filter.Domains.Count == 0 && filter.Name is null
-            && filter.Might is null && filter.EnergyCost is null && filter.Status.Count == 0 && filter.Mighty is null
-            && filter.Keyword is null && filter.Not is null);
+    /// <summary>Card filters may use relation (Friendly or Enemy), type, token and other; nothing else yet.</summary>
+    private static bool IsSupportedFilter(Filter? filter) =>
+        filter is null || (filter.Relation is null or Relation.Friendly or Relation.Enemy && HasOnlyBasicFields(filter));
+
+    /// <summary>A ChoosePlayer filter: a relation of Opponent or Self and nothing else.</summary>
+    private static bool IsPlayerFilter(Filter filter) =>
+        filter.Relation is Relation.Opponent or Relation.Self && filter.Type is null && filter.Token is null && filter.Other is null
+        && HasOnlyBasicFields(filter);
+
+    /// <summary>None of the fields beyond relation, type, token and other is set.</summary>
+    private static bool HasOnlyBasicFields(Filter filter) =>
+        filter.Controller is null && filter.Owner is null && filter.Location is null && filter.Zone is null
+        && filter.Supertype is null && filter.Tags.Count == 0 && filter.Domains.Count == 0 && filter.Name is null
+        && filter.Might is null && filter.EnergyCost is null && filter.Status.Count == 0 && filter.Mighty is null
+        && filter.Keyword is null && filter.Not is null;
 }

@@ -71,8 +71,13 @@ public class CardEffectsTests
     [InlineData("""{ "action": "Draw", "amount": { "var": "x" } }""", "abilities[0].steps[0]: value")]
     [InlineData("""{ "action": "Kill", "target": { "select": "Unit", "all": true } }""", "abilities[0].steps[0]: target")]
     [InlineData("""{ "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "tags": ["Mech"] } } }""", "abilities[0].steps[0]: target")]
-    [InlineData("""{ "action": "Draw", "player": { "var": "victim" } }""", "abilities[0].steps[0]: player")]
+    [InlineData("""{ "action": "Draw", "player": { "controllerOf": { "ref": "Self" } } }""", "abilities[0].steps[0]: player")]
     [InlineData("""{ "action": "Deal", "amount": 2, "split": true, "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: split, bonus or source")]
+    [InlineData("""{ "action": "Optional", "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
+    [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] }""", "abilities[0].steps[0].steps[0]: target")]
+    [InlineData("""{ "action": "ChooseCard", "from": { "zone": "Hand" } }""", "abilities[0].steps[0]: from")]
+    [InlineData("""{ "action": "ChoosePlayer", "filter": { "relation": "Friendly" } }""", "abilities[0].steps[0]: filter")]
+    [InlineData("""{ "action": "Predict", "amount": 2 }""", "abilities[0].steps[0]: value")]
     public void Unsupported_steps_targets_values_and_players_are_named(string step, string problem)
     {
         var file = CromoJson.Deserialize<EffectsFile>(

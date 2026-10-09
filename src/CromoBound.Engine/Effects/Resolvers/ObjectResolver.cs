@@ -41,10 +41,16 @@ internal static class ObjectResolver
             SelectKind.Permanent => type is CardType.Unit or CardType.Gear,
             _ => false,
         };
-        if (!kindMatches || filter is null) return kindMatches;
+        return kindMatches && FilterMatches(game, context, filter, instance);
+    }
+
+    /// <summary>Whether a card matches the filter's relation, type, token and other fields (the ones <see cref="EffectsSupport"/> lets through).</summary>
+    public static bool FilterMatches(Game game, EffectContext context, Filter? filter, CardInstance instance)
+    {
+        if (filter is null) return true;
         if (filter.Relation == Relation.Friendly && instance.Controller != context.Controller) return false;
         if (filter.Relation == Relation.Enemy && instance.Controller == context.Controller) return false;
-        if (filter.Type is { } wanted && type != wanted) return false;
+        if (filter.Type is { } wanted && game.CardOf(instance).Type != wanted) return false;
         if (filter.Token is { } token && instance.IsToken != token) return false;
         if (filter.Other == true && context.Source == instance.Id) return false;
         return true;

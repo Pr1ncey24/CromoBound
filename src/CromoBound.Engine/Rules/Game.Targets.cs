@@ -66,8 +66,7 @@ public sealed partial class Game
                 }
                 if (action is not ChooseTargets choose) return Reject(RejectionCode.UnexpectedAction, "Choose the targets, or cancel.");
                 var chosen = choose.Targets;
-                if (chosen.Distinct().Count() != chosen.Count || chosen.Count < min || chosen.Count > max || !chosen.All(options.Contains))
-                    return Reject(RejectionCode.InvalidTarget, $"Choose between {min} and {max} different targets among the offered ones.");
+                if (CheckPick(chosen, options, min, max, "targets") is { } rejection) return rejection;
                 context.Targets.Add([.. chosen]);
                 Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, [.. chosen]));
                 return null;
@@ -76,4 +75,10 @@ public sealed partial class Game
         }
         return false;
     }
+
+    /// <summary>Null when <paramref name="chosen"/> holds between min and max different ids, all among the options.</summary>
+    internal static Rejection? CheckPick(IReadOnlyList<ObjectId> chosen, IReadOnlyList<ObjectId> options, int min, int max, string what) =>
+        chosen.Distinct().Count() == chosen.Count && chosen.Count >= min && chosen.Count <= max && chosen.All(options.Contains)
+            ? null
+            : Reject(RejectionCode.InvalidTarget, $"Choose between {min} and {max} different {what} among the offered ones.");
 }
