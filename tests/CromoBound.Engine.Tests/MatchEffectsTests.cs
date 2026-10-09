@@ -169,4 +169,41 @@ public class MatchEffectsTests
         Assert.Null(theirs.Decision);
         Assert.Equal("Optional", theirs.DecisionKind);
     }
+
+    /// <summary>Mapped Fury and Chaos cards from data/: Accelerate, Ambush, Assault, Deflect, Legion, Vision and Weaponmaster.</summary>
+    private static readonly string[] MappedFuryChaos =
+    [
+        "legion-rearguard", "inferna", "pouty-poro", "sharkling", "sentinel-adept",
+        "mystic-poro", "shipyard-skulker", "noxus-hopeful", "blazing-scorcher",
+    ];
+
+    /// <summary>A legal Jinx deck: the nine mapped cards and filler-1 to filler-4, three copies each.</summary>
+    private static Deck MappedDeck(params string[] battlefields) => TestDecks.Jinx(battlefields) with
+    {
+        Main =
+        [
+            .. MappedFuryChaos.Select(id => new DeckEntry { Printing = $"p-{id}", Count = 3 }),
+            .. Enumerable.Range(1, 4).Select(i => new DeckEntry { Printing = $"p-filler-{i}", Count = 3 }),
+        ],
+    };
+
+    [Fact]
+    public void Scripted_players_finish_a_bo3_with_mapped_cards_and_the_saved_match_replays_identically()
+    {
+        var setup = new MatchSetup(MatchFormat.Bo3, MappedDeck("bf-a", "bf-b", "bf-c"), MappedDeck("bf-d", "bf-e", "bf-f"), 11);
+        var match = Match.Create(setup, EngineTestDb.WithRealCards(MappedFuryChaos)).Match!;
+        var bots = new[] { new Bot(), new Bot() };
+        for (var i = 0; i < 20000 && match.Stage != MatchStage.Over; i++)
+        {
+            var player = match.Pending!.Players[0];
+            match.Accept(player, bots[player.Index].Choose(match));
+        }
+
+        Assert.Equal(MatchStage.Over, match.Stage);
+        Assert.Contains(2, match.Result.GameWins);
+        Assert.Contains(match.Events, e => e is TriggerAdded);
+        var loaded = Match.Load(match.ToRecord(), EngineTestDb.WithRealCards(MappedFuryChaos));
+        var first = new PlayerId(0);
+        Assert.Equal(CromoJson.Serialize(match.ViewFor(first)), CromoJson.Serialize(loaded.ViewFor(first)));
+    }
 }
