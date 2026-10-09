@@ -1,5 +1,6 @@
+using CromoBound.Data;
+using CromoBound.Engine.Tests;
 using CromoBound.Server.Storage;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -59,7 +60,7 @@ public class StartupTests
     [Fact]
     public async Task A_database_with_users_keeps_them_and_ignores_the_first_admin_settings()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"cromobound-test-{Guid.NewGuid():N}.db");
+        var path = ServerFactory.NewDatabasePath();
         try
         {
             using (var first = new ServerFactory(databasePath: path)) _ = first.Services;
@@ -72,8 +73,42 @@ public class StartupTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
-            File.Delete(path);
+            ServerFactory.DeleteDatabase(path);
         }
+    }
+
+    [Fact]
+    public async Task The_database_is_built_by_the_migrations()
+    {
+        using var factory = new ServerFactory();
+
+        await factory.WithDbAsync(async db =>
+        {
+            Assert.Contains(await db.Database.GetAppliedMigrationsAsync(), m => m.EndsWith("_Initial", StringComparison.Ordinal));
+            Assert.Empty(await db.Database.GetPendingMigrationsAsync());
+            Assert.Equal(0, await db.Matches.CountAsync());
+        });
+    }
+
+    [Fact]
+    public void The_card_data_is_loaded_from_the_data_folder_at_startup()
+    {
+        using var factory = new ServerFactory(new() { ["CromoBound:DataFolder"] = RepoPaths.Data }, loadCards: true);
+
+        var cards = factory.Services.GetRequiredService<CardDatabase>();
+
+        Assert.NotEmpty(cards.Cards);
+        Assert.NotEqual("", cards.Fingerprint);
+    }
+
+    [Fact]
+    public void A_card_data_folder_that_cant_be_loaded_stops_the_server_and_is_named()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), $"cromobound-no-cards-{Guid.NewGuid():N}");
+        using var factory = new ServerFactory(new() { ["CromoBound:DataFolder"] = missing }, loadCards: true);
+
+        var error = Assert.ThrowsAny<Exception>(() => factory.Services);
+
+        Assert.Contains("CromoBound:DataFolder", error.ToString());
     }
 }

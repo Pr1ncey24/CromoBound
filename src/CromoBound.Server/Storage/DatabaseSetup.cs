@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CromoBound.Server.Storage;
 
-/// <summary>Runs before the server accepts requests: creates the database if needed and, while there are no users, the first
+/// <summary>Runs before the server accepts requests: brings the database up to the latest migration and, while there are no users, creates the first
 /// admin from <see cref="AdminUserKey"/> and <see cref="AdminPasswordKey"/> (spec §5.3). Without users and without those
 /// settings the server refuses to start.</summary>
 internal sealed class DatabaseSetup(IServiceScopeFactory scopes, IConfiguration configuration, ILogger<DatabaseSetup> log) : IHostedService
@@ -15,7 +15,7 @@ internal sealed class DatabaseSetup(IServiceScopeFactory scopes, IConfiguration 
     {
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CromoDbContext>();
-        await db.Database.EnsureCreatedAsync(cancellationToken);
+        await db.Database.MigrateAsync(cancellationToken);
         if (await db.Users.AnyAsync(cancellationToken)) return;
 
         var userName = configuration[AdminUserKey];

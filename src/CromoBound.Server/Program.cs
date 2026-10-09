@@ -1,5 +1,6 @@
 using CromoBound.Server;
 using CromoBound.Server.Accounts;
+using CromoBound.Server.Matches;
 using CromoBound.Server.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,7 @@ builder.Logging.AddFilter("Microsoft.AspNetCore.Authorization", LogLevel.Warning
 builder.Services.AddCromoBoundStorage(builder.Configuration);
 builder.Services.AddCromoBoundAccounts(builder.Configuration);
 builder.Services.AddCromoBoundProxies();
+builder.Services.AddCromoBoundMatches();
 // A body that can't be read is a plain 400 in every environment, never an exception (a 500).
 builder.Services.Configure<RouteHandlerOptions>(handlers => handlers.ThrowOnBadRequest = false);
 
