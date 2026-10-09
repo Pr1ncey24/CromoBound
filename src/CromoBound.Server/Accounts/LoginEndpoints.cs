@@ -23,28 +23,34 @@ internal static class LoginEndpoints
     }
 
     /// <summary>A form post (redirects home) or JSON (204). Every failure is the same answer, a locked name included; the time of a
-    /// password check is spent even when the account doesn't exist or the name is locked.</summary>
+    /// password check is spent even when the account doesn't exist or the name is locked. The attempt is reserved with the lockout
+    /// before the check and always ends there: as a success only when the password was right, otherwise (an error included) as
+    /// a failure.</summary>
     private static async Task<IResult> LoginAsync(HttpContext http, UserStore users, LoginLockout lockout)
     {
         var form = http.Request.HasFormContentType;
         var (userName, password) = await ReadCredentialsAsync(http.Request, form);
         if (userName is null || password is null) return Failed(form);
-        if (UserStore.UserNameProblem(userName) is not null || lockout.IsLocked(userName))
+        if (UserStore.UserNameProblem(userName) is not null || !lockout.TryBegin(userName))
         {
             users.VerifyNothing(password);
             return Failed(form);
         }
-        var user = await users.FindAsync(userName);
-        if (user is null) users.VerifyNothing(password);
-        var valid = user is not null && await users.VerifyAsync(user, password) && !user.Disabled;
-        if (!valid)
+        var valid = false;
+        try
         {
-            lockout.RecordFailure(userName);
-            return Failed(form);
+            var user = await users.FindAsync(userName);
+            if (user is null) users.VerifyNothing(password);
+            valid = user is not null && await users.VerifyAsync(user, password) && !user.Disabled;
+            if (!valid) return Failed(form);
+            await http.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, Sessions.PrincipalFor(user!));
+            return form ? Results.Redirect("/") : Results.NoContent();
         }
-        lockout.Reset(userName);
-        await http.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, Sessions.PrincipalFor(user!));
-        return form ? Results.Redirect("/") : Results.NoContent();
+        finally
+        {
+            if (valid) lockout.Reset(userName);
+            else lockout.RecordFailure(userName);
+        }
     }
 
     private static async Task<IResult> LogoutAsync(HttpContext http)
