@@ -11,7 +11,7 @@ namespace CromoBound.Server.Matches;
 
 /// <summary>One running match (spec §6.6): the engine's match, its two seats and its last saved record. A lock serializes everything
 /// that reads or changes the match: an accepted action is saved before anyone sees it, and each player's view is built from a settled
-/// state. <paramref name="finished"/> takes the match out of the registry when it ends.</summary>
+/// state. <paramref name="finished"/> takes the match out of the registry once its final save succeeds.</summary>
 internal sealed class MatchHost(Guid id, Match match, MatchRecord saved, IReadOnlyList<MatchSeat> seats, IMatchStore store,
     CardDatabase cards, IHubContext<GameHub, IGameClient> hub, ILogger log, Action<MatchHost> finished)
 {
@@ -66,7 +66,8 @@ internal sealed class MatchHost(Guid id, Match match, MatchRecord saved, IReadOn
 
     /// <summary>Under the lock, the engine decides; a rejected action changes and saves nothing. An accepted one is saved, then each
     /// player is sent their view. If the save fails, the match goes back to its last saved record, the action is lost and the caller is
-    /// asked to try again. A finished match is saved as Finished, leaves the registry, and both players are told.</summary>
+    /// asked to try again. A finished match is saved as Finished and leaves the registry right after that save, so whatever the pushes do the
+    /// players are free to play again; then each is sent their final view and both are told the match ended.</summary>
     public async Task<SubmitReply> SubmitAsync(PlayerId seat, PlayerAction action)
     {
         await _lock.WaitAsync();
@@ -87,8 +88,9 @@ internal sealed class MatchHost(Guid id, Match match, MatchRecord saved, IReadOn
                 return new SubmitReply(false, null, SaveFailed);
             }
             _saved = record;
+            if (over) finished(this);
             await PushViewsAsync();
-            if (over) await EndAsync();
+            if (over) await TellEndedAsync();
             return new SubmitReply(true, null, null);
         }
         finally
@@ -104,10 +106,9 @@ internal sealed class MatchHost(Guid id, Match match, MatchRecord saved, IReadOn
             await hub.Clients.Group(GameHub.UserGroup(seats[i].UserId)).View(new MatchViewNotice(id, Match.ViewFor(new PlayerId(i))));
     }
 
-    /// <summary>Leaves the registry first, so the players are free to play again by the time they hear the match ended.</summary>
-    private async Task EndAsync()
+    /// <summary>Tells both players the match ended, after their final views.</summary>
+    private async Task TellEndedAsync()
     {
-        finished(this);
         var result = Match.Result;
         var winner = result.Winner is { } seat ? seats[seat.Index].UserName : null;
         await hub.Clients.Groups([.. seats.Select(s => GameHub.UserGroup(s.UserId))])
