@@ -1,0 +1,49 @@
+<MudDialog>
+    <DialogContent>
+        <form class="cb-dialog-body" @onsubmit="CreateAsync" @onsubmit:preventDefault>
+            <div class="cb-field">
+                <label class="cb-label" for="new-username">Username</label>
+                <input id="new-username" class="cb-input" autocomplete="off" @bind="userName" @bind:event="oninput" />
+                <span class="cb-sub">3 to 24 letters, digits, _ or -</span>
+            </div>
+            <div class="cb-field">
+                <label class="cb-label" for="new-password">Password</label>
+                <input id="new-password" class="cb-input @(error is null ? "" : "invalid")" type="password" autocomplete="new-password"
+                       aria-describedby="create-error" @bind="password" @bind:event="oninput" />
+            </div>
+            <label class="cb-check">
+                <input id="new-admin" type="checkbox" @bind="isAdmin" />
+                Admin (can manage users and maintenance)
+            </label>
+            @if (error is not null)
+            {
+                <p id="create-error" class="cb-error" role="alert">@error</p>
+            }
+        </form>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="create-cancel" Variant="Variant.Text" Color="Color.Secondary" OnClick="() => Dialog.Cancel()">Cancel</MudButton>
+        <MudButton id="create" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy" OnClick="CreateAsync">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Inject] private IServerApi Api { get; set; } = default!;
+
+    private string userName = "";
+    private string password = "";
+    private bool isAdmin;
+    private string? error;
+    private bool busy;
+
+    /// <summary>The server checks the name and password; its refusal shows here and keeps what was typed (deviation 5).</summary>
+    private async Task CreateAsync()
+    {
+        busy = true;
+        var created = await Api.CreateUserAsync(new CreateUserRequest(userName.Trim(), password, isAdmin));
+        busy = false;
+        error = created.Error;
+        if (created.Value is { } user) Dialog.Close(DialogResult.Ok(user));
+    }
+}

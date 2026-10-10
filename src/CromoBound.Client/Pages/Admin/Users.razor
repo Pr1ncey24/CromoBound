@@ -1,0 +1,94 @@
+@page "/admin/users"
+@inject IServerApi Api
+@inject SessionState Session
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<main class="cb-main">
+    <AdminTabs />
+    @if (Session.Me?.CanManageUsers != true)
+    {
+        <p class="cb-error" role="alert">@ServerApi.Forbidden</p>
+    }
+    else
+    {
+        <section class="cb-panel" aria-labelledby="users-title">
+            <div class="cb-head">
+                <h1 id="users-title" class="cb-title">Users</h1>
+                <MudButton id="create-user" Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync">Create user</MudButton>
+            </div>
+            @if (error is not null)
+            {
+                <p class="cb-error" role="alert">@error</p>
+            }
+            <table class="cb-table">
+                <thead>
+                    <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Account</th><th scope="col">Actions</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in users)
+                    {
+                        <tr data-user="@user.UserName">
+                            <td>@(IsMe(user) ? $"{user.UserName} (you)" : user.UserName)</td>
+                            <td><span class="cb-chip @(user.IsAdmin ? "admin" : "")">@(user.IsAdmin ? "Admin" : "Player")</span></td>
+                            <td class="@(user.Disabled ? "cb-danger-text" : "")">@(user.Disabled ? "Disabled" : "Active")</td>
+                            <td>
+                                <div class="cb-actions start">
+                                    <MudButton Class="set-password" Variant="Variant.Text" Color="Color.Secondary" OnClick="() => SetPasswordAsync(user)">Set password</MudButton>
+                                    <MudButton Class="toggle-admin" Variant="Variant.Text" Color="Color.Secondary"
+                                               OnClick="() => ChangeAsync(() => Api.SetAdminAsync(user.Id, !user.IsAdmin))">@(user.IsAdmin ? "Remove admin" : "Make admin")</MudButton>
+                                    <MudButton Class="@(user.Disabled ? "toggle-disabled" : "toggle-disabled cb-danger-text")" Variant="Variant.Text" Color="Color.Secondary"
+                                               OnClick="() => ChangeAsync(() => Api.SetDisabledAsync(user.Id, !user.Disabled))">@(user.Disabled ? "Enable" : "Disable")</MudButton>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+</main>
+
+@code {
+    private IReadOnlyList<UserSummary> users = [];
+    private string? error;
+
+    private bool IsMe(UserSummary user) => string.Equals(user.UserName, Session.Me?.UserName, StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Me?.CanManageUsers == true) await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var loaded = await Api.UsersAsync();
+        error = loaded.Error;
+        users = [.. (loaded.Value ?? []).OrderBy(u => u.UserName, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>A refusal pops up as it comes ("The last admin can't be removed."); the list is reloaded either way.</summary>
+    private async Task ChangeAsync(Func<Task<ApiResult>> change)
+    {
+        var result = await change();
+        if (result.Error is { } refusal) Snackbar.Add(refusal, Severity.Error);
+        await LoadAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<CreateUserDialog>("Create user", DialogDefaults.Options);
+        if (await dialog.Result is { Canceled: false, Data: UserSummary created })
+        {
+            Snackbar.Add($"{created.UserName} can sign in now.", Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task SetPasswordAsync(UserSummary user)
+    {
+        var dialog = await Dialogs.ShowAsync<SetPasswordDialog>("Set password",
+            new DialogParameters<SetPasswordDialog> { { d => d.User, user } }, DialogDefaults.Options);
+        if (await dialog.Result is { Canceled: false }) Snackbar.Add($"{user.UserName}'s password is set.", Severity.Success);
+    }
+}
