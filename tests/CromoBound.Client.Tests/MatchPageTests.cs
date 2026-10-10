@@ -33,12 +33,7 @@ public class MatchPageTests
         var cut = Render(ui);
 
         cut.WaitForAssertion(() => Assert.Equal("marco vs giulia", cut.Find("h1").TextContent));
-        Assert.Equal("Best of three · game 2", cut.Find("#match-format").TextContent);
-        Assert.Equal("Playing", cut.Find("#match-stage").TextContent);
-        Assert.Equal(("1", "0"), (cut.Find("#my-wins").TextContent, cut.Find("#their-wins").TextContent));
-        Assert.Equal(3, cut.FindAll(".cb-pip").Count);
-        Assert.Single(cut.FindAll(".cb-pip.on"));
-        Assert.Contains("The board comes in the next update.", cut.Markup);
+        Assert.Equal("Best of three · game 2 · you lead 1 : 0", cut.Find("#score-line").TextContent);
     }
 
     [Fact]
@@ -89,9 +84,7 @@ public class MatchPageTests
 
         await cut.InvokeAsync(() => ui.Lobby.View(new MatchViewNotice(M, Views.Of(game: 3, myWins: 1, theirWins: 1, stage: MatchStage.Mulligan))));
 
-        cut.WaitForAssertion(() => Assert.Equal("1", cut.Find("#their-wins").TextContent));
-        Assert.Equal("Best of three · game 3", cut.Find("#match-format").TextContent);
-        Assert.Equal("Mulligan", cut.Find("#match-stage").TextContent);
+        cut.WaitForAssertion(() => Assert.Equal("Best of three · game 3 · 1 : 1", cut.Find("#score-line").TextContent));
     }
 
     [Fact]

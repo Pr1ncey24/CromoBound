@@ -1,7 +1,6 @@
 @page "/match/{Id:guid}"
 @implements IDisposable
 @using CromoBound.Engine.Actions
-@using CromoBound.Engine.Views
 @inject LobbyState Lobby
 @inject IGameHub Hub
 @inject SessionState Session
@@ -9,46 +8,18 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
-<main class="cb-main narrow">
+<main class="@(Lobby.CurrentView is null ? "cb-main narrow" : "cb-board-page")">
     @if (!Lobby.Loaded || (Lobby.MatchId != Id && Lobby.Ended?.MatchId != Id))
     {
         <p class="cb-sub">Loading the match...</p>
     }
+    else if (Lobby.CurrentView is { } view)
+    {
+        <BoardHost MatchId="Id" View="view" Me="@Me" Opponent="@Opponent" CanConcede="CanConcede" OnConcede="ConcedeAsync" />
+    }
     else
     {
-        <section class="cb-panel cb-match" aria-labelledby="match-title">
-            <div class="cb-head">
-                <div>
-                    <h1 id="match-title" class="cb-title">@Me vs @Opponent</h1>
-                    <span id="match-format" class="cb-sub">@FormatLine</span>
-                </div>
-                @if (Lobby.CurrentView is { } stageView)
-                {
-                    <span id="match-stage" class="cb-stage">@Formats.Stage(stageView.Stage)</span>
-                }
-            </div>
-            @if (Lobby.CurrentView is { } view)
-            {
-                <div class="cb-score" role="group" aria-label="Games won">
-                    <div><span>You</span><b id="my-wins" class="mine">@Wins(view, mine: true)</b></div>
-                    <div class="cb-pips" aria-hidden="true">
-                        @for (var game = 0; game < Games(view); game++)
-                        {
-                            <span class="cb-pip @(game < Wins(view, true) + Wins(view, false) ? "on" : "")"></span>
-                        }
-                    </div>
-                    <div><span>@Opponent</span><b id="their-wins">@Wins(view, mine: false)</b></div>
-                </div>
-            }
-            else
-            {
-                <p class="cb-sub">Waiting for the match to begin...</p>
-            }
-            <div class="cb-placeholder">The board comes in the next update. For now you can follow the score here and concede.</div>
-            <div class="cb-actions">
-                <MudButton id="concede" Variant="Variant.Outlined" Class="cb-danger-button" Disabled="@(!CanConcede)" OnClick="ConcedeAsync">Concede this game</MudButton>
-            </div>
-        </section>
+        <p class="cb-sub">Waiting for the match to begin...</p>
     }
 </main>
 
@@ -62,13 +33,7 @@
     private string Me => Session.Me?.UserName ?? "";
     private string Opponent => Lobby.Opponent ?? "your opponent";
 
-    private string FormatLine => Lobby.CurrentView is { } view ? $"{Formats.Name(view.Format)} · game {view.GameNumber}" : "";
-
     private bool CanConcede => Lobby.IsConnected && Lobby.MatchId == Id && Lobby.CurrentView is { Stage: not MatchStage.Over } && !busy;
-
-    private static int Games(PlayerView view) => view.Format == MatchFormat.Bo3 ? 3 : 1;
-
-    private static int Wins(PlayerView view, bool mine) => view.Players[mine ? view.Viewer.Index : 1 - view.Viewer.Index].GameWins;
 
     protected override void OnInitialized() => Lobby.Changed += OnChanged;
 

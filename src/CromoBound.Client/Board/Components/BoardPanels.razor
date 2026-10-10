@@ -1,0 +1,267 @@
+@using CromoBound.Engine.Actions
+@using CromoBound.Engine.State
+
+@switch (Panel)
+{
+    case PlayOptionsPanel where:
+        <div class="cb-prompt" role="dialog" aria-modal="false" aria-labelledby="prompt-title">
+            <h2 id="prompt-title">Where does @where.CardName enter?</h2>
+            @if (where.Locations.Count > 0)
+            {
+                <div class="choices" role="radiogroup" aria-label="Where it enters">
+                    @for (var i = 0; i < where.Locations.Count; i++)
+                    {
+                        var index = i;
+                        <label class="choice @(chosen == index ? "on" : "")">
+                            <input id="@($"where-{index}")" type="radio" name="where" checked="@(chosen == index)" @onchange="() => chosen = index" />
+                            @where.Locations[index].Label
+                        </label>
+                    }
+                </div>
+            }
+            @if (where.AccelerateAvailable)
+            {
+                <label class="check"><input id="accelerate" type="checkbox" checked="@accelerate" @onchange="e => accelerate = e.Value is true" /> Accelerate: pay its extra cost so it enters ready</label>
+            }
+            <div class="actions">
+                <button type="button" id="prompt-cancel" class="cb-btn cb-text" disabled="@Locked" @onclick="() => SendAsync(new CancelPlay())">Cancel</button>
+                <button type="button" id="prompt-continue" class="cb-btn cb-gold" disabled="@Locked"
+                        @onclick="() => SendAsync(new ChoosePlayOptions(where.Locations.Count > 0 ? where.Locations[chosen].Place : null, where.AccelerateAvailable && accelerate))">Continue</button>
+            </div>
+        </div>
+        break;
+    case ResolvePanel resolve:
+        <div class="cb-prompt" role="dialog" aria-modal="false" aria-labelledby="prompt-title">
+            <div class="top">
+                <span class="art" aria-hidden="true" style="@ArtStyle(resolve.PrintingId)"></span>
+                <div>
+                    <span class="cb-lbl accent">Resolve by hand</span>
+                    <h2 id="prompt-title">@resolve.CardName</h2>
+                    <p>The engine can't carry out this text. Do it together with your opponent, then press Done.</p>
+                </div>
+            </div>
+            <blockquote>@resolve.Text</blockquote>
+            <div class="actions"><button type="button" id="resolve-done" class="cb-btn cb-gold" disabled="@Locked" @onclick="() => SendAsync(new ResolveDone())">Done</button></div>
+        </div>
+        break;
+    case TurnPointPanel point:
+        <div class="cb-prompt" role="dialog" aria-modal="false" aria-labelledby="prompt-title">
+            <span class="cb-lbl accent">@point.Title</span>
+            <h2 id="prompt-title">Apply these by hand</h2>
+            <ul class="cards">
+                @foreach (var card in point.Cards)
+                {
+                    <li><span class="art small" aria-hidden="true" style="@ArtStyle(card.PrintingId)"></span><strong>@card.Name</strong></li>
+                }
+            </ul>
+            <div class="actions"><button type="button" id="turn-point-continue" class="cb-btn cb-gold" disabled="@Locked" @onclick="() => SendAsync(new ContinueTurn())">Continue</button></div>
+        </div>
+        break;
+    case UndoPanel undo:
+        <div class="cb-prompt" role="dialog" aria-modal="false" aria-labelledby="prompt-title">
+            <h2 id="prompt-title">@undo.Requester asks to undo the last action</h2>
+            @if (undo.LastAction is { } last)
+            {
+                <p>The last action was: <strong>@last</strong> If you allow it, the game goes back to just before it.</p>
+            }
+            <div class="actions">
+                <button type="button" id="undo-refuse" class="cb-btn cb-ghost" disabled="@Locked" @onclick="() => SendAsync(new AnswerUndo(false))">Refuse</button>
+                <button type="button" id="undo-allow" class="cb-btn cb-gold" disabled="@Locked" @onclick="() => SendAsync(new AnswerUndo(true))">Allow</button>
+            </div>
+        </div>
+        break;
+    case LaterPanel later:
+        <div class="cb-prompt" role="dialog" aria-modal="false" aria-labelledby="prompt-title">
+            <span class="cb-lbl accent">Not in this update yet</span>
+            <h2 id="prompt-title">This choice comes in the next update</h2>
+            <p>The game is asking you to <strong>@later.What</strong>. The board can't do that yet, so this game can't go on here. You can still concede it from the panel.</p>
+        </div>
+        break;
+    case PickBattlefieldPanel pick:
+        <div class="cb-overlay">
+            <div class="cb-dialog wide" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+                <span class="cb-lbl accent">GAME @pick.GameNumber OF @pick.Games</span>
+                <h2 id="dialog-title">@(pick.Waiting ? $"{pick.Opponent} is picking a battlefield" : "Pick a battlefield")</h2>
+                @if (pick.Waiting)
+                {
+                    <p class="waiting" role="status"><span class="spin" aria-hidden="true"></span> Waiting for @pick.Opponent to pick...</p>
+                }
+                else
+                {
+                    <p>Each game you play one of your battlefields you haven't played yet in this match.</p>
+                    <div class="tiles" role="radiogroup" aria-label="Your battlefields">
+                        @for (var i = 0; i < pick.Options.Count; i++)
+                        {
+                            var index = i;
+                            var option = pick.Options[index];
+                            <label class="tile @(chosen == index ? "on" : "")">
+                                <span class="art wide" aria-hidden="true" style="@ArtStyle(option.Printing)"></span>
+                                <span class="name">@option.Name</span>
+                                <input id="@($"pick-{index}")" type="radio" name="pick" checked="@(chosen == index)" @onchange="() => chosen = index" />
+                            </label>
+                        }
+                    </div>
+                    <div class="actions">
+                        <button type="button" id="pick-confirm" class="cb-btn cb-gold" disabled="@(Locked || pick.Options.Count == 0)"
+                                @onclick="() => SendAsync(new PickBattlefield(pick.Options[chosen].Printing))">Confirm</button>
+                    </div>
+                }
+            </div>
+        </div>
+        break;
+    case PlayOrderPanel order:
+        <div class="cb-overlay">
+            <div class="cb-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+                <span class="cb-lbl accent">GAME @order.GameNumber</span>
+                <h2 id="dialog-title">@(order.Waiting ? $"{order.Opponent} chooses who goes first" : "You choose who goes first")</h2>
+                @if (order.Waiting)
+                {
+                    <p class="waiting" role="status"><span class="spin" aria-hidden="true"></span> Waiting for @order.Opponent...</p>
+                }
+                else
+                {
+                    <p>Pick whether you play the first turn or the second.</p>
+                    <div class="actions">
+                        <button type="button" id="go-second" class="cb-btn cb-ghost" disabled="@Locked" @onclick="() => SendAsync(new ChoosePlayOrder(false))">Go second</button>
+                        <button type="button" id="go-first" class="cb-btn cb-gold" disabled="@Locked" @onclick="() => SendAsync(new ChoosePlayOrder(true))">Go first</button>
+                    </div>
+                }
+            </div>
+        </div>
+        break;
+    case SideboardPanel sideboard:
+        <div class="cb-overlay">
+            <div class="cb-dialog wide" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+                <span class="cb-lbl accent">BEFORE GAME @sideboard.GameNumber</span>
+                <h2 id="dialog-title">Sideboarding</h2>
+                @if (sideboard.Waiting)
+                {
+                    <p class="waiting" role="status"><span class="spin" aria-hidden="true"></span> Waiting for @sideboard.Opponent...</p>
+                }
+                else
+                {
+                    <p>Pick a card in your main deck and one in your sideboard to swap them, one copy for one copy. Your main deck stays at 40 cards.</p>
+                    <div class="lists">
+                        <section aria-label="Main deck">
+                            <h3 class="cb-lbl">Main deck</h3>
+                            @foreach (var row in sideboard.Main)
+                            {
+                                var left = row.Count - swaps.Count(s => s.Out == row.Printing);
+                                <button type="button" class="row out-row @(outPick == row.Printing ? "on" : "")" aria-pressed="@(outPick == row.Printing ? "true" : "false")"
+                                        disabled="@(left <= 0)" @onclick="() => outPick = row.Printing"><span class="n">@left</span>@row.Name</button>
+                            }
+                        </section>
+                        <section aria-label="Sideboard">
+                            <h3 class="cb-lbl">Sideboard</h3>
+                            @foreach (var row in sideboard.Sideboard)
+                            {
+                                var left = row.Count - swaps.Count(s => s.In == row.Printing);
+                                <button type="button" class="row in-row @(inPick == row.Printing ? "on" : "")" aria-pressed="@(inPick == row.Printing ? "true" : "false")"
+                                        disabled="@(left <= 0)" @onclick="() => inPick = row.Printing"><span class="n">@left</span>@row.Name</button>
+                            }
+                            @if (outPick is { } o && inPick is { } n)
+                            {
+                                <button type="button" id="swap" class="cb-btn cb-ghost" @onclick="AddSwap">Swap @NameIn(sideboard.Main, o) for @NameIn(sideboard.Sideboard, n)</button>
+                            }
+                        </section>
+                        <section aria-label="Your swaps" class="swaps">
+                            <h3 class="cb-lbl">Your swaps (@swaps.Count)</h3>
+                            <ul>
+                                @foreach (var swap in swaps.ToList())
+                                {
+                                    <li class="swap">
+                                        <span><span class="out">Out</span> @NameIn(sideboard.Main, swap.Out)</span>
+                                        <span><span class="in">In</span> @NameIn(sideboard.Sideboard, swap.In)</span>
+                                        <button type="button" class="cb-btn cb-text remove" @onclick="() => swaps.Remove(swap)">Remove</button>
+                                    </li>
+                                }
+                            </ul>
+                        </section>
+                    </div>
+                    <div class="actions">
+                        <button type="button" id="sideboard-submit" class="cb-btn cb-gold" disabled="@Locked" @onclick="() => SendAsync(new SubmitSideboard { Swaps = [.. swaps] })">
+                            @(swaps.Count == 0 ? "Keep my deck" : swaps.Count == 1 ? "Submit 1 swap" : $"Submit {swaps.Count} swaps")
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+        break;
+    case MulliganPanel mulligan:
+        <div class="cb-overlay">
+            <div class="cb-dialog wide" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+                <h2 id="dialog-title">@(mulligan.Waiting ? $"{mulligan.Opponent} is choosing" : "Your opening hand")</h2>
+                @if (mulligan.Waiting)
+                {
+                    <p class="waiting" role="status"><span class="spin" aria-hidden="true"></span> Waiting for @mulligan.Opponent...</p>
+                }
+                else
+                {
+                    <p>Pick up to 2 cards to put at the bottom of your deck; you draw the same number.</p>
+                    <div class="hand" role="group" aria-label="Cards to set aside">
+                        @for (var i = 0; i < mulligan.Hand.Count; i++)
+                        {
+                            var card = mulligan.Hand[i];
+                            var index = i;
+                            <label class="pick @(aside.Contains(card.Id) ? "on" : "")">
+                                <CardFace Card="card" Size="hand" Upright="true" />
+                                <span><input id="@($"aside-{index}")" type="checkbox" checked="@aside.Contains(card.Id)" @onchange="e => Toggle(card.Id, e.Value is true)" /> Set aside</span>
+                            </label>
+                        }
+                    </div>
+                    <div class="actions">
+                        <button type="button" id="keep-all" class="cb-btn cb-ghost" disabled="@Locked" @onclick="() => SendAsync(new Mulligan())">Keep all @mulligan.Hand.Count</button>
+                        <button type="button" id="set-aside" class="cb-btn cb-gold" disabled="@(Locked || aside.Count == 0)"
+                                @onclick="() => SendAsync(new Mulligan { SetAside = [.. mulligan.Hand.Select(c => c.Id).Where(aside.Contains)] })">Set aside @aside.Count and draw</button>
+                    </div>
+                }
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    [Parameter] public BoardPanel? Panel { get; set; }
+    [Parameter] public bool Locked { get; set; }
+    [Parameter] public EventCallback<BoardStep> OnStep { get; set; }
+
+    private BoardPanel? shown;
+    private int chosen;
+    private bool accelerate;
+    private string? outPick;
+    private string? inPick;
+    private readonly List<SideboardSwap> swaps = [];
+    private readonly HashSet<ObjectId> aside = [];
+
+    /// <summary>A new panel starts fresh.</summary>
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(shown, Panel)) return;
+        shown = Panel;
+        chosen = 0;
+        accelerate = false;
+        outPick = inPick = null;
+        swaps.Clear();
+        aside.Clear();
+    }
+
+    private Task SendAsync(PlayerAction action) => Locked ? Task.CompletedTask : OnStep.InvokeAsync(new SendStep(action));
+
+    private void AddSwap()
+    {
+        if (outPick is null || inPick is null) return;
+        swaps.Add(new SideboardSwap(outPick, inPick));
+        outPick = inPick = null;
+    }
+
+    /// <summary>At most two cards are set aside (CR 117).</summary>
+    private void Toggle(ObjectId card, bool on)
+    {
+        if (on && aside.Count < 2) aside.Add(card);
+        if (!on) aside.Remove(card);
+    }
+
+    private static string NameIn(IReadOnlyList<DeckRow> rows, string printing) => rows.FirstOrDefault(r => r.Printing == printing)?.Name ?? CardBook.Unknown;
+
+    private static string ArtStyle(string? printing) => printing is null ? "" : $"background-image: url('cards/img/{printing}')";
+}

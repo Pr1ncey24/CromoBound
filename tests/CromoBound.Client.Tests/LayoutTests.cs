@@ -22,6 +22,18 @@ public class LayoutTests
     }
 
     [Fact]
+    public async Task The_match_page_has_no_top_bar()
+    {
+        await using var ui = new Ui();
+        ui.Nav.NavigateTo($"match/{Guid.NewGuid()}");
+
+        var cut = ui.Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, "<p id='page'>page</p>"));
+
+        cut.WaitForAssertion(() => Assert.NotNull(cut.Find("#page")));
+        Assert.Empty(cut.FindAll(".cb-bar"));
+    }
+
+    [Fact]
     public async Task An_admin_also_gets_the_admin_link()
     {
         await using var ui = new Ui(new MeResponse("admin", true));

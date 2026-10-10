@@ -14,28 +14,31 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<header class="cb-bar">
-    <a class="cb-logo" href="">
-        <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l9 10-9 10-9-10z"></path><path d="M12 7l4.5 5-4.5 5-4.5-5z"></path></svg>
-        CROMOBOUND
-    </a>
-    <nav class="cb-nav" aria-label="Main">
-        <NavLink href="" Match="NavLinkMatch.All">Play</NavLink>
-        <NavLink href="decks">Decks</NavLink>
-        @if (Session.Me?.CanManageUsers == true)
-        {
-            <NavLink href="admin/users">Admin</NavLink>
-        }
-    </nav>
-    <div class="cb-me">
-        @if (Session.Me is { } me)
-        {
-            <span class="cb-avatar" aria-hidden="true">@me.UserName[..1].ToUpperInvariant()</span>
-            <span>@me.UserName</span>
-        }
-        <MudButton id="sign-out" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="SignOutAsync">Sign out</MudButton>
-    </div>
-</header>
+@if (!OnBoard)
+{
+    <header class="cb-bar">
+        <a class="cb-logo" href="">
+            <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l9 10-9 10-9-10z"></path><path d="M12 7l4.5 5-4.5 5-4.5-5z"></path></svg>
+            CROMOBOUND
+        </a>
+        <nav class="cb-nav" aria-label="Main">
+            <NavLink href="" Match="NavLinkMatch.All">Play</NavLink>
+            <NavLink href="decks">Decks</NavLink>
+            @if (Session.Me?.CanManageUsers == true)
+            {
+                <NavLink href="admin/users">Admin</NavLink>
+            }
+        </nav>
+        <div class="cb-me">
+            @if (Session.Me is { } me)
+            {
+                <span class="cb-avatar" aria-hidden="true">@me.UserName[..1].ToUpperInvariant()</span>
+                <span>@me.UserName</span>
+            }
+            <MudButton id="sign-out" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="SignOutAsync">Sign out</MudButton>
+        </div>
+    </header>
+}
 
 @if (ready && Lobby.Connection == HubState.Reconnecting)
 {
@@ -65,9 +68,15 @@ else if (ready)
     private bool ready;
     private string? failure;
 
+    /// <summary>The board has no top bar (the approved mock): the match page fills the window.</summary>
+    private bool OnBoard => Nav.ToBaseRelativePath(Nav.Uri).StartsWith("match/", StringComparison.OrdinalIgnoreCase);
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+
     /// <summary>Asks who is signed in before showing any page: a 401 goes to the login page, any other failure says so.</summary>
     protected override async Task OnInitializedAsync()
     {
+        Nav.LocationChanged += OnLocationChanged;
         Session.SessionEnded += GoToLogin;
         if (Session.IsEnded)
         {
@@ -121,6 +130,7 @@ else if (ready)
 
     public void Dispose()
     {
+        Nav.LocationChanged -= OnLocationChanged;
         Session.SessionEnded -= GoToLogin;
         Lobby.Changed -= OnLobbyChanged;
         Lobby.Notice -= OnNotice;

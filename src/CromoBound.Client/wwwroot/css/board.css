@@ -138,3 +138,52 @@ button.cb-card { cursor: pointer; font: inherit; }
 .cb-log ol { margin: 0; padding: 0; list-style: none; flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column-reverse; gap: 6px; font-size: 13px; color: #d7c7c3; }
 .cb-log li { border-left: 2px solid #b8463a; padding-left: 8px; }
 .cb-board.locked .cb-field { cursor: progress; }
+
+/* Panels over the board: prompts float over the field, pre-game steps sit on a dimmed field. */
+.cb-prompt { position: absolute; left: 340px; top: 236px; z-index: 6; width: 460px; box-sizing: border-box; padding: 18px 20px; background: #161112; border: 1px solid #5a2420; border-radius: 24px; box-shadow: 0 18px 50px rgba(0,0,0,.7); display: flex; flex-direction: column; gap: 14px; }
+.cb-prompt h2, .cb-dialog h2 { margin: 0; font-family: Fredoka, sans-serif; font-size: 20px; letter-spacing: .03em; }
+.cb-prompt p, .cb-dialog p { margin: 0; font-size: 15px; color: #b39d99; }
+.cb-prompt p strong { color: #f2e9e6; }
+.cb-prompt .top { display: flex; gap: 14px; }
+.cb-prompt blockquote { margin: 0; padding: 12px 14px; border-radius: 14px; background: #110c0d; border: 1px solid #3a2a2b; font-size: 15px; line-height: 1.45; }
+.cb-prompt .cards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.cb-prompt .cards li { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: #110c0d; border: 1px solid #3a2a2b; }
+.cb-board .actions { display: flex; justify-content: flex-end; gap: 8px; }
+.cb-board .cb-lbl.accent { color: #ff7a6b; }
+.cb-board .art { flex: none; width: 64px; height: 90px; border-radius: 6px; background: #241a1b center / cover no-repeat; border: 1px solid #3a2a2b; }
+.cb-board .art.small { width: 34px; height: 48px; border-radius: 4px; }
+.cb-board .art.wide { width: 100%; height: 128px; border-radius: 16px; }
+.cb-board .choices { display: flex; flex-direction: column; gap: 8px; }
+.cb-board .choice { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border-radius: 14px; border: 1px solid #3a2a2b; cursor: pointer; }
+.cb-board .choice.on { border-color: #d8392a; background: rgba(224,74,58,.1); }
+.cb-board .check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; cursor: pointer; }
+.cb-board input[type=radio], .cb-board input[type=checkbox] { width: 18px; height: 18px; accent-color: #d8392a; }
+.cb-overlay { position: absolute; inset: 0; z-index: 7; background: rgba(8,4,4,.72); display: flex; align-items: center; justify-content: center; }
+.cb-dialog { width: 520px; max-height: 820px; overflow: auto; box-sizing: border-box; padding: 22px 24px; background: #161112; border: 1px solid #5a2420; border-radius: 28px; box-shadow: 0 18px 50px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 14px; }
+.cb-dialog.wide { width: 900px; }
+.cb-dialog .waiting { display: flex; align-items: center; gap: 10px; color: #d7c7c3; }
+.cb-dialog .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #5a2420; border-top-color: #ff7a6b; animation: cb-spin 1s linear infinite; }
+@keyframes cb-spin { to { transform: rotate(360deg); } }
+.cb-dialog .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cb-dialog .tile { position: relative; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
+.cb-dialog .tile.on .art { border: 2px solid #ff7a6b; box-shadow: 0 0 0 1px #ff7a6b, 0 0 16px rgba(255,122,107,.4); }
+.cb-dialog .tile .name { font-family: Fredoka, sans-serif; font-weight: 700; font-size: 14px; }
+.cb-dialog .tile input { position: absolute; top: 10px; right: 10px; }
+.cb-dialog .lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .9fr); gap: 18px; }
+.cb-dialog .lists section { display: flex; flex-direction: column; gap: 4px; }
+.cb-dialog .lists h3 { margin: 0 0 4px; }
+.cb-dialog .row { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: #f2e9e6; font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.cb-dialog .row.on { background: rgba(224,74,58,.12); border-color: #d8392a; }
+.cb-dialog .row:disabled { opacity: .45; cursor: default; }
+.cb-dialog .row .n { min-width: 26px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: #d7c7c3; }
+.cb-dialog .swaps { padding: 12px; border-radius: 20px; background: #110c0d; border: 1px solid #2a2021; }
+.cb-dialog .swaps ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.cb-dialog .swap { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 14px; background: #1d1516; font-size: 14px; }
+.cb-dialog .swap .out { color: #ff9db0; font-weight: 600; }
+.cb-dialog .swap .in { color: #7fd9bd; font-weight: 600; }
+.cb-dialog .swap .remove { align-self: flex-end; min-height: 32px; padding: 0 10px; font-size: 13px; }
+.cb-dialog .hand { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.cb-dialog .pick { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; }
+.cb-dialog .pick.on .cb-card { opacity: .6; translate: 0 -10px; border-color: #ff7a6b; }
+.cb-dialog .pick span { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; }
+.cb-board-page { padding-top: 8px; }

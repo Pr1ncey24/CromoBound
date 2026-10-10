@@ -30,6 +30,9 @@ internal sealed class FakeGameHub : IGameHub
     /// <summary>When set, the challenge call waits for it before answering, so a test can look at the page while the call is in flight.</summary>
     public TaskCompletionSource? Hold { get; set; }
 
+    /// <summary>When set, a submit waits for it before answering, so a test can look at the board while the action is in flight.</summary>
+    public TaskCompletionSource? SubmitHold { get; set; }
+
     public SubmitReply Submitted { get; set; } = new(true, null, null);
     public List<PlayerAction> Actions { get; } = [];
     public List<Deck> Decks { get; } = [];
@@ -113,11 +116,12 @@ internal sealed class FakeGameHub : IGameHub
         return Task.FromResult(Reply("Cancel"));
     }
 
-    public Task<SubmitReply> SubmitAsync(Guid matchId, PlayerAction action)
+    public async Task<SubmitReply> SubmitAsync(Guid matchId, PlayerAction action)
     {
         Calls.Add($"Submit {matchId} {action.GetType().Name}");
         Actions.Add(action);
-        return Task.FromResult(Submitted);
+        if (SubmitHold is { } hold) await hold.Task;
+        return Submitted;
     }
 
     private HubReply Reply(string method) => Replies.Remove(method, out var reply) ? reply : HubReply.Ok(Guid.NewGuid());

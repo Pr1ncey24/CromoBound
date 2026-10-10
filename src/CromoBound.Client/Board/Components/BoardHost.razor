@@ -1,0 +1,129 @@
+@using CromoBound.Engine.Views
+@inject IGameHub Hub
+@inject CatalogClient Catalog
+@inject LobbyState Lobby
+@inject IBrowserStorage Storage
+@inject ISnackbar Snackbar
+
+@if (catalogFailed)
+{
+    <div class="cb-main">
+        <p class="cb-error" role="alert">The cards couldn't be loaded.</p>
+        <div><button type="button" id="retry-cards" class="cb-btn cb-ghost" @onclick="LoadAsync">Retry</button></div>
+    </div>
+}
+else if (model is null)
+{
+    <p class="cb-main cb-sub">Loading the cards...</p>
+}
+else
+{
+    <BoardView Model="model" OnStep="StepAsync" Locked="Locked" ShowXp="showXp" ShowXpChanged="SetShowXpAsync" CanConcede="CanConcede" OnConcede="OnConcede">
+        <BoardPanels Panel="model.Panel" Locked="Locked" OnStep="StepAsync" />
+    </BoardView>
+}
+
+@code {
+    public const string ShowXpKey = "cromobound.board.showXp";
+
+    [Parameter, EditorRequired] public Guid MatchId { get; set; }
+    [Parameter, EditorRequired] public PlayerView View { get; set; } = default!;
+    [Parameter] public string Me { get; set; } = "";
+    [Parameter] public string Opponent { get; set; } = "";
+    [Parameter] public bool CanConcede { get; set; }
+    [Parameter] public EventCallback OnConcede { get; set; }
+
+    private CardBook? book;
+    private bool catalogFailed;
+    private Interaction interaction = Idle.Instance;
+    private PlayerView? builtFrom;
+    private BoardModel? model;
+    private bool busy;
+    private bool showXp = true;
+
+    /// <summary>Nothing is sent while an action is in flight or the connection is down.</summary>
+    private bool Locked => busy || !Lobby.IsConnected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            showXp = await Storage.GetAsync(ShowXpKey) != "false";
+        }
+        catch (Exception)
+        {
+            // A browser that refuses its storage keeps the default.
+        }
+        await LoadAsync();
+    }
+
+    /// <summary>A new view is a new decision: whatever the player was in the middle of is dropped (Review Focus 1).</summary>
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(builtFrom, View)) interaction = Idle.Instance;
+        Build();
+    }
+
+    private async Task LoadAsync()
+    {
+        catalogFailed = false;
+        var loaded = await Catalog.GetAsync();
+        if (loaded.Value is { } catalog) book = new CardBook(catalog);
+        else catalogFailed = true;
+        Build();
+    }
+
+    private void Build()
+    {
+        if (book is null) return;
+        builtFrom = View;
+        model = BoardModel.From(View, book, Me, Opponent, interaction);
+    }
+
+    /// <summary>A local step changes what the player is in the middle of; an action is sent once, with the board locked until the
+    /// answer. A refusal shows the engine's words and leaves the board as it was; an accepted action clears the local choices.</summary>
+    private async Task StepAsync(BoardStep step)
+    {
+        switch (step)
+        {
+            case NextStep next:
+                interaction = next.Next;
+                Build();
+                break;
+            case SendStep send when !Locked:
+                busy = true;
+                StateHasChanged();
+                try
+                {
+                    var reply = await Hub.SubmitAsync(MatchId, send.Action);
+                    if (reply.Accepted)
+                    {
+                        interaction = Idle.Instance;
+                        Build();
+                    }
+                    else
+                    {
+                        Snackbar.Add(reply.Rejection?.Message ?? reply.Error ?? GameConnection.Unexpected, Severity.Error);
+                    }
+                }
+                finally
+                {
+                    busy = false;
+                }
+                break;
+        }
+    }
+
+    private async Task SetShowXpAsync(bool on)
+    {
+        showXp = on;
+        try
+        {
+            await Storage.SetAsync(ShowXpKey, on ? "true" : "false");
+        }
+        catch (Exception)
+        {
+            // Kept for this page only.
+        }
+    }
+}
