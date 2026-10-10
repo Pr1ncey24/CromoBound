@@ -28,42 +28,49 @@ internal static class Modifiers
         game.Effects.For(instance.CardId).KeywordEntries.Concat(GrantedKeywords(game, instance))
             .Where(k => k.Keyword == keyword).Sum(k => k.Value ?? 1);
 
-    /// <summary>The keyword entries the card's passives grant it now.</summary>
+    /// <summary>The keyword entries the card's passives grant it now. While a card's grants are being evaluated, a nested read of
+    /// it sees its full might but no granted keywords, so a condition that reads its might can't loop.</summary>
     public static IEnumerable<KeywordEntry> GrantedKeywords(Game game, CardInstance instance) =>
-        ActiveModifiers(game, instance).Select(m => m.Modifier).OfType<GrantKeywordModifier>().Select(g => g.Keyword);
+        ActiveModifiers<GrantKeywordModifier>(game, instance, game.EvaluatingGrants).Select(m => m.Modifier.Keyword);
 
+    /// <summary>The might the card's passives (its own and its gear's) give it now. While they are evaluated, a nested read of the
+    /// card leaves out its passive might.</summary>
     private static int PassiveMight(Game game, CardInstance unit) =>
-        ActiveModifiers(game, unit).Where(m => m.Modifier is ModifyMightModifier)
-            .Sum(m => ValueResolver.Resolve(game, m.Context, ((ModifyMightModifier)m.Modifier).Amount));
+        ActiveModifiers<ModifyMightModifier>(game, unit, game.EvaluatingMight)
+            .Sum(m => ValueResolver.Resolve(game, m.Context, m.Modifier.Amount));
 
-    /// <summary>The modifiers that apply to the holder now:
+    /// <summary>The modifiers of one kind that apply to the holder now:
     /// - its own passives with appliesTo Self;
     /// - the passives of gear attached to it with appliesTo Host.
-    /// In both cases the source must be on the board and the passive's condition and while must hold. While a holder's are
-    /// evaluated, a nested might or keyword read of it sees only printed values, so a condition that reads its might can't loop.</summary>
-    public static IEnumerable<(Modifier Modifier, EffectContext Context)> ActiveModifiers(Game game, CardInstance holder)
+    /// In both cases the source must be on the board and the passive's condition and while must hold (checked only for passives
+    /// that have a modifier of the kind). <paramref name="evaluating"/> holds the holders being evaluated for this kind: a nested
+    /// evaluation of the same holder finds nothing.</summary>
+    private static IEnumerable<(T Modifier, EffectContext Context)> ActiveModifiers<T>(Game game, CardInstance holder, HashSet<ObjectId> evaluating)
+        where T : Modifier
     {
-        if (!holder.Place.IsLocation || !game.EvaluatingPassives.Add(holder.Id)) return [];
+        if (!holder.Place.IsLocation || !evaluating.Add(holder.Id)) return [];
         try
         {
-            List<(Modifier, EffectContext)> found = [.. Applying(game, holder, holder, RefKind.Self)];
+            List<(T, EffectContext)> found = [.. Applying<T>(game, holder, RefKind.Self)];
             foreach (var gear in game.State.Objects.Where(o => o.AttachedTo == holder.Id && o.Place.IsLocation))
-                found.AddRange(Applying(game, gear, holder, RefKind.Host));
+                found.AddRange(Applying<T>(game, gear, RefKind.Host));
             return found;
         }
         finally
         {
-            game.EvaluatingPassives.Remove(holder.Id);
+            evaluating.Remove(holder.Id);
         }
     }
 
-    private static IEnumerable<(Modifier, EffectContext)> Applying(Game game, CardInstance source, CardInstance holder, RefKind appliesTo)
+    private static IEnumerable<(T, EffectContext)> Applying<T>(Game game, CardInstance source, RefKind appliesTo)
+        where T : Modifier
     {
         var context = new EffectContext { Controller = source.Controller, Source = source.Id, SourceCardId = source.CardId };
         return game.Effects.For(source.CardId).Abilities.OfType<PassiveAbility>()
+            .Where(p => p.Modifiers.OfType<T>().Any(m => m.AppliesTo?.Ref == appliesTo))
             .Where(p => (p.Condition is null || ConditionResolver.Holds(game, context, p.Condition))
                 && (p.While is null || ConditionResolver.Holds(game, context, p.While)))
-            .SelectMany(p => p.Modifiers)
+            .SelectMany(p => p.Modifiers.OfType<T>())
             .Where(m => m.AppliesTo?.Ref == appliesTo)
             .Select(m => (m, context));
     }

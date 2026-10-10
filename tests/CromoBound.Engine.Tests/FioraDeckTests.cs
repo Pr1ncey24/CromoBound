@@ -144,4 +144,32 @@ public class FioraDeckTests
         instance.Role = CombatRole.Defender;
         Assert.Equal(6, engine.MightOf(fiora));
     }
+
+    [Fact]
+    public void Fiora_victorious_counts_her_equipment_might_when_checking_her_own_passive()
+    {
+        var game = Real("fiora-victorious", "dorans-blade");
+        var fiora = game.Put("fiora-victorious", Place.Base(P1));
+        var blade = game.Put("dorans-blade", Place.Base(P1));
+        var engine = game.Start();
+        var instance = game.State[fiora];
+        Assert.Equal(4, engine.MightOf(fiora));
+        Assert.False(engine.Has(instance, DisplayKeyword.Ganking));
+
+        game.State[blade].AttachedTo = fiora;
+
+        Assert.Equal(6, engine.MightOf(fiora));
+        Assert.True(engine.Has(instance, DisplayKeyword.Ganking));
+        Assert.True(engine.Has(instance, DisplayKeyword.Shield));
+        Assert.Equal(1, Effects.Modifiers.KeywordValue(engine, instance, MechanicalKeyword.Deflect));
+        instance.Role = CombatRole.Defender;
+        Assert.Equal(7, engine.MightOf(fiora));
+        instance.Role = null;
+
+        game.State[blade].AttachedTo = null;
+
+        Assert.Equal(4, engine.MightOf(fiora));
+        Assert.False(engine.Has(instance, DisplayKeyword.Ganking));
+        Assert.Equal(0, Effects.Modifiers.KeywordValue(engine, instance, MechanicalKeyword.Deflect));
+    }
 }

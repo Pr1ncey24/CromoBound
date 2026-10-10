@@ -35,8 +35,11 @@ public sealed partial class Game
     /// <summary>Triggered abilities that fired and wait to go on the chain (spec §5.2).</summary>
     internal List<PendingTrigger> PendingTriggers { get; } = [];
 
-    /// <summary>The holders whose passives are being evaluated now: a nested might or keyword read of one sees only printed values.</summary>
-    internal HashSet<ObjectId> EvaluatingPassives { get; } = [];
+    /// <summary>The holders whose granted keywords are being evaluated now: a nested keyword read of one sees none granted.</summary>
+    internal HashSet<ObjectId> EvaluatingGrants { get; } = [];
+
+    /// <summary>The holders whose passive might is being evaluated now: a nested might read of one leaves that out.</summary>
+    internal HashSet<ObjectId> EvaluatingMight { get; } = [];
 
     /// <summary>What the engine waits for. Null only when the game is over.</summary>
     public PendingDecision? Pending { get; private set; }
