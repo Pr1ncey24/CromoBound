@@ -164,7 +164,8 @@ internal static class EffectsSupport
             case ChooseCardStep card:
                 if (card.From is not { Zone: Zone.Trash, Position: null } || card.From.Owner is { Kind: null, Var: null })
                     problems.Add($"{at}: from");
-                if (!IsSupportedFilter(card.Filter)) problems.Add($"{at}: filter");
+                if (!IsSupportedFilter(card.Filter) || card.Filter is { Mighty: not null } or { Location: not null } or { Not: not null })
+                    problems.Add($"{at}: filter");
                 CheckValue(card.Count, at, problems);
                 break;
             case OptionalStep optional:
