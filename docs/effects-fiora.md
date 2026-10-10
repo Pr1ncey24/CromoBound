@@ -104,3 +104,7 @@ The owner's rulings (2026-10-10) are marked **owner**; the rest are this design'
 
 - **Plan O:** §3.1, §3.2 and §3.4 to §3.5, with the cards they cover: Harnessed Dragon, Punch First, Divining Shells, Doran's Blade, Shepherd's Heirloom, Rampage, Sacrifice, Kayle, Fiora Victorious, Risen Altar, Sunken Temple, Amateur Recital.
 - **Plan P:** §3.3, §3.6 and §3.7, the chain and the deck: Riposte, Repulse, Grim Resolve, Fiora Grand Duelist, Elder Dragon, Rift Herald, Dazzling Aurora; then the interaction and replay tests.
+
+### Carried into Plan P from Plan O's final review
+- **Trigger Deflect tax charged twice:** the "tax paid" mark lives on the targeting task, not the chain item, so a later targeting trigger can charge an item that already paid (and cancelling clears its targets). Plan P's first task keeps the mark on the chain item, with a test for a second trigger arriving while a paid item is still on the chain.
+- One slot choosing several Deflect units isn't checked for joint affordability; `TargetsChosen` repeats after a cancelled tax with no retraction.
