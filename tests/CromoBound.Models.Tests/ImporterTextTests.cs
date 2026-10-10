@@ -23,6 +23,8 @@ public class ImporterTextTests
     [InlineData("Recruit (273) // Buff", "Recruit", "273")]
     [InlineData("Gold // Buff", "Gold", null)]
     [InlineData("Kharox", "Kharox", null)]
+    [InlineData("Yordle, Kennen - Heart of the Tempest", "Kennen, Heart of the Tempest", null)]
+    [InlineData("Yordle, Kennen - Heart of the Tempest (Overnumbered)", "Kennen, Heart of the Tempest", "Overnumbered")]
     public void NameNormalizer_unifies_variants(string raw, string name, string? suffix)
     {
         var result = NameNormalizer.Normalize(raw);

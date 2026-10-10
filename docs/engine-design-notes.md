@@ -400,7 +400,7 @@ All other keywords (Assault, Shield, Deflect, Vision, Legion, Level, …) are ma
 ## 7. Phase 1 leftovers (not blocking)
 
 - `ADD` still appears in the import report as an unknown keyword (uppercase form of the ignored `[Add]`). One-line fix in `KeywordText`.
-- The Kennen legend's id is `yordle-kennen-heart-of-the-tempest`, because the API names it "Yordle, Kennen - Heart of the Tempest". It probably needs a manual name override.
+- The API names the Kennen legend "Yordle, Kennen - Heart of the Tempest"; the importer's name corrections (NameNormalizer) turn it into "Kennen, Heart of the Tempest" (`kennen-heart-of-the-tempest`).
 
 ---
 

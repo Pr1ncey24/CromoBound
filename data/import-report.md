@@ -167,6 +167,11 @@
 - <p>[Empower] :rb_energy_3: (:rb_energy_3:: Empower me.)<br />I can be [Empowered] up to three times.<br />I have +2 :rb_might: for each time I'm [Empowered].<br />While I'm [Empowered] three times, I have [Deflect 3] and [Ganking].</p>
 - <p>[Empower] :rb_energy_3: (:rb_energy_3:: Empower me.)<br />I can be [Empowered] up to three times.<br />I have +2 :rb_might: for each time I’m [Empowered].<br />While I'm [Empowered] three times, I have [Deflect 3] and [Ganking].</p>
 
+### `kennen-heart-of-the-tempest` (ReminderOnly)
+
+- <p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)</p>
+- <p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn.</p>
+
 ### `kennen-keeper-of-balance` (ReminderOnly)
 
 - <p>[Hidden] (Hide now for :rb_rune_rainbow: to react with later for :rb_energy_0:.)<br />When you play me or I attack, you may pay :rb_energy_2: to [Stun] a unit. (It doesn't deal combat damage this turn.)<br />While there's a stunned enemy unit here, I have +2 :rb_might:.</p>
@@ -412,11 +417,6 @@
 
 - <p>[Ambush] (You may play me as a [Reaction] to a battlefield where you have units.)<br />Enemy units here with less Might than me don't deal combat damage.<br />When I hold, draw 1.</p>
 - <p>[Ambush]<br />Enemy units here with less Might than me don't deal combat damage.<br />When I hold, draw 1.</p>
-
-### `yordle-kennen-heart-of-the-tempest` (ReminderOnly)
-
-- <p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)</p>
-- <p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn.</p>
 
 ### `zed-from-the-shadows` (ReminderOnly)
 

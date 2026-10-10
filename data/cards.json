@@ -9210,6 +9210,28 @@
     "defaultPrintingId": "69bc5beed308c64675ca89b4"
   },
   {
+    "id": "kennen-heart-of-the-tempest",
+    "name": "Kennen, Heart of the Tempest",
+    "type": "Legend",
+    "domains": [
+      "Order",
+      "Chaos"
+    ],
+    "tags": [
+      "Yordle",
+      "Kennen"
+    ],
+    "keywords": [
+      "Action",
+      "Assault"
+    ],
+    "text": {
+      "rich": "<p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)</p>",
+      "plain": "When you play a card from anywhere other than your hand, empower me.[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)"
+    },
+    "defaultPrintingId": "6a517605ad64d2d80a4f0392"
+  },
+  {
     "id": "kennen-keeper-of-balance",
     "name": "Kennen, Keeper of Balance",
     "type": "Unit",
@@ -20571,27 +20593,6 @@
       "plain": "When you play a card with Power cost :rb_rune_rainbow::rb_rune_rainbow: or more, draw 1."
     },
     "defaultPrintingId": "69bc5be0d308c64675ca88ae"
-  },
-  {
-    "id": "yordle-kennen-heart-of-the-tempest",
-    "name": "Yordle, Kennen, Heart of the Tempest",
-    "type": "Legend",
-    "domains": [
-      "Order",
-      "Chaos"
-    ],
-    "tags": [
-      "Kennen"
-    ],
-    "keywords": [
-      "Action",
-      "Assault"
-    ],
-    "text": {
-      "rich": "<p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)</p>",
-      "plain": "When you play a card from anywhere other than your hand, empower me.[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)"
-    },
-    "defaultPrintingId": "6a517605ad64d2d80a4f0392"
   },
   {
     "id": "yuumi-magical-cat",
