@@ -1,5 +1,7 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Events;
+using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
@@ -171,5 +173,80 @@ public class FioraDeckTests
         Assert.Equal(4, engine.MightOf(fiora));
         Assert.False(engine.Has(instance, DisplayKeyword.Ganking));
         Assert.Equal(0, Effects.Modifiers.KeywordValue(engine, instance, MechanicalKeyword.Deflect));
+    }
+
+    [Fact]
+    public void Sunken_temple_lets_a_mighty_conqueror_pay_one_to_draw()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("sunken-temple"), firstBattlefield: "sunken-temple");
+        game.State.Battlefields[0].Controller = P1;
+        var big = game.Put("unit-3", Place.Battlefield(0));
+        game.State[big].Modifiers.Add(new MightModifier(2, Duration.ThisTurn));
+        game.Runes(P1, "fury-rune", 1);
+        var engine = game.Start(first: P2);
+        var hand = game.State.At(Place.Hand(P1)).Count;
+
+        engine.RunNow(new StepTask(g => g.Score(P1, 0, ScoreKind.Conquer)));
+        Assert.Equal("sunken-temple", Assert.Single(game.State.Chain).SourceCardId);
+        PassBoth(engine);
+        engine.Accept(P1, new ChooseOptional(true));
+        Assert.Equal(1, engine.Decision<PayCostDecision>().Cost.Energy);
+        engine.PayWithSuggestion(P1);
+
+        Assert.Equal(hand + 1, game.State.At(Place.Hand(P1)).Count);
+    }
+
+    [Fact]
+    public void Sunken_temple_does_nothing_without_a_mighty_unit_there()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("sunken-temple"), firstBattlefield: "sunken-temple");
+        game.State.Battlefields[0].Controller = P1;
+        game.Put("unit-3", Place.Battlefield(0));
+        var engine = game.Start(first: P2);
+
+        engine.RunNow(new StepTask(g => g.Score(P1, 0, ScoreKind.Conquer)));
+
+        Assert.Empty(game.State.Chain);
+    }
+
+    [Fact]
+    public void Declining_to_pay_at_sunken_temple_draws_nothing()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("sunken-temple"), firstBattlefield: "sunken-temple");
+        game.State.Battlefields[0].Controller = P1;
+        var big = game.Put("unit-3", Place.Battlefield(0));
+        game.State[big].Modifiers.Add(new MightModifier(2, Duration.ThisTurn));
+        game.Runes(P1, "fury-rune", 1);
+        var engine = game.Start(first: P2);
+        var hand = game.State.At(Place.Hand(P1)).Count;
+
+        engine.RunNow(new StepTask(g => g.Score(P1, 0, ScoreKind.Conquer)));
+        PassBoth(engine);
+        engine.Accept(P1, new ChooseOptional(true));
+        engine.Accept(P1, new CancelPlay());
+
+        Assert.Equal(hand, game.State.At(Place.Hand(P1)).Count);
+        Assert.Empty(game.State.Chain);
+    }
+
+    [Fact]
+    public void Amateur_recital_moves_a_unit_at_a_battlefield_to_its_base_when_you_hold_it()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("amateur-recital"), firstBattlefield: "amateur-recital");
+        game.State.Battlefields[0].Controller = P1;
+        game.State.Battlefields[1].Controller = P2;
+        var mine = game.Put("unit-2", Place.Battlefield(0));
+        var theirs = game.Put("unit-3", Place.Battlefield(1), owner: P2);
+        var engine = game.Start();
+
+        Assert.Equal("amateur-recital", Assert.Single(game.State.Chain).SourceCardId);
+        PassBoth(engine);
+        engine.Accept(P1, new ChooseOptional(true));
+        Assert.Equal(new[] { mine, theirs }, engine.Decision<ChooseCardsDecision>().Options);
+        engine.Accept(P1, new ChooseCards { Cards = [theirs] });
+
+        Assert.Equal(Place.Base(P2), game.State[theirs].Place);
+        Assert.False(game.State[theirs].Exhausted);
+        Assert.Equal(Place.Battlefield(0), game.State[mine].Place);
     }
 }

@@ -75,8 +75,9 @@ internal static class EffectsSupport
                 break;
             case TriggeredAbility triggered:
                 if (!IsSupportedTrigger(triggered.Trigger, type)) problems.Add($"{at}: trigger");
-                if (triggered.If is not null || triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
-                    problems.Add($"{at}: if, optional, cost or limit");
+                if (triggered.If is { } guard && !IsSupportedCondition(guard)) problems.Add($"{at}: if");
+                if (triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
+                    problems.Add($"{at}: optional, cost or limit");
                 CheckSteps(triggered.Steps, at, problems, targets: true);
                 break;
             case ActivatedAbility activated:
@@ -206,8 +207,13 @@ internal static class EffectsSupport
                 CheckValue(card.Count, at, problems);
                 break;
             case OptionalStep optional:
-                if (optional.Reflexive != true || optional.Cost is not null) problems.Add($"{at}: optional");
+                if (optional.Reflexive == true ? optional.Cost is not null
+                    : optional.Cost is { } cost && (cost.ExhaustSelf is not null || cost.Actions.Count > 0))
+                    problems.Add($"{at}: optional");
                 CheckSteps(optional.Steps, at, problems, targets: false);
+                break;
+            case MoveStep move:
+                if (move.To.Ref != RefKind.Controller) problems.Add($"{at}: to");
                 break;
             case PredictStep predict:
                 if (predict.Amount.Literal != 1) problems.Add($"{at}: value");
@@ -268,7 +274,7 @@ internal static class EffectsSupport
     }
 
     /// <summary>The steps whose handler asks for a non-slot selector through <see cref="ResolutionChoice"/>.</summary>
-    private static bool ChoosesOnResolution(Step step) => step is DealStep or KillStep or ModifyMightStep;
+    private static bool ChoosesOnResolution(Step step) => step is DealStep or KillStep or ModifyMightStep or MoveStep;
 
     /// <summary>Card filters may use relation (Friendly or Enemy), type, token, other, mighty, location (Here, or any battlefield)
     /// and a supported not; nothing else yet.</summary>

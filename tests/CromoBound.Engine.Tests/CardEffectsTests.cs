@@ -75,7 +75,11 @@ public class CardEffectsTests
     [InlineData("""{ "action": "Draw", "player": { "controllerOf": { "ref": "Self" } } }""", "abilities[0].steps[0]: player")]
     [InlineData("""{ "action": "Deal", "amount": 2, "split": true, "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: split or bonus")]
     [InlineData("""{ "action": "Deal", "amount": 2, "source": { "ref": "Controller" }, "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: source")]
-    [InlineData("""{ "action": "Optional", "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
+    [InlineData("""{ "action": "Optional", "cost": { "exhaustSelf": true }, "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
+    [InlineData("""{ "action": "Optional", "cost": { "actions": [ { "action": "SpendXp", "amount": 1 } ] }, "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
+    [InlineData("""{ "action": "Optional", "reflexive": true, "cost": { "energy": 1 }, "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
+    [InlineData("""{ "action": "Move", "target": { "select": "Unit", "count": 1 }, "to": { "ref": "Self" } }""", "abilities[0].steps[0]: to")]
+    [InlineData("""{ "action": "Move", "target": { "select": "Unit" }, "to": { "ref": "Controller" } }""", "abilities[0].steps[0]: target")]
     [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "tags": ["Mech"] } } } ] }""", "abilities[0].steps[0].steps[0]: target")]
     [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Empower", "target": { "select": "Unit", "count": 1 } } ] }""", "abilities[0].steps[0].steps[0]: target")]
     [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit" } } ] }""", "abilities[0].steps[0].steps[0]: target")]
@@ -175,6 +179,33 @@ public class CardEffectsTests
             """);
 
         Assert.Equal(supported, EffectsSupport.Problems(file, CardType.Gear).Count == 0);
+    }
+
+    [Fact]
+    public void An_inline_optional_block_with_a_cost_and_a_move_with_a_count_selector_are_supported()
+    {
+        var file = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered",
+              "trigger": { "event": "Dies", "subject": { "ref": "Self" } },
+              "if": { "exists": { "select": "Unit", "filter": { "relation": "Friendly", "mighty": true } } },
+              "steps": [ { "action": "Optional", "cost": { "energy": 1 },
+                "steps": [ { "action": "Move", "target": { "select": "Unit", "count": 1 }, "to": { "ref": "Controller" } } ] } ] } ] }
+            """);
+
+        Assert.Empty(EffectsSupport.Problems(file, CardType.Unit));
+    }
+
+    [Fact]
+    public void A_trigger_condition_the_engine_cannot_read_is_named()
+    {
+        var file = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered",
+              "trigger": { "event": "Dies", "subject": { "ref": "Self" } },
+              "if": { "exists": { "select": "Unit", "filter": { "tags": ["Mech"] } } },
+              "steps": [] } ] }
+            """);
+
+        Assert.Equal(new[] { "abilities[0]: if" }, EffectsSupport.Problems(file, CardType.Unit));
     }
 
     [Fact]

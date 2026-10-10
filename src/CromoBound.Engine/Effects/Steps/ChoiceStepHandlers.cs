@@ -90,22 +90,38 @@ internal sealed class ChooseCardHandler : StepHandler<ChooseCardStep>
     }
 }
 
-/// <summary>"You may do this:" (spec §5.4). The controller answers yes or no; on yes the block becomes a new chain item with the
-/// same context, so players get priority on it before it resolves.</summary>
+/// <summary>"You may [pay a cost to] do X" (spec §5.4). The controller answers yes or no. A reflexive block ("do this:") becomes
+/// a new chain item with the same context, so players get priority on it. Otherwise, on yes, its cost is paid (cancelling the
+/// payment means no) and its steps run right away, as a child resolution with the same context.</summary>
 internal sealed class OptionalHandler : StepHandler<OptionalStep>
 {
     public const string Question = "Do the rest of the ability?";
 
+    private enum Stage { Paying, Running, Waiting, Done, Cancelled }
+
+    private sealed class Inline(TotalCost cost)
+    {
+        public Stage Stage { get; set; } = cost.Energy == 0 && cost.Power.Count == 0 ? Stage.Running : Stage.Paying;
+        public TotalCost Cost { get; set; } = cost;
+    }
+
     protected override StepOutcome Run(Game game, ResolveEffectTask task, OptionalStep step)
     {
         var context = task.Context;
+        if (task.Progress is Inline inline) return Continue(game, task, step, inline);
         if (task.Answer is bool yes)
         {
             if (!yes) return StepOutcome.DidNothing;
-            var parent = task.Item;
-            game.AddAbilityItem(context.Controller, context.Source, context.SourceCardId, parent?.AbilityKind ?? AbilityKind.Triggered,
-                parent?.Text, step.Steps, context);
-            return StepOutcome.Done;
+            if (step.Reflexive == true)
+            {
+                var parent = task.Item;
+                game.AddAbilityItem(context.Controller, context.Source, context.SourceCardId, parent?.AbilityKind ?? AbilityKind.Triggered,
+                    parent?.Text, step.Steps, context);
+                return StepOutcome.Done;
+            }
+            var started = new Inline(new TotalCost(step.Cost?.Energy ?? 0, step.Cost?.Power ?? []));
+            task.Progress = started;
+            return Continue(game, task, step, started);
         }
         game.Ask(new OptionalDecision(context.Controller, context.SourceCardId, Question), (_, action) =>
         {
@@ -114,5 +130,26 @@ internal sealed class OptionalHandler : StepHandler<OptionalStep>
             return null;
         });
         return StepOutcome.Asked;
+    }
+
+    private static StepOutcome Continue(Game game, ResolveEffectTask task, OptionalStep step, Inline inline)
+    {
+        switch (inline.Stage)
+        {
+            case Stage.Paying:
+                game.AskPay(task.Context.Controller, inline.Cost, game.Db.Cards[task.Context.SourceCardId].Domains,
+                    onPaid: () => inline.Stage = Stage.Running,
+                    onCancel: () => inline.Stage = Stage.Cancelled,
+                    onAdjust: adjusted => inline.Cost = adjusted);
+                return StepOutcome.Asked;
+            case Stage.Running:
+                inline.Stage = Stage.Waiting;
+                game.Push(new ResolveEffectTask(task.Context, step.Steps, _ => inline.Stage = Stage.Done));
+                return StepOutcome.Asked;
+            case Stage.Done:
+                return StepOutcome.Done;
+            default:
+                return StepOutcome.DidNothing;
+        }
     }
 }

@@ -12,6 +12,7 @@ internal static class StepRegistry
         [typeof(DealStep)] = new DealHandler(),
         [typeof(KillStep)] = new KillHandler(),
         [typeof(ModifyMightStep)] = new ModifyMightHandler(),
+        [typeof(MoveStep)] = new MoveHandler(),
         [typeof(ChannelStep)] = new ChannelHandler(),
         [typeof(GainXpStep)] = new GainXpHandler(),
         [typeof(EmpowerStep)] = new EmpowerHandler(),

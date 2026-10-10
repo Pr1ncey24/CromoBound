@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "amateur-recital",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Triggered", "line": 1,
+      "trigger": { "event": "Hold", "by": "You", "where": { "ref": "Here" } },
+      "steps": [
+        { "action": "Optional",
+          "steps": [ { "action": "Move", "target": { "select": "Unit", "count": 1, "filter": { "location": { "select": "Battlefield" } } },
+                       "to": { "ref": "Controller" } } ] }
+      ] }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "sunken-temple",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Triggered", "line": 1,
+      "trigger": { "event": "Conquer", "by": "You", "where": { "ref": "Here" } },
+      "if": { "exists": { "select": "Unit", "filter": { "relation": "Friendly", "mighty": true, "location": { "ref": "Here" } } } },
+      "steps": [ { "action": "Optional", "cost": { "energy": 1 }, "steps": [ { "action": "Draw", "amount": 1 } ] } ] }
+  ]
+}
