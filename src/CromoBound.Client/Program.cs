@@ -25,6 +25,7 @@ internal static class Program
         builder.Services.AddScoped<LobbyState>();
         builder.Services.AddScoped<LobbySync>();
         builder.Services.AddScoped<IBrowserStorage, LocalBrowserStorage>();
+        builder.Services.AddScoped<CatalogClient>();
         builder.Services.AddScoped<DeckStore>();
 
         await builder.Build().RunAsync();

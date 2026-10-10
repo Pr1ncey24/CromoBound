@@ -30,7 +30,9 @@ internal sealed class Ui : IAsyncDisposable
         Ctx.Services.AddSingleton<IGameHub>(Hub);
         Ctx.Services.AddSingleton(Lobby);
         Ctx.Services.AddSingleton<LobbySync>();
-        Decks = new DeckStore(Storage, Session);
+        Catalog = new CatalogClient(Api);
+        Ctx.Services.AddSingleton(Catalog);
+        Decks = new DeckStore(Storage, Session, Catalog);
         Ctx.Services.AddSingleton<IBrowserStorage>(Storage);
         Ctx.Services.AddSingleton(Decks);
     }
@@ -41,6 +43,7 @@ internal sealed class Ui : IAsyncDisposable
     public FakeGameHub Hub { get; } = new();
     public LobbyState Lobby { get; }
     public MemoryStorage Storage { get; } = new();
+    public CatalogClient Catalog { get; }
     public DeckStore Decks { get; }
     public BunitNavigationManager Nav => (BunitNavigationManager)Ctx.Services.GetRequiredService<NavigationManager>();
 

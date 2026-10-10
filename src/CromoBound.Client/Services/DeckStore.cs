@@ -9,8 +9,9 @@ namespace CromoBound.Client.Services;
 public sealed record StoredDeck(string Id, Deck Deck);
 
 /// <summary>The player's decks in the browser's local storage, under a key with their username, so two accounts on one computer
-/// don't mix (spec §7). A deck only has to read as a <see cref="Deck"/>; legality is the server's, at challenge and accept time.</summary>
-public sealed class DeckStore(IBrowserStorage storage, SessionState session)
+/// don't mix (spec §7). A deck is pasted as JSON or as a deck list (<see cref="DeckText"/>), and only has to be readable; legality is
+/// the server's, at challenge and accept time.</summary>
+public sealed class DeckStore(IBrowserStorage storage, SessionState session, CatalogClient catalog)
 {
     public const int MaxBytes = 1_000_000;
 
@@ -22,6 +23,7 @@ public sealed class DeckStore(IBrowserStorage storage, SessionState session)
     public const string NameNeeded = "A deck needs a name.";
     public const string NoRoom = "The browser has no room for more decks.";
     public const string Missing = "That deck isn't here any more.";
+    public const string NoCatalog = "The card list couldn't be loaded, so a deck list can't be read right now. Try again in a moment.";
 
     /// <summary>Usernames are unique in any letter case, so the key uses the lower-case name.</summary>
     public static string KeyFor(string userName) => "cromobound.decks." + userName.ToLowerInvariant();
@@ -48,31 +50,45 @@ public sealed class DeckStore(IBrowserStorage storage, SessionState session)
         }
     }
 
-    public async Task<ApiResult<StoredDeck>> AddAsync(string json)
+    /// <summary>Text that starts with a brace or a bracket is read as JSON; anything else as a deck list, which needs the card catalog
+    /// to turn names into printings.</summary>
+    public async Task<ApiResult<StoredDeck>> AddAsync(string input)
     {
-        if (string.IsNullOrWhiteSpace(json)) return Fail(Empty);
-        if (Encoding.UTF8.GetByteCount(json) > MaxBytes) return Fail(TooBig);
+        if (string.IsNullOrWhiteSpace(input)) return Fail(Empty);
+        if (Encoding.UTF8.GetByteCount(input) > MaxBytes) return Fail(TooBig);
+        var read = DeckText.LooksLikeList(input) ? await ReadListAsync(input) : ReadJson(input);
+        if (read.Value is not { } deck) return Fail(read.Error!);
+        if (string.IsNullOrWhiteSpace(deck.Name)) return Fail(NoName);
+        var stored = new StoredDeck(Guid.NewGuid().ToString("N"), deck with { Name = deck.Name.Trim() });
+        var error = await SaveAsync([.. await ListAsync(), stored]);
+        return error is null ? new ApiResult<StoredDeck>(stored, null) : Fail(error);
+    }
+
+    private async Task<ApiResult<Deck>> ReadListAsync(string text)
+    {
+        if ((await catalog.GetAsync()).Value is not { } cards) return new ApiResult<Deck>(null, NoCatalog);
+        var (deck, error) = DeckText.Parse(text, cards);
+        return new ApiResult<Deck>(deck, error);
+    }
+
+    private static ApiResult<Deck> ReadJson(string json)
+    {
         try
         {
             JsonDocument.Parse(json).Dispose();
         }
         catch (JsonException)
         {
-            return Fail(NotJson);
+            return new ApiResult<Deck>(null, NotJson);
         }
-        Deck deck;
         try
         {
-            deck = CromoJson.Deserialize<Deck>(json);
+            return new ApiResult<Deck>(CromoJson.Deserialize<Deck>(json), null);
         }
         catch (JsonException)
         {
-            return Fail(NotADeck);
+            return new ApiResult<Deck>(null, NotADeck);
         }
-        if (string.IsNullOrWhiteSpace(deck.Name)) return Fail(NoName);
-        var stored = new StoredDeck(Guid.NewGuid().ToString("N"), deck with { Name = deck.Name.Trim() });
-        var error = await SaveAsync([.. await ListAsync(), stored]);
-        return error is null ? new ApiResult<StoredDeck>(stored, null) : Fail(error);
     }
 
     public async Task<ApiResult> RenameAsync(string id, string name)

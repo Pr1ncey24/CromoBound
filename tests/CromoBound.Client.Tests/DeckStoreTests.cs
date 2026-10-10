@@ -6,12 +6,16 @@ namespace CromoBound.Client.Tests;
 
 public class DeckStoreTests
 {
-    private static (DeckStore Store, MemoryStorage Storage, SessionState Session) Store(string user = "marco")
+    private static (DeckStore Store, MemoryStorage Storage, SessionState Session) Store(string user = "marco") =>
+        Store(out _, user);
+
+    private static (DeckStore Store, MemoryStorage Storage, SessionState Session) Store(out FakeServerApi api, string user = "marco")
     {
         var session = new SessionState();
         session.SignedIn(new MeResponse(user, false));
         var storage = new MemoryStorage();
-        return (new DeckStore(storage, session), storage, session);
+        api = new FakeServerApi(session) { Catalog = DeckTextTests.Catalog };
+        return (new DeckStore(storage, session, new CatalogClient(api)), storage, session);
     }
 
     [Fact]
@@ -33,7 +37,7 @@ public class DeckStoreTests
     [InlineData("", DeckStore.Empty)]
     [InlineData("   ", DeckStore.Empty)]
     [InlineData("{ \"name\": \"Jinx", DeckStore.NotJson)]
-    [InlineData("not json at all", DeckStore.NotJson)]
+    [InlineData("{ not json at all", DeckStore.NotJson)]
     [InlineData("{ \"name\": \"Jinx\" }", DeckStore.NotADeck)]
     [InlineData("[1, 2, 3]", DeckStore.NotADeck)]
     [InlineData("{ \"name\": \"Jinx\", \"legend\": \"l\", \"champion\": \"c\", \"colour\": \"red\" }", DeckStore.NotADeck)]
@@ -66,12 +70,13 @@ public class DeckStoreTests
         await marco.AddAsync(SampleDecks.Json("Marco's deck"));
         var giuliaSession = new SessionState();
         giuliaSession.SignedIn(new MeResponse("giulia", false));
-        var giulia = new DeckStore(storage, giuliaSession);
+        var giulia = new DeckStore(storage, giuliaSession, new CatalogClient(new FakeServerApi(giuliaSession)));
         var marcoAgain = new SessionState();
         marcoAgain.SignedIn(new MeResponse("Marco", false));
 
         Assert.Empty(await giulia.ListAsync());
-        Assert.Equal("Marco's deck", Assert.Single(await new DeckStore(storage, marcoAgain).ListAsync()).Deck.Name);
+        Assert.Equal("Marco's deck",
+            Assert.Single(await new DeckStore(storage, marcoAgain, new CatalogClient(new FakeServerApi(marcoAgain))).ListAsync()).Deck.Name);
         Assert.Equal(new[] { DeckStore.KeyFor("marco") }, storage.Items.Keys);
     }
 
@@ -105,5 +110,61 @@ public class DeckStoreTests
         storage.Full = true;
 
         Assert.Equal(DeckStore.NoRoom, (await store.AddAsync(SampleDecks.Json())).Error);
+    }
+
+    [Fact]
+    public async Task A_deck_list_is_added_under_its_legends_name()
+    {
+        var (store, _, _) = Store(out var api);
+
+        var added = await store.AddAsync(DeckTextTests.Fiora);
+
+        Assert.Null(added.Error);
+        var deck = Assert.Single(await store.ListAsync()).Deck;
+        Assert.Equal(("Fiora, Grand Duelist", "p-fiora-legend", 3), (deck.Name, deck.Legend, deck.Battlefields.Count));
+        Assert.Equal(1, api.CardsCalls);
+    }
+
+    [Fact]
+    public async Task The_card_list_is_loaded_once_and_never_for_json()
+    {
+        var (store, _, _) = Store(out var api);
+
+        await store.AddAsync(SampleDecks.Json("From JSON"));
+        Assert.Equal(0, api.CardsCalls);
+        await store.AddAsync(DeckTextTests.Fiora);
+        await store.AddAsync(DeckTextTests.Fiora);
+
+        Assert.Equal(1, api.CardsCalls);
+        Assert.Equal(3, (await store.ListAsync()).Count);
+    }
+
+    [Fact]
+    public async Task Without_the_card_list_a_deck_list_is_refused_and_the_next_try_loads_it_again()
+    {
+        var (store, storage, _) = Store(out var api);
+        api.NextQueryError = ServerApi.NotReachable;
+
+        var refused = await store.AddAsync(DeckTextTests.Fiora);
+        Assert.Equal(DeckStore.NoCatalog, refused.Error);
+        Assert.Empty(storage.Items);
+
+        var added = await store.AddAsync(DeckTextTests.Fiora);
+        Assert.Null(added.Error);
+        Assert.Equal(2, api.CardsCalls);
+    }
+
+    [Fact]
+    public async Task A_deck_list_that_cant_be_read_saves_nothing()
+    {
+        var (store, storage, _) = Store();
+
+        var refused = await store.AddAsync("""
+            Legend:
+            1 Nobody You Know
+            """);
+
+        Assert.Equal("These cards aren't known: Nobody You Know.", refused.Error);
+        Assert.Empty(storage.Items);
     }
 }

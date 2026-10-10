@@ -38,6 +38,9 @@ public sealed class ServerApi(HttpClient http, SessionState session) : IServerAp
     public Task<ApiResult<MaintenanceStatus>> SetMaintenanceAsync(bool on) =>
         QueryAsync<MaintenanceStatus>(HttpMethod.Post, "api/admin/maintenance", new MaintenanceRequest(on));
 
+    /// <summary>The catalog is written in the hub's wire JSON (enums as names), so it is read with the same settings.</summary>
+    public Task<ApiResult<CardCatalog>> CardsAsync() => QueryAsync<CardCatalog>(HttpMethod.Get, "api/cards", null, WireJson.Options);
+
     private async Task<ApiResult> CommandAsync(HttpMethod method, string path, object? body)
     {
         var (response, error) = await SendAsync(method, path, body);
@@ -45,7 +48,7 @@ public sealed class ServerApi(HttpClient http, SessionState session) : IServerAp
         return new ApiResult(error);
     }
 
-    private async Task<ApiResult<T>> QueryAsync<T>(HttpMethod method, string path, object? body)
+    private async Task<ApiResult<T>> QueryAsync<T>(HttpMethod method, string path, object? body, JsonSerializerOptions? options = null)
     {
         var (response, error) = await SendAsync(method, path, body);
         if (response is null) return new ApiResult<T>(default, error);
@@ -53,7 +56,7 @@ public sealed class ServerApi(HttpClient http, SessionState session) : IServerAp
         {
             try
             {
-                return new ApiResult<T>(await response.Content.ReadFromJsonAsync<T>(), null);
+                return new ApiResult<T>(await response.Content.ReadFromJsonAsync<T>(options), null);
             }
             catch (JsonException)
             {

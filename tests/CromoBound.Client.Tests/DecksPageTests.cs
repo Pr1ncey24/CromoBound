@@ -75,4 +75,29 @@ public class DecksPageTests
         cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".cb-deckbox")));
         Assert.Empty(await ui.Decks.ListAsync());
     }
+
+    [Fact]
+    public async Task Pasting_a_deck_list_adds_it_under_its_legends_name()
+    {
+        await using var ui = new Ui();
+        ui.Api.Catalog = DeckTextTests.Catalog;
+        var cut = ui.Ctx.Render<Decks>();
+
+        cut.Find("#paste").Input(DeckTextTests.Fiora);
+        await cut.ClickAsync("#add-deck");
+
+        cut.WaitForAssertion(() => Assert.Equal("Fiora, Grand Duelist", cut.Find(".cb-deck-name").TextContent));
+        Assert.Equal("6 main · 12 runes · 3 battlefields · sideboard 3", cut.Find(".cb-deck-counts").TextContent);
+    }
+
+    [Fact]
+    public async Task An_uploaded_text_file_fills_the_box()
+    {
+        await using var ui = new Ui();
+        var cut = ui.Ctx.Render<Decks>();
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(DeckTextTests.Fiora, "fiora.txt"));
+
+        cut.WaitForAssertion(() => Assert.Contains("Fiora, Grand Duelist", cut.Find("#paste").GetAttribute("value")));
+    }
 }

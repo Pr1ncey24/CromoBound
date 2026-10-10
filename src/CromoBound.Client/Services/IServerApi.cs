@@ -14,4 +14,5 @@ public interface IServerApi
     Task<ApiResult> SetDisabledAsync(int userId, bool disabled);
     Task<ApiResult<MaintenanceStatus>> MaintenanceAsync();
     Task<ApiResult<MaintenanceStatus>> SetMaintenanceAsync(bool on);
+    Task<ApiResult<CardCatalog>> CardsAsync();
 }

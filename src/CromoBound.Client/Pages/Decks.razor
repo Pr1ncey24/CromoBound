@@ -53,7 +53,7 @@
         <section class="cb-col-side cb-panel" aria-labelledby="add-title">
             <h2 id="add-title" class="cb-section-title">Add a deck</h2>
             <div class="cb-field">
-                <label class="cb-label" for="paste">Paste the deck's JSON</label>
+                <label class="cb-label" for="paste">Paste a deck list or the deck's JSON</label>
                 <textarea id="paste" class="cb-input @(error is null ? "" : "invalid")" rows="9" @bind="text" @bind:event="oninput"></textarea>
             </div>
             @if (error is not null)
@@ -62,8 +62,8 @@
             }
             <div class="cb-actions">
                 <label class="cb-upload">
-                    Upload a .json file
-                    <InputFile accept=".json,application/json" OnChange="UploadAsync" class="cb-visually-hidden" />
+                    Upload a .txt or .json file
+                    <InputFile accept=".txt,.json,text/plain,application/json" OnChange="UploadAsync" class="cb-visually-hidden" />
                 </label>
                 <MudButton id="add-deck" Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync">Add deck</MudButton>
             </div>

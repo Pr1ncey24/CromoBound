@@ -22,6 +22,8 @@ internal sealed class FakeServerApi(SessionState session) : IServerApi
 
     public List<UserSummary> Users { get; } = [];
     public MaintenanceStatus Maintenance { get; set; } = new(false, 0);
+    public CardCatalog Catalog { get; set; } = new([], []);
+    public int CardsCalls { get; private set; }
     public List<string> Calls { get; } = [];
     public int MeCalls { get; private set; }
 
@@ -62,6 +64,12 @@ internal sealed class FakeServerApi(SessionState session) : IServerApi
     {
         var result = Command($"maintenance {on}", () => Maintenance = Maintenance with { On = on });
         return Task.FromResult(result.Ok ? new ApiResult<MaintenanceStatus>(Maintenance, null) : new ApiResult<MaintenanceStatus>(default, result.Error));
+    }
+
+    public Task<ApiResult<CardCatalog>> CardsAsync()
+    {
+        CardsCalls++;
+        return Task.FromResult(Answer(() => Catalog));
     }
 
     private ApiResult<T> Answer<T>(Func<T> value)
