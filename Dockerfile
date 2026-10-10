@@ -21,8 +21,9 @@ ENV ASPNETCORE_ENVIRONMENT=Production \
     ASPNETCORE_HTTP_PORTS=8080 \
     CromoBound__DataFolder=/app/data \
     CromoBound__DatabasePath=/var/lib/cromobound/db/cromobound.db \
-    CromoBound__KeysFolder=/var/lib/cromobound/keys
-RUN mkdir -p /var/lib/cromobound/db /var/lib/cromobound/keys && chown -R $APP_UID /var/lib/cromobound
+    CromoBound__KeysFolder=/var/lib/cromobound/keys \
+    CromoBound__CardImagesPath=/var/lib/cromobound/images
+RUN mkdir -p /var/lib/cromobound/db /var/lib/cromobound/keys /var/lib/cromobound/images && chown -R $APP_UID /var/lib/cromobound
 USER $APP_UID
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "CromoBound.Server.dll"]

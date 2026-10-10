@@ -39,6 +39,7 @@ services:
     volumes:
       - db:/var/lib/cromobound/db
       - keys:/var/lib/cromobound/keys
+      - ./card-images:/var/lib/cromobound/images:ro
     networks: [web]
 
   caddy:
@@ -91,6 +92,7 @@ Environment variables on the `app` service. List settings take `__0`, `__1` and 
 | `CromoBound__DatabasePath` | `/var/lib/cromobound/db/cromobound.db` | The SQLite file, on the `db` volume |
 | `CromoBound__KeysFolder` | `/var/lib/cromobound/keys` | The keys that encrypt session cookies, on the `keys` volume. Losing them signs everyone out |
 | `CromoBound__DataFolder` | `/app/data` | The card data, built into the image |
+| `CromoBound__CardImagesPath` | `/var/lib/cromobound/images` | The card images, mounted read-only from `/opt/cromobound/card-images` (section 5) |
 | `CromoBound__KnownNetworks__0` | (none) | The proxy's network in CIDR form (section 3) |
 | `CromoBound__KnownProxies__0` | (none) | Or a proxy's fixed address |
 | `CromoBound__LoginRequestsPerMinute` | 10 | Login requests per client address per minute |
@@ -104,6 +106,18 @@ A setting that can't be used (a number below 1, an address or network that can't
 stops the server, and the log names it.
 
 ## 5. First start
+
+Fill the card images folder once, from the repository clone. The importer runs in a throwaway SDK container and downloads every
+printing's image (about 1450 files) into `/opt/cromobound/card-images`:
+
+```bash
+mkdir -p /opt/cromobound/card-images
+docker run --rm -v "$PWD":/src -v /opt/cromobound/card-images:/out -w /src mcr.microsoft.com/dotnet/sdk:10.0 \
+  dotnet run --project tools/CromoBound.Importer -- images /out
+```
+
+The command can be run again at any time: it fetches only the images that are missing, and says which ones failed. A card whose
+image is missing still shows on the board, as a placeholder with its name.
 
 ```bash
 cd /opt/cromobound
@@ -129,6 +143,8 @@ Passwords have at least 12 characters, and usernames 3 to 24 letters, digits, `_
    `curl -b jar -H 'Content-Type: application/json' -d '{"on":true}' https://play.example.com/api/admin/maintenance`
 2. Wait until `runningMatches` is 0: `curl -b jar https://play.example.com/api/admin/maintenance`
 3. Build the new image (section 2), then run `docker compose up -d app`.
+4. If the new version adds cards (a new set), fill the card images again with the command in section 5. The app doesn't need a
+   restart for new images.
 
 What a restart does:
 - Maintenance is off again, since the switch lives in memory.
@@ -180,6 +196,7 @@ The `keys` volume doesn't need a backup: losing it only signs everyone out.
 ## 8. Checklist
 - [ ] `CromoBound__KnownNetworks__0` (or `KnownProxies`) names Caddy's network.
 - [ ] The `db` and `keys` volumes are mounted.
+- [ ] `/opt/cromobound/card-images` is filled and mounted read-only.
 - [ ] `CROMOBOUND_ADMIN_PASSWORD` is removed after the first start.
 - [ ] `ASPNETCORE_ENVIRONMENT` is `Production`.
 - [ ] `Microsoft.AspNetCore.Authorization` logging is never set below `Warning`: lower levels write role identifiers to the log.
