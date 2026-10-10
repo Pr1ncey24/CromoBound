@@ -14,6 +14,7 @@ public sealed class LobbySync(IGameHub hub, LobbyState state, IServerApi api, Se
         hub.StateChanged += () => state.SetConnection(hub.State);
         hub.Connected += ReloadAsync;
         hub.Closed += ClosedAsync;
+        hub.SessionInDoubt += CheckSessionAsync;
         return hub.StartAsync();
     }
 
@@ -23,6 +24,14 @@ public sealed class LobbySync(IGameHub hub, LobbyState state, IServerApi api, Se
         if (await hub.GetLobbyAsync() is not { } lobby) return;
         var match = lobby.MatchId is null ? null : await hub.GetMatchAsync();
         state.Load(lobby, match);
+    }
+
+    /// <summary>One ping per doubt (spec 5.1): reconnecting retries a 401 for as long as the tab is open, so a session that ended while
+    /// the hub was down is only found by asking. When it has ended the connection stops trying.</summary>
+    private async Task CheckSessionAsync()
+    {
+        await api.MeAsync();
+        if (session.IsEnded) await hub.StopAsync();
     }
 
     private async Task ClosedAsync()

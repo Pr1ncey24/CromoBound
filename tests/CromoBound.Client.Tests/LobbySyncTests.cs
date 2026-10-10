@@ -85,4 +85,48 @@ public class LobbySyncTests
         Assert.True(session.IsEnded);
         Assert.Equal(1, hub.Starts);
     }
+
+    [Fact]
+    public async Task Moving_to_reconnecting_with_the_session_over_ends_it_and_stops_the_hub()
+    {
+        var (sync, hub, _, api, session) = Sync();
+        await sync.StartAsync();
+        await hub.SetStateAsync(HubState.Connected);
+        api.SessionOver = true;
+
+        await hub.SetStateAsync(HubState.Reconnecting);
+
+        Assert.Equal(1, api.MeCalls);
+        Assert.True(session.IsEnded);
+        Assert.Equal(1, hub.Stops);
+    }
+
+    [Fact]
+    public async Task Moving_to_reconnecting_with_a_live_session_pings_once_and_goes_on()
+    {
+        var (sync, hub, _, api, session) = Sync();
+        await sync.StartAsync();
+        await hub.SetStateAsync(HubState.Connected);
+
+        await hub.SetStateAsync(HubState.Reconnecting);
+
+        Assert.Equal(1, api.MeCalls);
+        Assert.False(session.IsEnded);
+        Assert.Equal(0, hub.Stops);
+    }
+
+    [Fact]
+    public async Task An_attempt_refused_with_401_checks_the_session_again()
+    {
+        var (sync, hub, _, api, session) = Sync();
+        await sync.StartAsync();
+        await hub.SetStateAsync(HubState.Reconnecting);
+        api.SessionOver = true;
+
+        await hub.DoubtSessionAsync();
+
+        Assert.Equal(2, api.MeCalls);
+        Assert.True(session.IsEnded);
+        Assert.Equal(1, hub.Stops);
+    }
 }

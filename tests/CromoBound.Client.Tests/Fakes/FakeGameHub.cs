@@ -15,9 +15,11 @@ internal sealed class FakeGameHub : IGameHub
     public event Action? StateChanged;
     public event Func<Task>? Connected;
     public event Func<Task>? Closed;
+    public event Func<Task>? SessionInDoubt;
 
     public List<string> Calls { get; } = [];
     public int Starts { get; private set; }
+    public int Stops { get; private set; }
 
     public LobbyReply? Lobby { get; set; } = new([], [], null, null, false);
     public MatchReply? Match { get; set; } = MatchReply.None;
@@ -40,12 +42,27 @@ internal sealed class FakeGameHub : IGameHub
         return Task.CompletedTask;
     }
 
-    /// <summary>Moves to a state, firing <see cref="Connected"/> when it becomes connected, as the real connection does.</summary>
+    public Task StopAsync()
+    {
+        Stops++;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Moves to a state, firing <see cref="Connected"/> when it becomes connected and <see cref="SessionInDoubt"/> when it
+    /// moves into reconnecting, as the real connection does.</summary>
     public async Task SetStateAsync(HubState state)
     {
+        var wasReconnecting = State == HubState.Reconnecting;
         State = state;
         StateChanged?.Invoke();
         if (state == HubState.Connected && Connected is { } connected) await connected();
+        if (state == HubState.Reconnecting && !wasReconnecting) await DoubtSessionAsync();
+    }
+
+    /// <summary>A reconnect attempt that was answered with a 401.</summary>
+    public async Task DoubtSessionAsync()
+    {
+        if (SessionInDoubt is { } doubt) await doubt();
     }
 
     public async Task CloseAsync()

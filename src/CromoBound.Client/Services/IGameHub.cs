@@ -21,10 +21,17 @@ public interface IGameHub
     /// <summary>The connection is closed for good: the server closed it, or reconnecting stopped.</summary>
     event Func<Task>? Closed;
 
+    /// <summary>The connection may have lost its session: it moved into reconnecting, or an attempt was answered with a 401. The
+    /// listener checks the session.</summary>
+    event Func<Task>? SessionInDoubt;
+
     void Listen(IGameClient listener);
 
     /// <summary>Connects, trying again with the reconnect delays until it does.</summary>
     Task StartAsync();
+
+    /// <summary>Gives up connecting and reconnecting for good; <see cref="Closed"/> doesn't fire.</summary>
+    Task StopAsync();
 
     Task<LobbyReply?> GetLobbyAsync();
     Task<MatchReply?> GetMatchAsync();

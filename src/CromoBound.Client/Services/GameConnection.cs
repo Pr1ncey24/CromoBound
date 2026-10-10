@@ -4,13 +4,14 @@ using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
 using CromoBound.Models.Cards;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CromoBound.Client.Services;
 
 /// <summary>The real hub connection, over the app's own origin so the session cookie goes along, in the hub's wire JSON.</summary>
-public sealed class GameConnection : IGameHub, IAsyncDisposable
+public sealed class GameConnection : IGameHub, IRetryPolicy, IAsyncDisposable
 {
     public const string Unexpected = "Something went wrong.";
 
@@ -19,14 +20,23 @@ public sealed class GameConnection : IGameHub, IAsyncDisposable
     private readonly List<IGameClient> _listeners = [];
     private readonly CancellationTokenSource _stop = new();
 
-    public GameConnection(NavigationManager nav)
+    public GameConnection(NavigationManager nav) : this(nav.ToAbsoluteUri("hub"), _ => { })
+    {
+    }
+
+    internal GameConnection(Uri hub, Action<HttpConnectionOptions> configure)
     {
         _connection = new HubConnectionBuilder()
-            .WithUrl(nav.ToAbsoluteUri("hub"))
-            .WithAutomaticReconnect(_retry)
+            .WithUrl(hub, configure)
+            .WithAutomaticReconnect(this)
             .AddJsonProtocol(json => json.PayloadSerializerOptions = WireJson.Options)
             .Build();
-        _connection.Reconnecting += _ => SetState(HubState.Reconnecting);
+        // Not awaited: stopping the connection waits for the reconnect, which waits for this handler.
+        _connection.Reconnecting += async error =>
+        {
+            await SetState(HubState.Reconnecting);
+            _ = DoubtSessionAsync();
+        };
         _connection.Reconnected += _ => ConnectedAsync();
         _connection.Closed += _ => ClosedAsync();
         On<ChallengeNotice>(nameof(IGameClient.ChallengeReceived), (l, n) => l.ChallengeReceived(n));
@@ -44,6 +54,7 @@ public sealed class GameConnection : IGameHub, IAsyncDisposable
     public event Action? StateChanged;
     public event Func<Task>? Connected;
     public event Func<Task>? Closed;
+    public event Func<Task>? SessionInDoubt;
 
     public void Listen(IGameClient listener) => _listeners.Add(listener);
 
@@ -59,7 +70,9 @@ public sealed class GameConnection : IGameHub, IAsyncDisposable
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !_stop.IsCancellationRequested)
             {
+                var wasReconnecting = State == HubState.Reconnecting;
                 await SetState(HubState.Reconnecting);
+                if (!wasReconnecting || IsUnauthorized(ex)) await DoubtSessionAsync();
                 var delay = _retry.NextRetryDelay(new RetryContext { PreviousRetryCount = attempt, RetryReason = ex }) ?? TimeSpan.FromSeconds(30);
                 try
                 {
@@ -71,6 +84,20 @@ public sealed class GameConnection : IGameHub, IAsyncDisposable
                 }
             }
         }
+    }
+
+    public async Task StopAsync()
+    {
+        await _stop.CancelAsync();
+        await _connection.StopAsync();
+    }
+
+    /// <summary>The automatic reconnect's own retries: the delays are <see cref="ForeverRetryPolicy"/>'s, and a retry that failed with
+    /// a 401 asks for a session check, since reconnecting would go on for as long as the tab is open.</summary>
+    TimeSpan? IRetryPolicy.NextRetryDelay(RetryContext retryContext)
+    {
+        if (IsUnauthorized(retryContext.RetryReason)) _ = DoubtSessionAsync();
+        return _retry.NextRetryDelay(retryContext);
     }
 
     public Task<LobbyReply?> GetLobbyAsync() => QueryAsync<LobbyReply>("GetLobby");
@@ -122,6 +149,20 @@ public sealed class GameConnection : IGameHub, IAsyncDisposable
         catch (Exception)
         {
             return HubReply.Fail(Unexpected);
+        }
+    }
+
+    private static bool IsUnauthorized(Exception? ex) => ex is HttpRequestException { StatusCode: System.Net.HttpStatusCode.Unauthorized };
+
+    private async Task DoubtSessionAsync()
+    {
+        try
+        {
+            if (SessionInDoubt is { } doubt) await doubt();
+        }
+        catch (Exception)
+        {
+            // The check is best effort: the next attempt asks again.
         }
     }
 
