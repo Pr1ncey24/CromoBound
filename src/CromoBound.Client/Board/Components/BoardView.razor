@@ -56,12 +56,14 @@
     private BoardCard? zoomed;
     private BoardModel? shown;
 
-    /// <summary>A new model (a new view or interaction) closes a menu that belonged to the old one.</summary>
+    /// <summary>A new model (a new view or interaction) closes a menu that belonged to the old one, and drops a zoom whose card has left
+    /// the board (no mouse-leave arrives for a card that is gone); a card still there is zoomed as the new model draws it.</summary>
     protected override void OnParametersSet()
     {
         if (ReferenceEquals(shown, Model)) return;
         shown = Model;
         menu = null;
+        if (zoomed is { } card) zoomed = Current(card.Id);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -110,8 +112,16 @@
 
     private string NameOf(ObjectId id) =>
         Model.Me.Base.Concat(Model.Me.Runes).Concat(Model.Me.Hand).Concat(Model.Lanes.SelectMany(l => l.Mine))
+            .Concat(Model.Lanes.Select(l => l.Card)).Concat(Model.Lanes.Select(l => l.Hidden).OfType<BoardCard>())
             .Concat(new[] { Model.Me.Legend, Model.Me.Champion }.OfType<BoardCard>())
             .FirstOrDefault(c => c.Id == id)?.Name ?? CardBook.Unknown;
+
+    /// <summary>The card as the current model draws it, or null when it is not on the board any more.</summary>
+    private BoardCard? Current(ObjectId id) =>
+        new[] { Model.Me, Model.Them }.SelectMany(s => s.Base.Concat(s.Runes).Concat(s.Hand).Concat(s.Banished)
+                .Concat(new[] { s.Legend, s.Champion, s.TrashTop }.OfType<BoardCard>()))
+            .Concat(Model.Lanes.SelectMany(l => l.Mine.Concat(l.Theirs).Append(l.Card).Concat(new[] { l.Hidden }.OfType<BoardCard>())))
+            .FirstOrDefault(c => c.Id == id);
 
     public async ValueTask DisposeAsync()
     {

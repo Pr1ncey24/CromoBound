@@ -36,7 +36,7 @@ public sealed partial class BoardModel
                 Panel = new SideboardPanel(game, Rows(choice?.Main, build), Rows(choice?.Sideboard, build), false, opponent);
                 break;
             case MulliganDecision mulligan:
-                Panel = new MulliganPanel([.. mulligan.Hand.Select(build.Find).OfType<CardView>().Select(c => build.Card(c, this))], false, opponent);
+                Panel = new MulliganPanel(game, [.. mulligan.Hand.Select(build.Find).OfType<CardView>().Select(c => build.Card(c, this))], false, opponent);
                 break;
             case null when view.Deciding.Count > 0:
                 Panel = view.Stage switch
@@ -44,7 +44,7 @@ public sealed partial class BoardModel
                     MatchStage.PickBattlefields => new PickBattlefieldPanel(game, Games(view), [], true, opponent),
                     MatchStage.PlayOrder => new PlayOrderPanel(game, true, opponent),
                     MatchStage.Sideboarding => new SideboardPanel(game, [], [], true, opponent),
-                    MatchStage.Mulligan => new MulliganPanel([], true, opponent),
+                    MatchStage.Mulligan => new MulliganPanel(game, [], true, opponent),
                     _ => null,
                 };
                 UndoWaiting = view.DecisionKind == "ConfirmUndo";

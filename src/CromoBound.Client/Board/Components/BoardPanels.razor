@@ -62,7 +62,11 @@
             <h2 id="prompt-title">@undo.Requester asks to undo the last action</h2>
             @if (undo.LastAction is { } last)
             {
-                <p>The last action was: <strong>@last</strong> If you allow it, the game goes back to just before it.</p>
+                <p>Last on the log: <strong>@last</strong> If you allow it, the last action is taken back.</p>
+            }
+            else
+            {
+                <p>If you allow it, the last action is taken back.</p>
             }
             <div class="actions">
                 <button type="button" id="undo-refuse" class="cb-btn cb-ghost" disabled="@Locked" @onclick="() => SendAsync(new AnswerUndo(false))">Refuse</button>
@@ -233,17 +237,56 @@
     private readonly List<SideboardSwap> swaps = [];
     private readonly HashSet<ObjectId> aside = [];
 
-    /// <summary>A new panel starts fresh.</summary>
+    /// <summary>A new panel starts fresh, unless it is the same shared pre-game decision seen again (the other player submitted, so
+    /// every view is new): then the choices stay, minus any whose card is no longer on offer.</summary>
     protected override void OnParametersSet()
     {
         if (ReferenceEquals(shown, Panel)) return;
+        var previous = shown;
         shown = Panel;
-        chosen = 0;
-        accelerate = false;
-        outPick = inPick = null;
-        swaps.Clear();
-        aside.Clear();
+        if (!SameDecision(previous, Panel))
+        {
+            chosen = 0;
+            accelerate = false;
+            outPick = inPick = null;
+            swaps.Clear();
+            aside.Clear();
+            return;
+        }
+        switch (Panel)
+        {
+            case PickBattlefieldPanel pick:
+                var picked = previous is PickBattlefieldPanel old && chosen < old.Options.Count ? old.Options[chosen].Printing : null;
+                chosen = Math.Max(0, pick.Options.ToList().FindIndex(o => o.Printing == picked));
+                break;
+            case SideboardPanel sideboard:
+                var kept = swaps.ToList();
+                swaps.Clear();
+                foreach (var swap in kept)
+                {
+                    var outRoom = (sideboard.Main.FirstOrDefault(r => r.Printing == swap.Out)?.Count ?? 0) - swaps.Count(s => s.Out == swap.Out);
+                    var inRoom = (sideboard.Sideboard.FirstOrDefault(r => r.Printing == swap.In)?.Count ?? 0) - swaps.Count(s => s.In == swap.In);
+                    if (outRoom > 0 && inRoom > 0) swaps.Add(swap);
+                }
+                if (outPick is not null && sideboard.Main.All(r => r.Printing != outPick)) outPick = null;
+                if (inPick is not null && sideboard.Sideboard.All(r => r.Printing != inPick)) inPick = null;
+                break;
+            case MulliganPanel mulligan:
+                aside.IntersectWith(mulligan.Hand.Select(c => c.Id));
+                break;
+        }
     }
+
+    /// <summary>Both players are asked at once for these steps, so a view caused by the other player's answer carries the same
+    /// decision: same kind, same game, still (not) waiting.</summary>
+    private static bool SameDecision(BoardPanel? before, BoardPanel? after) => (before, after) switch
+    {
+        (PickBattlefieldPanel a, PickBattlefieldPanel b) => a.GameNumber == b.GameNumber && a.Waiting == b.Waiting,
+        (PlayOrderPanel a, PlayOrderPanel b) => a.GameNumber == b.GameNumber && a.Waiting == b.Waiting,
+        (SideboardPanel a, SideboardPanel b) => a.GameNumber == b.GameNumber && a.Waiting == b.Waiting,
+        (MulliganPanel a, MulliganPanel b) => a.GameNumber == b.GameNumber && a.Waiting == b.Waiting,
+        _ => false,
+    };
 
     private Task SendAsync(PlayerAction action) => Locked ? Task.CompletedTask : OnStep.InvokeAsync(new SendStep(action));
 

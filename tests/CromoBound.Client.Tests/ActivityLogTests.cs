@@ -115,4 +115,40 @@ public class ActivityLogTests
         Assert.Equal(ActivityLog.MaxLines, lines.Count);
         Assert.Equal("Turn 6: your turn.", lines[0]);
     }
+
+    [Fact]
+    public void A_draw_with_its_private_copy_is_told_once()
+    {
+        var board = new TestBoard();
+        board.Log.AddRange(
+        [
+            new CardMoved(null, null, null, Place.MainDeck(TestBoard.Me), Place.Hand(TestBoard.Me)),
+            new CardMoved("unit-a", null, new ObjectId(71), Place.MainDeck(TestBoard.Me), Place.Hand(TestBoard.Me)) { VisibleTo = TestBoard.Me },
+        ]);
+
+        Assert.Equal(new[] { "You drew a card." }, Lines(board));
+        Assert.Null(ActivityLog.LastAction(board.View(), board.Book, "giulia"));
+    }
+
+    [Fact]
+    public void A_private_move_still_names_its_card_for_the_other_events()
+    {
+        var board = new TestBoard();
+        board.Log.AddRange(
+        [
+            new CardMoved("unit-a", new ObjectId(70), new ObjectId(71), Place.MainDeck(TestBoard.Me), Place.Hand(TestBoard.Me)) { VisibleTo = TestBoard.Me },
+            new DamageDealt(new ObjectId(71), 2),
+        ]);
+
+        Assert.Equal(new[] { "Blade Twirler took 2 damage." }, Lines(board));
+    }
+
+    [Fact]
+    public void Sideboarding_with_no_swaps_keeps_the_deck()
+    {
+        var board = new TestBoard();
+        board.Log.AddRange([new SideboardChanged(TestBoard.Me, 0, false), new SideboardChanged(TestBoard.Them, 0, false), new SideboardChanged(TestBoard.Them, 2, false)]);
+
+        Assert.Equal(new[] { "You kept the deck.", "giulia kept the deck.", "giulia swapped 2 cards with the sideboard." }, Lines(board));
+    }
 }

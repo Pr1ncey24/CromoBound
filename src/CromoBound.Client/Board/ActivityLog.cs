@@ -59,10 +59,13 @@ public static class ActivityLog
             MulliganTaken taken => taken.Count == 0
                 ? $"{Who(taken.Player)} kept the opening hand."
                 : $"{Who(taken.Player)} set aside {taken.Count} {Plural(taken.Count, "card", "cards")} and drew {taken.Count}.",
+            SideboardChanged { Swaps: 0 } kept => $"{Who(kept.Player)} kept the deck.",
             SideboardChanged changed => $"{Who(changed.Player)} swapped {changed.Swaps} {Plural(changed.Swaps, "card", "cards")} with the sideboard.",
             TurnStarted turn => turn.Player == view.Viewer ? $"Turn {turn.Number}: your turn." : $"Turn {turn.Number}: {opponent}'s turn.",
             CardPlayed played => $"{Who(played.Controller)} played {book.NameOf(played.CardId)}.",
             AbilityActivated activated => $"{Who(activated.Controller)} used {Card(activated.Source)}'s ability.",
+            // The private copy of a move the public log already tells (a draw, a facedown card): it only carries the card's identity.
+            CardMoved { VisibleTo: not null } => null,
             CardMoved { ToPlace.Kind: PlaceKind.Trash, From: { } from } when dead.Contains(from) => null,
             CardMoved moved => Moved(moved, Who, Card, Lane, book),
             DamageDealt damage => $"{Card(damage.Unit)} took {damage.Amount} damage.",

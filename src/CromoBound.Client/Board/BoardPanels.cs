@@ -29,4 +29,4 @@ public sealed record SideboardPanel(int GameNumber, IReadOnlyList<DeckRow> Main,
 
 public sealed record DeckRow(string Printing, string Name, int Count);
 
-public sealed record MulliganPanel(IReadOnlyList<BoardCard> Hand, bool Waiting, string Opponent) : BoardPanel;
+public sealed record MulliganPanel(int GameNumber, IReadOnlyList<BoardCard> Hand, bool Waiting, string Opponent) : BoardPanel;

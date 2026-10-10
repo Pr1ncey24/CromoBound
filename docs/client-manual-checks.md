@@ -46,12 +46,15 @@ You need two accounts (an admin and a player) and two browsers, or one normal an
 ## The board (4b-1)
 - [ ] With the card images filled, every card on the board shows its art; with the `card-images` folder empty, cards show their name, cost and might instead, and the board still works.
 - [ ] The board fills the window and keeps its shape when the window is resized; there is no top bar on the match page.
-- [ ] A Bo1 without combat: play order, both mulligans (keep, and set aside 2), a unit played and paid with the suggestion, a unit moved to a battlefield, holding it scores, end turn, to the end of the game.
+- [ ] A Bo1 without combat: the sideboarding step before the game (send it as it is: "Keep my deck"), play order, both mulligans (keep, and set aside 2), a unit played and paid with the suggestion, a unit moved to a battlefield, holding it scores, end turn, to the end of the game.
 - [ ] Paying: clicking a rune cycles exhaust, recycle and unused; Suggest restores the suggestion; Cancel withdraws the play; a payment that isn't enough shows the engine's message and keeps the choice.
 - [ ] Moving two units together offers only the battlefields both can reach; Esc and Cancel drop the move.
 - [ ] A card the engine resolves by hand shows its text with Done; a start-of-turn card shows the turn point with Continue.
 - [ ] Request undo shows "Waiting for ..." on your side and the question on the other; Refuse and Allow both work.
-- [ ] A Bo3: the battlefield pick and the sideboarding dialogs, with the waiting state on the side that finished first.
+- [ ] A Bo3 played to the end: the battlefield pick and the sideboarding dialogs, with the waiting state on the side that finished first; game 2's battlefield pick and the loser's choice of play order; the score line ("Best of three · game N · ...") after each game; the match result at the end.
+- [ ] Sideboarding: while one player builds swaps, the other submits first; the first player's swaps (and a picked battlefield in the pick step) stay in the dialog, and Confirm or Submit sends them.
+- [ ] A decision the board can't handle yet (for example choosing where a showdown happens) shows the "This choice comes in the next update" panel, and the match can still be conceded from the match panel.
+- [ ] Concede from the board asks first; Keep playing does nothing; Concede ends the game for both players and the result dialog shows.
 - [ ] Hovering a card shows the card zoom with its damage and might; the XP switch in the board settings hides the legend XP and stays off after a reload.
 - [ ] Stopping the server mid-turn locks the board under the reconnecting banner; the board comes back as it was.
 

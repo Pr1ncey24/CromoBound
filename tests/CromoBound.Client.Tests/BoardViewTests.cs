@@ -196,4 +196,49 @@ public class BoardViewTests
         Assert.Equal("Waiting for giulia...", waiting.Find("#request-undo").TextContent.Trim());
         Assert.True(waiting.Find("#request-undo").HasAttribute("disabled"));
     }
+
+    [Fact]
+    public async Task A_battlefields_ability_menu_is_titled_with_the_battlefield()
+    {
+        await using var ui = new Ui();
+        var board = new TestBoard();
+        var lane = board.AddLane("bf-a", TestBoard.Me);
+
+        var cut = Render(ui, board.Model(TestBoard.Priority(activations: [new ActivateOption(lane.Id, 0)])), []);
+        await cut.ClickAsync("button[aria-label^='Back-Alley Bar']");
+
+        Assert.Equal("Back-Alley Bar", cut.Find(".cb-menu .cb-lbl").TextContent);
+    }
+
+    [Fact]
+    public async Task A_zoom_is_dropped_when_a_new_model_no_longer_has_the_card()
+    {
+        await using var ui = new Ui();
+        var board = new TestBoard();
+        var unit = board.Add(board.MyBase, "unit-a", might: 2);
+        board.Add(board.MyBase, "unit-b", might: 1);
+        var cut = Render(ui, board.Model(), []);
+        await cut.InvokeAsync(() => cut.Find("[aria-label^='Blade Twirler']").MouseEnter());
+        Assert.Single(cut.FindAll(".cb-zoom"));
+
+        board.MyBase.Remove(unit);
+        cut.Render(ps => ps.Add(p => p.Model, board.Model()));
+
+        Assert.Empty(cut.FindAll(".cb-zoom"));
+    }
+
+    [Fact]
+    public async Task A_zoom_follows_its_card_into_a_new_model()
+    {
+        await using var ui = new Ui();
+        var board = new TestBoard();
+        var unit = board.Add(board.MyBase, "unit-a", might: 2);
+        var cut = Render(ui, board.Model(), []);
+        await cut.InvokeAsync(() => cut.Find("[aria-label^='Blade Twirler']").MouseEnter());
+
+        board.MyBase[0] = unit with { Damage = 1 };
+        cut.Render(ps => ps.Add(p => p.Model, board.Model()));
+
+        Assert.Contains("1 damage", cut.Find(".cb-zoom").TextContent);
+    }
 }
