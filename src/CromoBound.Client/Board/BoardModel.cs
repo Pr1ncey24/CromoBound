@@ -89,7 +89,7 @@ public sealed partial class BoardModel
     private readonly Dictionary<ObjectId, Ring> _rings = [];
     private readonly Dictionary<ObjectId, PayMark> _marks = [];
     private readonly HashSet<int> _destinations = [];
-    private bool _baseIsDestination = false;
+    private bool _baseIsDestination;
 
     /// <summary>Turns the view's cards into board cards, with the catalog's data and the decision's marks.</summary>
     private sealed class Build(PlayerView view, CardBook book, string me, string opponent)
