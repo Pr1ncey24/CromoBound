@@ -93,14 +93,45 @@ public class CardImageTests
 
         await Downloader(handler).DownloadAsync([Source("kept"), Source("bad"), Source("a1"), Source("b2")], dir.Root, progress: seen);
 
-        Assert.Equal(new[] { 1, 2, 3, 4 }, seen.Values.Order());
+        Assert.Equal(new[] { 1, 2, 3, 4 }, seen.Values.Where(p => p.Step != ImageStep.Started).Select(p => p.Finished).Order());
+        Assert.All(seen.Values, p => Assert.Equal(4, p.Total));
+        Assert.Equal(new[] { "a1", "b2", "bad" }, seen.Values.Where(p => p.Step == ImageStep.Started).Select(p => p.PrintingId).Order());
+        Assert.Equal(ImageStep.Skipped, seen.Values.Single(p => p.PrintingId == "kept").Step);
     }
 
-    private sealed class SyncProgress : IProgress<int>
+    [Fact]
+    public async Task Every_finished_download_says_why_it_failed_or_how_big_it_was()
     {
-        public List<int> Values { get; } = [];
+        using var dir = new TempDir();
+        var handler = new FakeHandler(request => request.RequestUri!.AbsolutePath switch
+        {
+            "/html.png" => Image("<html></html>"u8.ToArray(), "text/html"),
+            "/missing.png" => new HttpResponseMessage(HttpStatusCode.NotFound),
+            "/empty.png" => Image([]),
+            "/dropped.png" => throw new HttpRequestException("The connection was reset."),
+            "/slow.png" => throw new TaskCanceledException("The request timed out."),
+            _ => Image(Png),
+        });
+        var seen = new SyncProgress();
 
-        public void Report(int value)
+        await Downloader(handler).DownloadAsync(
+            [Source("html"), Source("missing"), Source("empty"), Source("dropped"), Source("slow"), Source("good")], dir.Root, progress: seen);
+
+        string Detail(string id) => seen.Values.Single(p => p.PrintingId == id && p.Step != ImageStep.Started).Detail;
+        Assert.Equal("not a PNG (text/html)", Detail("html"));
+        Assert.Equal("HTTP 404 Not Found", Detail("missing"));
+        Assert.Equal("empty answer", Detail("empty"));
+        Assert.Equal("connection failed: The connection was reset.", Detail("dropped"));
+        Assert.StartsWith("timed out after ", Detail("slow"));
+        Assert.Matches(@"^0 KB in \d+\.\d s$", Detail("good"));
+        Assert.Equal(ImageStep.Saved, seen.Values.Single(p => p.PrintingId == "good" && p.Step != ImageStep.Started).Step);
+    }
+
+    private sealed class SyncProgress : IProgress<ImageProgress>
+    {
+        public List<ImageProgress> Values { get; } = [];
+
+        public void Report(ImageProgress value)
         {
             lock (Values) Values.Add(value);
         }

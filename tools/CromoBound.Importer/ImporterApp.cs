@@ -44,18 +44,37 @@ public static class ImporterApp
     }
 
     /// <summary>Downloads every printing's image into the folder (spec §3.1); fails when any image couldn't be fetched, so a deploy
-    /// script notices. Running it again fetches only what is missing.</summary>
+    /// script notices. Running it again fetches only what is missing. Every download prints a line when it starts and when it ends,
+    /// with the reason when it fails, so a slow or stuck run is visible.</summary>
     private static async Task<int> ImagesAsync(string dataDir, string folder)
     {
         var printings = CardRepository.Load(dataDir).Printings.Values;
         var sources = printings.Where(p => !string.IsNullOrEmpty(p.ImageUrl)).Select(p => new ImageSource(p.Id, p.ImageUrl!)).ToList();
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        var target = Path.GetFullPath(folder);
+        var there = sources.Count(s => File.Exists(Path.Combine(target, s.PrintingId + ".png")));
+        var urls = sources.ToDictionary(s => s.PrintingId, s => s.Url);
+        var timeout = TimeSpan.FromSeconds(60);
+        Console.WriteLine($"Images: {sources.Count} printings have an image link ({printings.Count() - sources.Count} have none).");
+        Console.WriteLine($"Images: saving to {target}");
+        Console.WriteLine($"Images: {there} already there, {sources.Count - there} to fetch, "
+            + $"{CardImageDownloader.MaxAtOnce} at a time, {timeout.TotalSeconds:0} s timeout each.");
+
+        using var http = new HttpClient { Timeout = timeout };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CromoBound-Importer/1.0");
-        var progress = new SyncProgress(done =>
+        var width = sources.Count.ToString(System.Globalization.CultureInfo.InvariantCulture).Length;
+        var progress = new SyncProgress(p =>
         {
-            if (done % 100 == 0) Console.WriteLine($"Images: {done} of {sources.Count} done.");
+            var count = $"[{p.Finished.ToString(System.Globalization.CultureInfo.InvariantCulture).PadLeft(width)}/{p.Total}]";
+            var line = p.Step switch
+            {
+                ImageStep.Started => $"start  {count} {p.PrintingId}",
+                ImageStep.Saved => $"saved  {count} {p.PrintingId} ({p.Detail})",
+                ImageStep.Failed => $"FAILED {count} {p.PrintingId}: {p.Detail} - {urls[p.PrintingId]}",
+                _ => null,
+            };
+            if (line is not null) Console.WriteLine($"{DateTime.Now:HH:mm:ss} {line}");
         });
-        var report = await new CardImageDownloader(http).DownloadAsync(sources, Path.GetFullPath(folder), progress: progress);
+        var report = await new CardImageDownloader(http).DownloadAsync(sources, target, progress: progress);
         Console.WriteLine($"Images: {report.Downloaded} downloaded, {report.Skipped} already there, {report.Failed.Count} failed, "
             + $"{printings.Count() - sources.Count} printings without an image link.");
         foreach (var id in report.Failed) Console.Error.WriteLine($"Failed: {id}");
@@ -73,8 +92,8 @@ public static class ImporterApp
     }
 
     /// <summary>Reports on the calling thread at once, unlike <see cref="Progress{T}"/>, which posts to the thread pool.</summary>
-    private sealed class SyncProgress(Action<int> report) : IProgress<int>
+    private sealed class SyncProgress(Action<ImageProgress> report) : IProgress<ImageProgress>
     {
-        public void Report(int value) => report(value);
+        public void Report(ImageProgress value) => report(value);
     }
 }
