@@ -16,12 +16,33 @@ public static class ActivityLog
     {
         var cards = CardIds(view);
         var lines = new List<string>();
+        var dead = new HashSet<ObjectId>();
         foreach (var e in view.Log)
-            if (Sentence(e, view, book, cards, opponent) is { } line) lines.Add(line);
+        {
+            if (e is UnitDied died) dead.Add(died.Unit);
+            if (Sentence(e, view, book, cards, opponent, dead) is { } line) lines.Add(line);
+        }
         return lines.Count > MaxLines ? lines.GetRange(lines.Count - MaxLines, MaxLines) : lines;
     }
 
-    private static string? Sentence(GameEvent e, PlayerView view, CardBook book, Dictionary<ObjectId, string> cards, string opponent)
+    /// <summary>The sentence of the last thing a player did (played a card, used an ability, did something by hand, attacked, moved
+    /// a unit), skipping everything the game derived from it; null when the log has none.</summary>
+    internal static string? LastAction(PlayerView view, CardBook book, string opponent)
+    {
+        var cards = CardIds(view);
+        for (var i = view.Log.Count - 1; i >= 0; i--)
+        {
+            var e = view.Log[i];
+            var isAction = e is CardPlayed or AbilityActivated or ManualActionTaken or CombatStarted
+                or CardMoved { ToPlace.Kind: PlaceKind.Battlefield, FromPlace.Kind: PlaceKind.Base or PlaceKind.Battlefield }
+                or CardMoved { ToPlace.Kind: PlaceKind.Base, FromPlace.Kind: PlaceKind.Battlefield };
+            if (isAction && Sentence(e, view, book, cards, opponent, []) is { } line) return line;
+        }
+        return null;
+    }
+
+    private static string? Sentence(GameEvent e, PlayerView view, CardBook book, Dictionary<ObjectId, string> cards, string opponent,
+        HashSet<ObjectId> dead)
     {
         string Who(PlayerId player) => player == view.Viewer ? "You" : opponent;
         string Verb(PlayerId player, string you, string they) => player == view.Viewer ? you : they;
@@ -42,6 +63,7 @@ public static class ActivityLog
             TurnStarted turn => turn.Player == view.Viewer ? $"Turn {turn.Number}: your turn." : $"Turn {turn.Number}: {opponent}'s turn.",
             CardPlayed played => $"{Who(played.Controller)} played {book.NameOf(played.CardId)}.",
             AbilityActivated activated => $"{Who(activated.Controller)} used {Card(activated.Source)}'s ability.",
+            CardMoved { ToPlace.Kind: PlaceKind.Trash, From: { } from } when dead.Contains(from) => null,
             CardMoved moved => Moved(moved, Who, Card, Lane, book),
             DamageDealt damage => $"{Card(damage.Unit)} took {damage.Amount} damage.",
             UnitDied died => $"{book.NameOf(died.CardId)} died.",

@@ -73,6 +73,35 @@ public class BoardPanelTests
     }
 
     [Fact]
+    public void The_undo_panel_names_the_last_action_not_what_followed_it()
+    {
+        var board = new TestBoard();
+        var spell = board.Card("spell-a", TestBoard.Them);
+        board.Log.AddRange(
+        [
+            new CardPlayed(spell.Id, "spell-a", TestBoard.Them),
+            new DamageDealt(spell.Id, 2),
+            new PointsChanged(TestBoard.Them, 7),
+            new UndoRequested(TestBoard.Them),
+        ]);
+
+        var model = board.Model(new ConfirmUndoDecision(TestBoard.Me, TestBoard.Them));
+
+        Assert.Equal(new UndoPanel("giulia", "giulia played Angle Shot."), model.Panel);
+    }
+
+    [Fact]
+    public void Undo_cannot_be_asked_while_answering_the_opponents_request()
+    {
+        var board = new TestBoard();
+        board.Log.Add(new UndoRequested(TestBoard.Them));
+
+        var model = board.Model(new ConfirmUndoDecision(TestBoard.Me, TestBoard.Them));
+
+        Assert.False(model.CanRequestUndo);
+    }
+
+    [Fact]
     public void A_choice_of_a_later_update_says_what_it_is()
     {
         var model = new TestBoard().Model(new ChooseShowdownDecision(TestBoard.Me, [0], false));

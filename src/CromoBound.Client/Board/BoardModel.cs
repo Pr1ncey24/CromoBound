@@ -69,7 +69,7 @@ public sealed partial class BoardModel
         model.Button = new BoardButton("END TURN", view.Decision is null && view.Deciding.Count > 0 ? $"Waiting for {opponent}" : null, NoStep.Instance);
         model.Decide(view, build, interaction);
         model.Log = ActivityLog.Lines(view, book, me, opponent);
-        model.CanRequestUndo = view.Stage == MatchStage.Playing && !model.UndoWaiting && view.Log.Count > 0;
+        model.CanRequestUndo = view.Stage == MatchStage.Playing && !model.UndoWaiting && view.Decision is not ConfirmUndoDecision && view.Log.Count > 0;
         model.Me = build.Side(view.Viewer, me, model);
         model.Them = build.Side(new PlayerId(1 - view.Viewer.Index), opponent, model);
         model.Lanes = [.. view.Battlefields.Select(b => build.Lane(b, model))];

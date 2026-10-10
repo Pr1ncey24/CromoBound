@@ -22,7 +22,7 @@ public sealed partial class BoardModel
                 Panel = new TurnPointPanel(PointTitle(point.Point), [.. point.Cards.Select(build.Find).OfType<CardView>().Select(c => build.Card(c, this))]);
                 break;
             case ConfirmUndoDecision:
-                Panel = new UndoPanel(opponent, ActivityLog.Lines(view, build.Book, build.MeName, opponent).LastOrDefault(l => !l.EndsWith("asked to undo the last action.", StringComparison.Ordinal)));
+                Panel = new UndoPanel(opponent, ActivityLog.LastAction(view, build.Book, opponent));
                 break;
             case PickBattlefieldDecision pick:
                 Panel = new PickBattlefieldPanel(game, Games(view), [.. pick.Choices.Where(c => c.Player == view.Viewer).SelectMany(c => c.Printings)

@@ -90,6 +90,21 @@ public class ActivityLogTests
     }
 
     [Fact]
+    public void A_death_is_told_once_but_a_card_trashed_otherwise_still_is()
+    {
+        var board = new TestBoard();
+        var unit = board.Add(board.MyBase, "unit-a", might: 2);
+        board.Log.AddRange(
+        [
+            new UnitDied(unit.Id, "unit-a", TestBoard.Me),
+            new CardMoved("unit-a", unit.Id, new ObjectId(80), Place.Base(TestBoard.Me), Place.Trash(TestBoard.Me)),
+            new CardMoved("spell-a", new ObjectId(90), new ObjectId(91), Place.Chain, Place.Trash(TestBoard.Me)),
+        ]);
+
+        Assert.Equal(new[] { "Blade Twirler died.", "Angle Shot went to the trash." }, Lines(board));
+    }
+
+    [Fact]
     public void Only_the_last_lines_are_kept()
     {
         var board = new TestBoard();
