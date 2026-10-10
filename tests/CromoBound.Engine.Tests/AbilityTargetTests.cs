@@ -43,6 +43,9 @@ public class AbilityTargetTests
           { "action": "Kill", "target": { "select": "Unit", "all": true } } ] } ] }
         """;
 
+    private static string DeflectUnit(int value) =>
+        $$"""{ "cardId": "unit-3", "status": "Full", "keywords": [ { "keyword": "Deflect", "value": {{value}} } ] }""";
+
     private static (TestGame Game, Rules.Game Engine) Setup(string json, Action<TestGame> arrange)
     {
         var game = new TestGame(db: EngineTestDb.Create(("gear-1", json)));
@@ -227,5 +230,123 @@ public class AbilityTargetTests
         var secondChoice = engine.Decision<ChooseTargetsDecision>();
         Assert.Equal(P2, secondChoice.Player);
         Assert.Equal(mine, secondChoice.Options);
+    }
+
+    [Fact]
+    public void An_activation_targeting_an_enemy_deflect_unit_asks_for_the_tax()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", Slayer), ("unit-3", DeflectUnit(2))));
+        var gear = game.Put("gear-1", Place.Base(P1));
+        game.Runes(P1, "fury-rune", 2);
+        game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new ActivateAbility(gear, 0));
+
+        var cost = engine.Decision<PayCostDecision>().Cost;
+        Assert.Equal(0, cost.Energy);
+        Assert.Equal(new[] { PowerSymbol.Any, PowerSymbol.Any }, cost.Power);
+    }
+
+    [Fact]
+    public void An_activation_targeting_your_own_deflect_unit_asks_for_no_power()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", Slayer), ("unit-3", DeflectUnit(2))));
+        var gear = game.Put("gear-1", Place.Base(P1));
+        game.Runes(P1, "fury-rune", 2);
+        game.Put("unit-3", Place.Base(P1));
+        var engine = game.Start();
+
+        engine.Accept(P1, new ActivateAbility(gear, 0));
+
+        Assert.IsType<PriorityDecision>(engine.Pending);
+        Assert.Single(game.State.Chain);
+    }
+
+    [Fact]
+    public void A_trigger_targeting_an_enemy_deflect_unit_asks_for_the_tax_then_resolves()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", Striker), ("unit-3", DeflectUnit(1))));
+        game.Put("gear-1", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 2);
+        var plain = game.Put("unit-2", Place.Base(P2));
+        var taxed = game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "gear-1")));
+        engine.PayWithSuggestion(P1);
+        Assert.Equal(new[] { plain, taxed }, engine.Decision<ChooseTargetsDecision>().Options);
+        engine.Accept(P1, new ChooseTargets { Targets = [taxed] });
+
+        var cost = engine.Decision<PayCostDecision>().Cost;
+        Assert.Equal(0, cost.Energy);
+        Assert.Equal(new[] { PowerSymbol.Any }, cost.Power);
+        engine.PayWithSuggestion(P1);
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+
+        Assert.Equal(2, game.State[taxed].Damage);
+        Assert.Equal(0, game.State[plain].Damage);
+    }
+
+    [Fact]
+    public void Cancelling_a_trigger_tax_asks_for_the_targets_again()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", Striker), ("unit-3", DeflectUnit(1))));
+        game.Put("gear-1", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 2);
+        var plain = game.Put("unit-2", Place.Base(P2));
+        var taxed = game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "gear-1")));
+        engine.PayWithSuggestion(P1);
+        engine.Accept(P1, new ChooseTargets { Targets = [taxed] });
+        engine.Decision<PayCostDecision>();
+        engine.Accept(P1, new CancelPlay());
+
+        Assert.Equal(new[] { plain, taxed }, engine.Decision<ChooseTargetsDecision>().Options);
+        engine.Accept(P1, new ChooseTargets { Targets = [plain] });
+        Assert.IsType<PriorityDecision>(engine.Pending);
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "unit-2");
+        Assert.Equal(0, game.State[taxed].Damage);
+    }
+
+    [Fact]
+    public void A_trigger_doesnt_offer_an_enemy_deflect_unit_its_controller_cant_pay_for()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", Striker), ("unit-3", DeflectUnit(2))));
+        game.Put("gear-1", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 1);
+        var plain = game.Put("unit-2", Place.Base(P2));
+        var taxed = game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "gear-1")));
+        engine.PayWithSuggestion(P1);
+
+        Assert.IsType<PriorityDecision>(engine.Pending);
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "unit-2");
+        Assert.Equal(0, game.State[taxed].Damage);
+    }
+
+    [Fact]
+    public void A_trigger_whose_only_target_is_an_unaffordable_deflect_unit_is_not_put_on_the_chain()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", Striker), ("unit-3", DeflectUnit(2))));
+        game.Put("gear-1", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 1);
+        game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "gear-1")));
+        engine.PayWithSuggestion(P1);
+
+        Assert.Empty(game.State.Chain);
     }
 }

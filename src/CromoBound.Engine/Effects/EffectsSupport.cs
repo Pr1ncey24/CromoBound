@@ -65,7 +65,7 @@ internal static class EffectsSupport
             problems.Add($"{at}: {ability.GetType().Name.Replace("Ability", "")} ability");
             return;
         }
-        var condition = ability.Condition is null || (ability is PassiveAbility && IsSupportedCondition(ability.Condition));
+        var condition = ability.Condition is null || (ability is PassiveAbility && IsSupportedStandingCondition(ability.Condition));
         if (!condition || ability.ActiveIn is not null || ability.Script is not null)
             problems.Add($"{at}: condition, activeIn or script");
         switch (ability)
@@ -75,7 +75,7 @@ internal static class EffectsSupport
                 break;
             case TriggeredAbility triggered:
                 if (!IsSupportedTrigger(triggered.Trigger, type)) problems.Add($"{at}: trigger");
-                if (triggered.If is { } guard && !IsSupportedCondition(guard)) problems.Add($"{at}: if");
+                if (triggered.If is { } guard && !IsSupportedStandingCondition(guard)) problems.Add($"{at}: if");
                 if (triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
                     problems.Add($"{at}: optional, cost or limit");
                 CheckSteps(triggered.Steps, at, problems, targets: true);
@@ -86,7 +86,7 @@ internal static class EffectsSupport
                 CheckSteps(activated.Steps, at, problems, targets: true);
                 break;
             case PassiveAbility passive:
-                if (passive.While is not null && !IsSupportedCondition(passive.While)) problems.Add($"{at}: while");
+                if (passive.While is not null && !IsSupportedStandingCondition(passive.While)) problems.Add($"{at}: while");
                 foreach (var modifier in passive.Modifiers)
                     if (!IsSupportedModifier(modifier)) problems.Add($"{at}: modifier {modifier.GetType().Name.Replace("Modifier", "")}");
                 break;
@@ -105,6 +105,7 @@ internal static class EffectsSupport
         ModifyMightModifier might => modifier.AppliesTo?.Ref is RefKind.Self or RefKind.Host && IsSupportedValue(might.Amount),
         KeywordCostReductionModifier keyword => keyword.Keyword == MechanicalKeyword.Empower
             && (keyword.Energy is null || keyword.Energy.Literal is not null)
+            && (keyword.OrPower is [] or [PowerSymbol.Any])
             && (modifier.AppliesTo?.Ref == RefKind.Self
                 || modifier.AppliesTo is { Select: SelectKind.Unit, All: true } applies && IsSupportedFilter(applies.Filter)),
         GrantKeywordModifier grant => modifier.AppliesTo?.Ref == RefKind.Self
@@ -260,6 +261,16 @@ internal static class EffectsSupport
         || (condition.Compare is { } compare && IsSupportedValue(compare.Left) && IsSupportedValue(compare.Right))
         || condition.Paid is not null
         || condition.TurnOf is { Kind: PlayerKind.You or PlayerKind.Opponent };
+
+    /// <summary>A condition read outside a play, on a trigger's if or a passive's while or condition: a supported condition that
+    /// doesn't read paid anywhere, since a play's variables don't exist there.</summary>
+    private static bool IsSupportedStandingCondition(Condition condition) => IsSupportedCondition(condition) && !ReadsPaid(condition);
+
+    private static bool ReadsPaid(Condition condition) =>
+        condition.Paid is not null
+        || (condition.All?.Any(ReadsPaid) ?? false)
+        || (condition.Any?.Any(ReadsPaid) ?? false)
+        || (condition.Not is { } not && ReadsPaid(not));
 
     /// <summary>Self, Host, a variable, or a unit, gear or permanent selector with a supported filter that is an "all" selector, a
     /// slot (a count or upTo selector in the top-level steps of a spell, trigger or activation, <paramref name="targets"/>) or, in

@@ -25,6 +25,9 @@ internal sealed class ActivationTask(PlayerId player, ObjectId source, int abili
     /// <summary>How many Empower cost reductions were applied.</summary>
     public int Reductions { get; set; }
 
+    /// <summary>Whether the Deflect tax on the chosen targets was added to the cost.</summary>
+    public bool Taxed { get; set; }
+
     public override bool Run(Game game) => game.RunActivation(this);
 }
 
@@ -98,6 +101,12 @@ public sealed partial class Game
                 case ActivationStage.Reduce:
                     task.Cost ??= ability.Cost is { } cost ? new TotalCost(cost.Energy ?? 0, cost.Power) : new TotalCost(0, []);
                     if (AskEmpowerReduction(task, source, ability)) return false;
+                    if (!task.Taxed)
+                    {
+                        task.Taxed = true;
+                        var tax = Modifiers.DeflectTax(this, task.Player, context.Targets.SelectMany(t => t));
+                        task.Cost = task.Cost! with { Power = [.. task.Cost.Power, .. Enumerable.Repeat(PowerSymbol.Any, tax)] };
+                    }
                     task.Stage = ActivationStage.Pay;
                     break;
                 case ActivationStage.Pay:
@@ -171,7 +180,7 @@ public sealed partial class Game
             var byPower = reduction.OrPower.Count > 0 && cost.Power.Count > 0;
             if (byEnergy && byPower)
             {
-                Ask(new OptionalDecision(task.Player, source.CardId, "Lower the Empower cost by 1 energy? No lowers one power instead."), (_, action) =>
+                Ask(new OptionalDecision(task.Player, source.CardId, $"Lower the Empower cost by {energy} energy? No lowers one power instead."), (_, action) =>
                 {
                     if (action is not ChooseOptional choice) return Reject(RejectionCode.UnexpectedAction, "Answer yes or no.");
                     task.Cost = choice.Yes ? Lower(cost, energy) : WithoutOnePower(cost);

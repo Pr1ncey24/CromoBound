@@ -31,7 +31,7 @@ internal static class Modifiers
     /// <summary>The keyword entries the card's passives grant it now. While a card's grants are being evaluated, a nested read of
     /// it sees its full might but no granted keywords, so a condition that reads its might can't loop.</summary>
     public static IEnumerable<KeywordEntry> GrantedKeywords(Game game, CardInstance instance) =>
-        ActiveModifiers<GrantKeywordModifier>(game, instance, game.EvaluatingGrants).Select(m => m.Modifier.Keyword);
+        ActiveModifiers(game, instance, game.EvaluatingGrants, (GrantKeywordModifier m, EffectContext _) => m.Keyword);
 
     /// <summary>How many times the object can be Empowered: its Empower keyword's value, 1 without one.</summary>
     public static int EmpowerLimit(Game game, CardInstance instance) =>
@@ -62,25 +62,27 @@ internal static class Modifiers
     /// <summary>The might the card's passives (its own and its gear's) give it now. While they are evaluated, a nested read of the
     /// card leaves out its passive might.</summary>
     private static int PassiveMight(Game game, CardInstance unit) =>
-        ActiveModifiers<ModifyMightModifier>(game, unit, game.EvaluatingMight)
-            .Sum(m => ValueResolver.Resolve(game, m.Context, m.Modifier.Amount));
+        ActiveModifiers(game, unit, game.EvaluatingMight, (ModifyMightModifier m, EffectContext context) => ValueResolver.Resolve(game, context, m.Amount))
+            .Sum();
 
     /// <summary>The modifiers of one kind that apply to the holder now:
     /// - its own passives with appliesTo Self;
     /// - the passives of gear attached to it with appliesTo Host.
     /// In both cases the source must be on the board and the passive's condition and while must hold (checked only for passives
-    /// that have a modifier of the kind). <paramref name="evaluating"/> holds the holders being evaluated for this kind: a nested
-    /// evaluation of the same holder finds nothing.</summary>
-    private static IEnumerable<(T Modifier, EffectContext Context)> ActiveModifiers<T>(Game game, CardInstance holder, HashSet<ObjectId> evaluating)
+    /// that have a modifier of the kind). <paramref name="select"/> turns each one into a result inside the guard, so reading the
+    /// holder while an amount is evaluated is a nested evaluation too. <paramref name="evaluating"/> holds the holders being
+    /// evaluated for this kind: a nested evaluation of the same holder finds nothing.</summary>
+    private static List<TResult> ActiveModifiers<T, TResult>(Game game, CardInstance holder, HashSet<ObjectId> evaluating,
+        Func<T, EffectContext, TResult> select)
         where T : Modifier
     {
         if (!holder.Place.IsLocation || !evaluating.Add(holder.Id)) return [];
         try
         {
-            List<(T, EffectContext)> found = [.. Applying<T>(game, holder, RefKind.Self)];
+            List<(T Modifier, EffectContext Context)> found = [.. Applying<T>(game, holder, RefKind.Self)];
             foreach (var gear in game.State.Objects.Where(o => o.AttachedTo == holder.Id && o.Place.IsLocation))
                 found.AddRange(Applying<T>(game, gear, RefKind.Host));
-            return found;
+            return [.. found.Select(m => select(m.Modifier, m.Context))];
         }
         finally
         {
@@ -120,13 +122,17 @@ internal static class Modifiers
                 power.AddRange(additional.Cost.Power);
             }
         IEnumerable<ObjectId> targets = item.Effect is { } effect ? effect.Targets.SelectMany(t => t) : [];
-        foreach (var target in targets)
-            if (game.State.Exists(target) && game.State[target].Controller != task.Player)
-                power.AddRange(Enumerable.Repeat(PowerSymbol.Any, KeywordValue(game, game.State[target], MechanicalKeyword.Deflect)));
+        power.AddRange(Enumerable.Repeat(PowerSymbol.Any, DeflectTax(game, task.Player, targets)));
         var context = new EffectContext { Controller = task.Player, Source = card.Id, SourceCardId = card.CardId };
         var reduction = OwnPassives(game, card, context).OfType<CostReductionModifier>().Sum(m => ValueResolver.Resolve(game, context, m.Energy!));
         return new TotalCost(Math.Max(0, cost.Energy + extra - reduction), power);
     }
+
+    /// <summary>The [A] a player owes for choosing these targets: the Deflect of each one the player doesn't control, counted per
+    /// choice (CR 809), granted Deflect included.</summary>
+    public static int DeflectTax(Game game, PlayerId player, IEnumerable<ObjectId> targets) =>
+        targets.Where(t => game.State.Exists(t) && game.State[t].Controller != player)
+            .Sum(t => KeywordValue(game, game.State[t], MechanicalKeyword.Deflect));
 
     /// <summary>Whether one of the card's passive abilities gives the card the permission now (spec §4.7).</summary>
     public static bool Permits(Game game, CardInstance card, PlayerId controller, Permission permission) =>

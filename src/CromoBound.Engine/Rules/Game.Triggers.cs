@@ -3,6 +3,7 @@ using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Effects;
 using CromoBound.Engine.Events;
 using CromoBound.Engine.State;
+using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
@@ -14,18 +15,49 @@ internal sealed class PutTriggersOnChainTask : GameTask
 }
 
 /// <summary>Chooses the targets of the triggered abilities that just went on the chain (CR 382-388), oldest item first: the turn
-/// player's triggers went on first, so they choose first. Started at once, so cleanups and other triggers wait for the choices.</summary>
+/// player's triggers went on first, so they choose first. Started at once, so cleanups and other triggers wait for the choices.
+/// A trigger can't be cancelled, so it offers only the enemy Deflect units its controller can pay for, and once its targets
+/// are chosen its controller pays their Deflect tax (CR 809); cancelling that payment chooses the targets again.</summary>
 internal sealed class ChooseItemTargetsTask : GameTask
 {
+    private readonly HashSet<int> _taxPaid = [];
+    private TotalCost? _adjusted;
+
     public override bool Run(Game game)
     {
-        while (game.State.Chain.FirstOrDefault(NeedsTargets) is { } item)
-            if (game.AskSlotTargets(item.Controller, item.Source!.Value, item.Effect!, item, onCancel: null)) return false;
+        while (game.State.Chain.FirstOrDefault(item => NeedsTargets(item) || OwesTax(game, item)) is { } item)
+        {
+            if (game.AskSlotTargets(item.Controller, item.Source!.Value, item.Effect!, item, onCancel: null, taxed: true)) return false;
+            if (!OwesTax(game, item)) continue;
+            var effect = item.Effect!;
+            var cost = _adjusted ?? new TotalCost(0, [.. Enumerable.Repeat(PowerSymbol.Any, TaxOf(game, item))]);
+            game.AskPay(item.Controller, cost, game.Db.Cards[effect.SourceCardId].Domains,
+                onPaid: () =>
+                {
+                    _taxPaid.Add(item.Id);
+                    _adjusted = null;
+                },
+                onCancel: () =>
+                {
+                    effect.Targets.Clear();
+                    _adjusted = null;
+                },
+                onAdjust: adjusted => _adjusted = adjusted);
+            return false;
+        }
         return true;
     }
 
     private static bool NeedsTargets(ChainItem item) =>
         item is { Kind: ChainItemKind.Ability, AbilityKind: AbilityKind.Triggered, Effect: { } effect } && effect.Targets.Count < effect.Slots.Count;
+
+    /// <summary>A trigger whose targets are all chosen and whose Deflect tax isn't paid yet.</summary>
+    private bool OwesTax(Game game, ChainItem item) =>
+        item is { Kind: ChainItemKind.Ability, AbilityKind: AbilityKind.Triggered, Effect: { } effect }
+        && effect.Slots.Count > 0 && effect.Targets.Count == effect.Slots.Count && !_taxPaid.Contains(item.Id) && TaxOf(game, item) > 0;
+
+    private static int TaxOf(Game game, ChainItem item) =>
+        Modifiers.DeflectTax(game, item.Controller, item.Effect!.Targets.SelectMany(t => t));
 }
 
 public sealed partial class Game
@@ -73,7 +105,7 @@ public sealed partial class Game
                 SourceCardId = trigger.SourceCardId,
                 Slots = TargetSlots.Of(trigger.Ability.Steps),
             };
-            if (!HasSlotCandidates(context)) continue;
+            if (!HasSlotCandidates(context, taxed: true)) continue;
             if (State.Chain.Count == 0) ChainStartedByTrigger = true;
             var item = AddAbilityItem(trigger.Controller, trigger.Source, trigger.SourceCardId, AbilityKind.Triggered,
                 AbilityText(trigger.SourceCardId, trigger.Ability), trigger.Ability.Steps, context);

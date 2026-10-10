@@ -5,7 +5,7 @@ namespace CromoBound.Engine.Effects.Resolvers;
 
 /// <summary>Turns conditions into true or false (spec §4.5): all, any, not, empowered (the source is Empowered), legion (the
 /// controller played a card this turn; read while a card is being played, so its own play isn't counted yet), exists (a reference
-/// finds an object), compare, paid (an additional cost recorded as paid, Task 5) and turnOf.
+/// finds an object), compare, paid (an additional cost recorded as paid) and turnOf.
 /// <see cref="EffectsSupport"/> keeps every other condition out of the files it runs.</summary>
 internal static class ConditionResolver
 {

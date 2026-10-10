@@ -1,3 +1,4 @@
+using CromoBound.Data;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Events;
@@ -5,6 +6,7 @@ using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
 using CromoBound.Models.Cards;
 using CromoBound.Models.Effects;
+using CromoBound.Models.Json;
 using static CromoBound.Engine.Tests.TestGame;
 
 namespace CromoBound.Engine.Tests;
@@ -71,6 +73,7 @@ public class FioraDeckTests
         var game = Real("harnessed-dragon", "order-rune");
         game.Put("harnessed-dragon", Place.Hand(P1));
         game.Runes(P1, "order-rune", 8);
+        var mine = game.Put("unit-2", Place.Base(P1));
         game.Put("unit-2", Place.Base(P2));
         var big = game.Put("unit-3", Place.Base(P2));
         var engine = game.Start();
@@ -82,6 +85,60 @@ public class FioraDeckTests
 
         Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "unit-3");
         Assert.Contains(game.State.At(Place.Base(P2)), id => game.State[id].CardId == "unit-2");
+        Assert.Equal(Place.Base(P1), game.State[mine].Place);
+    }
+
+    [Fact]
+    public void Harnessed_dragon_charges_deflect_when_it_targets_an_enemy_unit_with_it()
+    {
+        var real = EngineTestDb.WithRealCards("harnessed-dragon", "order-rune");
+        var effects = real.Effects.ToDictionary(e => e.Key, e => e.Value);
+        effects["unit-3"] = new LoadedEffects("unit-3.json", CromoJson.Deserialize<EffectsFile>(
+            """{ "cardId": "unit-3", "status": "Full", "keywords": [ { "keyword": "Deflect" } ] }"""));
+        var db = new CardDatabase { Cards = real.Cards, Printings = real.Printings, Sets = real.Sets, Effects = effects };
+        var game = new TestGame(db: db);
+        game.Put("harnessed-dragon", Place.Hand(P1));
+        game.Runes(P1, "order-rune", 9);
+        var plain = game.Put("unit-2", Place.Base(P2));
+        var taxed = game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "harnessed-dragon")));
+        engine.PayWithSuggestion(P1);
+        engine.Accept(P1, new ChooseTargets { Targets = [taxed] });
+
+        var cost = engine.Decision<PayCostDecision>().Cost;
+        Assert.Equal(0, cost.Energy);
+        Assert.Equal(new[] { PowerSymbol.Any }, cost.Power);
+        engine.PayWithSuggestion(P1);
+        PassBoth(engine);
+
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "unit-3");
+        Assert.Equal(Place.Base(P2), game.State[plain].Place);
+    }
+
+    [Fact]
+    public void Harnessed_dragon_skips_a_deflect_unit_its_player_cant_pay_for()
+    {
+        var real = EngineTestDb.WithRealCards("harnessed-dragon", "order-rune");
+        var effects = real.Effects.ToDictionary(e => e.Key, e => e.Value);
+        effects["unit-3"] = new LoadedEffects("unit-3.json", CromoJson.Deserialize<EffectsFile>(
+            """{ "cardId": "unit-3", "status": "Full", "keywords": [ { "keyword": "Deflect", "value": 9 } ] }"""));
+        var db = new CardDatabase { Cards = real.Cards, Printings = real.Printings, Sets = real.Sets, Effects = effects };
+        var game = new TestGame(db: db);
+        game.Put("harnessed-dragon", Place.Hand(P1));
+        game.Runes(P1, "order-rune", 8);
+        game.Put("unit-2", Place.Base(P2));
+        var taxed = game.Put("unit-3", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "harnessed-dragon")));
+        engine.PayWithSuggestion(P1);
+
+        Assert.IsType<PriorityDecision>(engine.Pending);
+        PassBoth(engine);
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "unit-2");
+        Assert.Equal(Place.Base(P2), game.State[taxed].Place);
     }
 
     [Fact]
@@ -225,6 +282,26 @@ public class FioraDeckTests
         engine.Accept(P1, new ChooseOptional(true));
         engine.Accept(P1, new CancelPlay());
 
+        Assert.Equal(hand, game.State.At(Place.Hand(P1)).Count);
+        Assert.Empty(game.State.Chain);
+    }
+
+    [Fact]
+    public void Answering_no_at_sunken_temple_keeps_the_hand_and_asks_for_no_payment()
+    {
+        var game = new TestGame(db: EngineTestDb.WithRealCards("sunken-temple"), firstBattlefield: "sunken-temple");
+        game.State.Battlefields[0].Controller = P1;
+        var big = game.Put("unit-3", Place.Battlefield(0));
+        game.State[big].Modifiers.Add(new MightModifier(2, Duration.ThisTurn));
+        game.Runes(P1, "fury-rune", 1);
+        var engine = game.Start(first: P2);
+        var hand = game.State.At(Place.Hand(P1)).Count;
+
+        engine.RunNow(new StepTask(g => g.Score(P1, 0, ScoreKind.Conquer)));
+        PassBoth(engine);
+        engine.Accept(P1, new ChooseOptional(false));
+
+        Assert.IsNotType<PayCostDecision>(engine.Pending);
         Assert.Equal(hand, game.State.At(Place.Hand(P1)).Count);
         Assert.Empty(game.State.Chain);
     }

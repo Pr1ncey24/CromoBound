@@ -33,6 +33,11 @@ public class EmpowerTests
             PassBoth(engine);
             Assert.Equal(i, game.State[kayle].EmpowerCount);
             Assert.Equal(3 + 2 * i, engine.MightOf(kayle));
+            if (i < 3)
+            {
+                Assert.False(engine.Has(game.State[kayle], DisplayKeyword.Ganking));
+                Assert.Equal(0, Effects.Modifiers.KeywordValue(engine, game.State[kayle], MechanicalKeyword.Deflect));
+            }
         }
 
         Assert.True(engine.Has(game.State[kayle], DisplayKeyword.Ganking));

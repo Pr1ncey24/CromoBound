@@ -23,9 +23,29 @@ public sealed partial class Game
             Controller = player, Source = card.Id, SourceCardId = card.CardId, Slots = TargetSlots.Of(SpellSteps(card.CardId)),
         });
 
-    /// <summary>Every slot has at least as many candidates as it requires.</summary>
-    internal bool HasSlotCandidates(EffectContext context) =>
-        context.Slots.All(slot => ObjectResolver.Candidates(this, context, slot).Count >= (slot.Count ?? 0));
+    /// <summary>Every slot has at least as many candidates as it requires. A <paramref name="taxed"/> check (a triggered ability)
+    /// leaves out the enemy Deflect units its controller can't pay for.</summary>
+    internal bool HasSlotCandidates(EffectContext context, bool taxed = false) =>
+        context.Slots.All(slot => SlotCandidates(context, slot, taxed).Count >= (slot.Count ?? 0));
+
+    /// <summary>The slot's candidates. A triggered ability can't be cancelled when it goes on the chain, so an enemy unit with
+    /// Deflect X is a candidate only if its controller could pay X [A] now, on top of the tax of the targets already chosen.</summary>
+    private List<ObjectId> SlotCandidates(EffectContext context, ObjectRef slot, bool taxed)
+    {
+        var options = ObjectResolver.Candidates(this, context, slot);
+        if (!taxed) return options;
+        var owed = Modifiers.DeflectTax(this, context.Controller, context.Targets.SelectMany(t => t));
+        var domains = Db.Cards[context.SourceCardId].Domains;
+        var pool = State.Player(context.Controller).Pool;
+        var runes = RunesOf(context.Controller);
+        return [.. options.Where(Affordable)];
+
+        bool Affordable(ObjectId option)
+        {
+            var tax = Modifiers.DeflectTax(this, context.Controller, [option]);
+            return tax == 0 || Payment.Suggest(pool, new TotalCost(0, [.. Enumerable.Repeat(PowerSymbol.Any, owed + tax)]), domains, runes) is not null;
+        }
+    }
 
     /// <summary>Spec §5.1: the spell's slots, chosen while it is played; cancelling undoes the play.</summary>
     private bool AskTargets(PlayCardTask task)
@@ -48,14 +68,15 @@ public sealed partial class Game
     }
 
     /// <summary>One decision per unfilled slot, in JSON order (spec §5.1). When the candidates are exactly as many as required the
-    /// choice is forced: it is applied without asking and announced with <see cref="ChoiceMade"/>. Returns true when it asked.
+    /// choice is forced: it is applied without asking and announced with <see cref="ChoiceMade"/>. Returns true when it asked. A
+    /// <paramref name="taxed"/> choice (a triggered ability) offers only the Deflect units its controller can pay for.
     /// Callers check <see cref="HasSlotCandidates"/> first.</summary>
-    internal bool AskSlotTargets(PlayerId player, ObjectId card, EffectContext context, ChainItem? item, Action? onCancel)
+    internal bool AskSlotTargets(PlayerId player, ObjectId card, EffectContext context, ChainItem? item, Action? onCancel, bool taxed = false)
     {
         while (context.Targets.Count < context.Slots.Count)
         {
             var slot = context.Slots[context.Targets.Count];
-            var options = ObjectResolver.Candidates(this, context, slot);
+            var options = SlotCandidates(context, slot, taxed);
             var min = Math.Min(slot.Count ?? 0, options.Count);
             var max = Math.Min(slot.Count ?? slot.UpTo ?? 0, options.Count);
             if (options.Count == min)

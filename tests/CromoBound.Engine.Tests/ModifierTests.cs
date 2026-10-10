@@ -59,4 +59,32 @@ public class ModifierTests
 
         Assert.Equal(6, engine.MightOf(poro));
     }
+
+    [Fact]
+    public void A_passive_might_amount_that_reads_the_holders_might_leaves_out_its_own_passive_might()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("unit-2", """
+            { "cardId": "unit-2", "status": "Full", "abilities": [ { "kind": "Passive", "modifiers": [
+              { "type": "ModifyMight", "amount": { "prop": "Might", "of": { "ref": "Self" } }, "appliesTo": { "ref": "Self" } } ] } ] }
+            """)));
+        var unit = game.Put("unit-2", Place.Base(P1));
+        var engine = game.Start();
+
+        Assert.Equal(4, engine.MightOf(unit));
+    }
+
+    [Fact]
+    public void A_gear_might_amount_that_reads_its_host_leaves_out_the_hosts_passive_might()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", """
+            { "cardId": "gear-1", "status": "Full", "abilities": [ { "kind": "Passive", "modifiers": [
+              { "type": "ModifyMight", "amount": { "prop": "Might", "of": { "ref": "Host" } }, "appliesTo": { "ref": "Host" } } ] } ] }
+            """)));
+        var unit = game.Put("unit-2", Place.Base(P1));
+        var gear = game.Put("gear-1", Place.Base(P1));
+        game.State[gear].AttachedTo = unit;
+        var engine = game.Start();
+
+        Assert.Equal(4, engine.MightOf(unit));
+    }
 }

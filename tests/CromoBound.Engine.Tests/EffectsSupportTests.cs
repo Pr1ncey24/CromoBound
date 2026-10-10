@@ -80,4 +80,51 @@ public class EffectsSupportTests
 
         Assert.Equal(new[] { "abilities[0].steps[0]: filter" }, EffectsSupport.Problems(file, Models.Cards.CardType.Spell));
     }
+
+    [Theory]
+    [InlineData("""["Any"]""", true)]
+    [InlineData("[]", true)]
+    [InlineData("""["Fury"]""", false)]
+    [InlineData("""["Any", "Any"]""", false)]
+    public void A_keyword_cost_reduction_may_only_lower_one_power_of_any_kind(string orPower, bool supported)
+    {
+        var file = CromoJson.Deserialize<EffectsFile>($$"""
+            { "cardId": "unit-2", "status": "Full", "abilities": [ { "kind": "Passive", "modifiers": [
+              { "type": "KeywordCostReduction", "keyword": "Empower", "energy": 1, "orPower": {{orPower}}, "appliesTo": { "ref": "Self" } } ] } ] }
+            """);
+
+        var expected = supported ? Array.Empty<string>() : ["abilities[0]: modifier KeywordCostReduction"];
+        Assert.Equal(expected, EffectsSupport.Problems(file, Models.Cards.CardType.Unit));
+    }
+
+    [Theory]
+    [InlineData("""{ "paid": "body" }""")]
+    [InlineData("""{ "not": { "paid": "body" } }""")]
+    [InlineData("""{ "all": [ { "legion": true }, { "any": [ { "paid": "body" } ] } ] }""")]
+    public void A_paid_condition_is_refused_in_a_triggers_if(string condition)
+    {
+        var file = CromoJson.Deserialize<EffectsFile>($$"""
+            { "cardId": "unit-2", "status": "Full", "abilities": [ { "kind": "Triggered",
+              "trigger": { "event": "Played", "subject": { "ref": "Self" } }, "if": {{condition}},
+              "steps": [ { "action": "Draw", "amount": 1 } ] } ] }
+            """);
+
+        Assert.Equal(new[] { "abilities[0]: if" }, EffectsSupport.Problems(file, Models.Cards.CardType.Unit));
+    }
+
+    [Fact]
+    public void A_paid_condition_is_refused_in_a_passives_while_and_condition()
+    {
+        var onWhile = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "unit-2", "status": "Full", "abilities": [ { "kind": "Passive", "while": { "paid": "body" },
+              "modifiers": [ { "type": "ModifyMight", "amount": 1, "appliesTo": { "ref": "Self" } } ] } ] }
+            """);
+        var onCondition = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "unit-2", "status": "Full", "abilities": [ { "kind": "Passive", "condition": { "not": { "paid": "body" } },
+              "modifiers": [ { "type": "ModifyMight", "amount": 1, "appliesTo": { "ref": "Self" } } ] } ] }
+            """);
+
+        Assert.Equal(new[] { "abilities[0]: while" }, EffectsSupport.Problems(onWhile, Models.Cards.CardType.Unit));
+        Assert.Equal(new[] { "abilities[0]: condition, activeIn or script" }, EffectsSupport.Problems(onCondition, Models.Cards.CardType.Unit));
+    }
 }
