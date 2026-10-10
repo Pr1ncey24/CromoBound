@@ -71,6 +71,18 @@ Each one is small and self-contained, and goes in only because a card above need
 - Mighty means 5 or more might (CR 706-711).
 - The game keeps the set of Mighty units in its state. A unit entering the board joins the set silently if it is already Mighty (§4.1). After each step, cleanup and might change, the game compares, and emits `BecameMighty` for each unit already on the board that crossed to 5 or more. Because the set is in the state, replay and undo need nothing new.
 
+### 3.8 Paying or refusing Deflect (Plan P)
+- One rule for spells, activations and triggers, replacing Plan O's two Deflect paths:
+  - Once the targets are chosen, every enemy target with Deflect X is listed with its tax.
+  - The player picks which of them to pay for.
+  - The ones not picked are removed from their slots, and their tax is not added.
+  - Then the cost is paid as usual: a play's or activation's total, or for a trigger, the tax alone.
+- Refusing every taxed target is allowed. The effect still resolves for its other targets, or does nothing if none are left.
+- A trigger no longer filters Deflect units out by affordability. If the player can't pay, they refuse the tax.
+- Its "tax paid" mark lives on the chain item. This removes the double-charge bug and the joint-affordability gap carried over from Plan O.
+- A refused target is announced with a public event, so the log can say "giulia didn't pay Deflect for Kayle".
+- The board needs a panel for this choice, to be mocked with 4b-2.
+
 ### 3.7 Elder Dragon's lethal damage
 - Each unit remembers which players' sources damaged it this turn (cleared with the damage at end of turn).
 - Cleanup also kills an enemy unit that has any damage from a player who controls an active Lethal passive.
@@ -91,6 +103,7 @@ The owner's rulings (2026-10-10) are marked **owner**; the rest are this design'
 9. **Repulse:** it counters an enemy spell or ability on the chain whose chosen targets include your chosen unit and no other unit you control.
 10. **Sacrifice:** killing the Mighty unit is a kill, so its Deathknell triggers (Rift Herald).
 11. **Equipment:** Doran's Blade and Shepherd's Heirloom print +2 might, which the card data lacks. Their files give it to the unit they're attached to.
+12. **Refusing a Deflect tax (owner, 2026-10-10):** when a spell or ability chooses enemy targets with Deflect, the player may refuse to pay the tax for any of those targets. A refused target is dropped from the effect: nothing the effect does reaches it, and the rest of the effect still happens. Example: Falling Star chooses two units and one has Deflect; refusing that tax deals 3 only to the other unit.
 
 ## 5. Testing
 
@@ -106,5 +119,6 @@ The owner's rulings (2026-10-10) are marked **owner**; the rest are this design'
 - **Plan P:** §3.3, §3.6 and §3.7, the chain and the deck: Riposte, Repulse, Grim Resolve, Fiora Grand Duelist, Elder Dragon, Rift Herald, Dazzling Aurora; then the interaction and replay tests.
 
 ### Carried into Plan P from Plan O's final review
+- Both items below are solved by §3.8 (paying or refusing Deflect), which Plan P implements first.
 - **Trigger Deflect tax charged twice:** the "tax paid" mark lives on the targeting task, not the chain item, so a later targeting trigger can charge an item that already paid (and cancelling clears its targets). Plan P's first task keeps the mark on the chain item, with a test for a second trigger arriving while a paid item is still on the chain.
 - One slot choosing several Deflect units isn't checked for joint affordability; `TargetsChosen` repeats after a cancelled tax with no retraction.
