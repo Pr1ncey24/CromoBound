@@ -9,6 +9,9 @@ internal sealed class ServerOptions
     public string DatabasePath { get; set; } = "cromobound.db";
     public string DataFolder { get; set; } = "data";
 
+    /// <summary>The folder of card images, <c>{printingId}.png</c>, filled by the importer's <c>images</c> command (spec §3).</summary>
+    public string CardImagesPath { get; set; } = "card-images";
+
     /// <summary>Where the keys that encrypt the session cookie are kept; unset means the framework's default folder.</summary>
     public string? KeysFolder { get; set; }
 

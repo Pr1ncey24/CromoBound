@@ -1,5 +1,6 @@
 using CromoBound.Server;
 using CromoBound.Server.Accounts;
+using CromoBound.Server.Cards;
 using CromoBound.Server.Hubs;
 using CromoBound.Server.Matches;
 using CromoBound.Server.Storage;
@@ -13,6 +14,7 @@ builder.Services.AddCromoBoundStorage(builder.Configuration);
 builder.Services.AddCromoBoundAccounts(builder.Configuration);
 builder.Services.AddCromoBoundProxies();
 builder.Services.AddCromoBoundMatches();
+builder.Services.AddCromoBoundCards();
 // A body that can't be read is a plain 400 in every environment, never an exception (a 500).
 builder.Services.Configure<RouteHandlerOptions>(handlers => handlers.ThrowOnBadRequest = false);
 
@@ -29,6 +31,7 @@ app.UseAuthorization();
 app.MapAccounts();
 app.MapAdmin();
 app.MapMaintenance();
+app.MapCards();
 // A hub connection can outlive the sign-in cookie, so it is closed when the cookie expires.
 app.MapHub<GameHub>("/hub", options => options.CloseOnAuthenticationExpiration = true).RequireAuthorization(Policies.Seat);
 // The Blazor app's files, as endpoints, so the fallback policy keeps them behind sign-in.
