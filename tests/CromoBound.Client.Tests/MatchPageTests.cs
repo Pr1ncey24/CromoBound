@@ -100,6 +100,28 @@ public class MatchPageTests
     }
 
     [Fact]
+    public async Task A_double_click_on_concede_asks_and_submits_once()
+    {
+        await using var ui = Playing();
+        var dialogs = ui.RenderDialogs();
+        var cut = Render(ui);
+        var button = cut.WaitForElement("#concede");
+
+        await cut.InvokeAsync(() =>
+        {
+            button.Click();
+            button.Click();
+        });
+
+        dialogs.WaitForAssertion(() => Assert.Single(dialogs.FindAll("#confirm-concede")));
+        await dialogs.ClickAsync("#confirm-concede");
+
+        cut.WaitForAssertion(() => Assert.Equal(new[] { $"Submit {M} Concede" }, ui.Hub.Calls));
+        Assert.Single(ui.Hub.Actions);
+        cut.WaitForAssertion(() => Assert.False(cut.Find("#concede").HasAttribute("disabled")));
+    }
+
+    [Fact]
     public async Task In_a_best_of_one_conceding_gives_the_match()
     {
         await using var ui = Playing(game: 1, myWins: 0, format: MatchFormat.Bo1);

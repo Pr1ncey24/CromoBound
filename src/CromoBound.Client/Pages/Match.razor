@@ -57,6 +57,7 @@
 
     private bool busy;
     private bool resultShown;
+    private bool disposed;
 
     private string Me => Session.Me?.UserName ?? "";
     private string Opponent => Lobby.Opponent ?? "your opponent";
@@ -99,7 +100,7 @@
     private async Task ShowEndThenLeaveAsync(MatchEndedNotice ended)
     {
         await ShowEndAsync(ended);
-        Nav.NavigateTo("");
+        if (!disposed) Nav.NavigateTo("");
     }
 
     private async Task ShowEndAsync(MatchEndedNotice ended)
@@ -118,26 +119,34 @@
         await (await Dialogs.ShowAsync<ResultDialog>(title, parameters, DialogDefaults.Options)).Result;
     }
 
+    /// <summary>The page is busy from the click, not from the confirmation: a quick second click must not open a second dialog and
+    /// concede twice.</summary>
     private async Task ConcedeAsync()
     {
-        if (Lobby.CurrentView is not { } view) return;
-        var message = view.Format == MatchFormat.Bo3
-            ? $"{Opponent} wins game {view.GameNumber}. In a best of three, the match goes on to the next game unless this one decides it."
-            : $"{Opponent} wins the match.";
-        var dialog = await Dialogs.ShowAsync<ConcedeDialog>("Concede this game?",
-            new DialogParameters<ConcedeDialog> { { d => d.Message, message } }, DialogDefaults.Options);
-        if (await dialog.Result is not { Canceled: false }) return;
+        if (busy || Lobby.CurrentView is not { } view) return;
         busy = true;
+        StateHasChanged();
         try
         {
+            var message = view.Format == MatchFormat.Bo3
+                ? $"{Opponent} wins game {view.GameNumber}. In a best of three, the match goes on to the next game unless this one decides it."
+                : $"{Opponent} wins the match.";
+            var dialog = await Dialogs.ShowAsync<ConcedeDialog>("Concede this game?",
+                new DialogParameters<ConcedeDialog> { { d => d.Message, message } }, DialogDefaults.Options);
+            if (await dialog.Result is not { Canceled: false }) return;
             var reply = await Hub.SubmitAsync(Id, new Concede());
             if (!reply.Accepted) Snackbar.Add(reply.Rejection?.Message ?? reply.Error ?? GameConnection.Unexpected, Severity.Error);
         }
         finally
         {
             busy = false;
+            if (!disposed) await InvokeAsync(StateHasChanged);
         }
     }
 
-    public void Dispose() => Lobby.Changed -= OnChanged;
+    public void Dispose()
+    {
+        disposed = true;
+        Lobby.Changed -= OnChanged;
+    }
 }
