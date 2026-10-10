@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "sacrifice",
+  "status": "Full",
+  "keywords": [ { "keyword": "Reaction" } ],
+  "additionalCosts": [
+    { "id": "sacrifice",
+      "cost": { "actions": [ { "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "relation": "Friendly", "mighty": true } } } ] } }
+  ],
+  "abilities": [
+    { "kind": "Spell", "line": 3,
+      "steps": [ { "action": "Draw", "amount": 2 }, { "action": "Channel", "count": 1, "exhausted": true } ] }
+  ]
+}

@@ -60,6 +60,9 @@ internal sealed class FileValidator(CardDatabase db, LoadedEffects loaded, List<
             WalkSteps(cost.OnPaid, Copy(baseScope), at + ".onPaid");
         }
 
+        // A paid additional cost is a variable (number 1, or 0 when unpaid) for the keywords and abilities.
+        foreach (var cost in File.AdditionalCosts) baseScope.Add(cost.Id);
+
         for (var i = 0; i < File.Keywords.Count; i++)
         {
             var keyword = File.Keywords[i];

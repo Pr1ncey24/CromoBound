@@ -63,6 +63,18 @@ public class EffectsValidatorTests
     }
 
     [Fact]
+    public void An_additional_cost_id_is_a_variable_in_the_abilities()
+    {
+        var issues = Validate(Kharox, """
+            { "cardId": "kharox", "status": "Full",
+              "additionalCosts": [ { "id": "body", "optional": true, "cost": { "power": ["Body"] } } ],
+              "abilities": [ { "kind": "Spell", "line": 1,
+                "steps": [ { "action": "Burn", "player": "You", "amount": { "mul": [2, { "var": "body" }] } } ] } ] }
+            """);
+        Assert.Empty(issues);
+    }
+
+    [Fact]
     public void Duplicate_additional_cost_ids_are_reported()
     {
         var issues = Validate(Kharox, """

@@ -49,11 +49,11 @@ public sealed partial class Game
         {
             var card = State[id];
             var timing = HasPlayTiming(player, card) || AmbushBattlefields(player, card).Count > 0;
-            if (timing && HasTargetsFor(player, card)) yield return id;
+            if (timing && HasTargetsFor(player, card) && HasAdditionalCostCandidates(player, card)) yield return id;
         }
         foreach (var battlefield in State.Battlefields)
             foreach (var id in State.At(Place.Facedown(battlefield.Index)))
-                if (CanPlayFromHidden(State[id], player) && HasTargetsFor(player, State[id])) yield return id;
+                if (CanPlayFromHidden(State[id], player) && HasTargetsFor(player, State[id]) && HasAdditionalCostCandidates(player, State[id])) yield return id;
     }
 
     /// <summary>The card's own timing: anything in your Neutral Open Main, Reaction any time, Action while no chain exists.</summary>

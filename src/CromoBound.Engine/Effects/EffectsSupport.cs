@@ -30,7 +30,8 @@ internal static class EffectsSupport
     {
         var problems = new List<string>();
         if (file.Overrides is not null) problems.Add("overrides");
-        if (file.AdditionalCosts.Count > 0) problems.Add("additionalCosts");
+        for (var c = 0; c < file.AdditionalCosts.Count; c++)
+            if (!IsSupportedAdditionalCost(file.AdditionalCosts[c])) problems.Add($"additionalCosts[{c}]");
         if (file.AsYouPlay.Count > 0) problems.Add("asYouPlay");
         for (var k = 0; k < file.Keywords.Count; k++) CheckKeyword(file.Keywords[k], $"keywords[{k}]", problems);
         for (var i = 0; i < file.Abilities.Count; i++) CheckAbility(file.Abilities[i], type, $"abilities[{i}]", problems);
@@ -137,6 +138,16 @@ internal static class EffectsSupport
         _ => false,
     };
 
+    /// <summary>Energy and power, or one kill of a unit selector with a supported filter; no steps on paying, no cost changes.</summary>
+    private static bool IsSupportedAdditionalCost(AdditionalCost cost) =>
+        cost.OnPaid.Count == 0 && cost.ModifiesCost is null && cost.Cost.ExhaustSelf is null
+        && cost.Cost.Actions switch
+        {
+            [] => true,
+            [KillStep kill] => kill.Target is { Select: SelectKind.Unit, Count: not null } target && IsSupportedFilter(target.Filter) && IsPlain(kill),
+            _ => false,
+        };
+
     /// <summary>A cost action acts for the ability's controller and names nothing else.</summary>
     private static bool IsPlain(Step step) => step.Player is null && step.Chooser is null && step.Script is null && step.Store is null;
 
@@ -167,7 +178,8 @@ internal static class EffectsSupport
                 break;
             case DealStep deal:
                 CheckValue(deal.Amount, at, problems);
-                if (deal.Split is not null || deal.Bonus is not null || deal.Source is not null) problems.Add($"{at}: split, bonus or source");
+                if (deal.Split is not null || deal.Bonus is not null) problems.Add($"{at}: split or bonus");
+                if (deal.Source is { } source && source.Ref != RefKind.Self && source.Var is null) problems.Add($"{at}: source");
                 break;
             case ChannelStep channel:
                 CheckValue(channel.Count, at, problems);

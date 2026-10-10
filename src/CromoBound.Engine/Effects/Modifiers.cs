@@ -78,6 +78,7 @@ internal static class Modifiers
     /// <summary>A play's total cost (spec §4.7, rule 356):
     /// - the base cost (none from Hidden or when an effect ignores it), plus Accelerate;
     /// - then one [A] per Deflect on each target an opponent of the player controls, counted per choice (CR 809);
+    /// - plus the additional costs paid (energy and power);
     /// - then the card's own energy reductions (Legion), energy never below 0.</summary>
     public static TotalCost CostOf(Game game, PlayCardTask task)
     {
@@ -85,13 +86,20 @@ internal static class Modifiers
         var card = game.State[item.Card!.Value];
         var cost = Payment.CostOf(game.CardOf(card), task.FromHidden || task.IgnoreCost, item.Accelerate);
         List<PowerSymbol> power = [.. cost.Power];
+        var extra = 0;
+        foreach (var additional in game.Effects.For(card.CardId).AdditionalCosts)
+            if (item.Effect is { } paidIn && paidIn.Vars.TryGetValue(additional.Id, out var paid) && paid.Happened)
+            {
+                extra += additional.Cost.Energy ?? 0;
+                power.AddRange(additional.Cost.Power);
+            }
         IEnumerable<ObjectId> targets = item.Effect is { } effect ? effect.Targets.SelectMany(t => t) : [];
         foreach (var target in targets)
             if (game.State.Exists(target) && game.State[target].Controller != task.Player)
                 power.AddRange(Enumerable.Repeat(PowerSymbol.Any, KeywordValue(game, game.State[target], MechanicalKeyword.Deflect)));
         var context = new EffectContext { Controller = task.Player, Source = card.Id, SourceCardId = card.CardId };
         var reduction = OwnPassives(game, card, context).OfType<CostReductionModifier>().Sum(m => ValueResolver.Resolve(game, context, m.Energy!));
-        return new TotalCost(Math.Max(0, cost.Energy - reduction), power);
+        return new TotalCost(Math.Max(0, cost.Energy + extra - reduction), power);
     }
 
     /// <summary>Whether one of the card's passive abilities gives the card the permission now (spec §4.7).</summary>

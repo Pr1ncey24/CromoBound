@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "rampage",
+  "status": "Full",
+  "additionalCosts": [ { "id": "body", "optional": true, "cost": { "power": ["Body"] } } ],
+  "abilities": [
+    { "kind": "Spell", "line": [1, 2],
+      "steps": [
+        { "action": "ModifyMight", "target": { "select": "Unit", "count": 1, "filter": { "relation": "Friendly" } },
+          "amount": { "mul": [2, { "var": "body" }] }, "duration": "ThisTurn", "store": "friend" },
+        { "action": "Deal", "target": { "select": "Unit", "count": 1, "filter": { "relation": "Enemy" } },
+          "amount": { "prop": "Might", "of": { "var": "friend" } }, "source": { "var": "friend" }, "store": "foe" },
+        { "action": "Deal", "target": { "var": "friend" },
+          "amount": { "prop": "Might", "of": { "var": "foe" } }, "source": { "var": "foe" } }
+      ] }
+  ]
+}

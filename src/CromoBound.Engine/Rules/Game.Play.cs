@@ -8,7 +8,7 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
-internal enum PlayStep { ToChain, Choices, Targets, Cost, Pay, Finalize, Cancelled }
+internal enum PlayStep { ToChain, Choices, Targets, Extra, Cost, Pay, Finalize, Cancelled }
 
 /// <summary>Playing a card, CR 353-359: to the chain, choices, total cost, payment, finalize.</summary>
 internal sealed class PlayCardTask(PlayerId player, ObjectId source) : GameTask
@@ -57,7 +57,11 @@ public sealed partial class Game
                     break;
                 case PlayStep.Targets:
                     if (AskTargets(task)) return false;
-                    if (task.Step == PlayStep.Targets) task.Step = PlayStep.Cost;
+                    if (task.Step == PlayStep.Targets) task.Step = PlayStep.Extra;
+                    break;
+                case PlayStep.Extra:
+                    if (AskAdditionalCosts(task)) return false;
+                    if (task.Step == PlayStep.Extra) task.Step = PlayStep.Cost;
                     break;
                 case PlayStep.Cost:
                     task.Cost = Modifiers.CostOf(this, task);
@@ -70,6 +74,7 @@ public sealed partial class Game
                         onAdjust: adjusted => task.Cost = adjusted);
                     return false;
                 case PlayStep.Finalize:
+                    PayAdditionalActions(task);
                     FinishFinalizing(task);
                     return true;
                 default:
