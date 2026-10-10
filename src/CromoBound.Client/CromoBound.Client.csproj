@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="CromoBound.Client.Tests" />
+    <InternalsVisibleTo Include="CromoBound.Server.Tests" />
   </ItemGroup>
 
 </Project>
