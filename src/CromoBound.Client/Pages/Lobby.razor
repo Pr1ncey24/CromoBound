@@ -92,6 +92,7 @@
 @code {
     private int deckCount;
     private bool busy;
+    private bool running;
 
     private string Me => Session.Me?.UserName ?? "";
 
@@ -102,7 +103,8 @@
         var n => $"Pick an opponent and a deck. {n} of your friends are online.",
     };
 
-    private bool CanAnswer => State.IsConnected && !busy;
+    /// <summary>One flow at a time: while a dialog is open or a call is in flight, no other answer can start.</summary>
+    private bool CanAnswer => State.IsConnected && !busy && !running;
     private bool CanAccept => CanAnswer && !State.Maintenance && State.MatchId is null;
     private bool CanChallenge(PlayerPresence player) => CanAccept && State.Sent is null && !player.InMatch;
 
@@ -130,6 +132,22 @@
 
     private async Task ChallengeAsync(string opponent)
     {
+        if (!CanAccept || State.Sent is not null) return;
+        running = true;
+        StateHasChanged();
+        try
+        {
+            await ChallengeFlowAsync(opponent);
+        }
+        finally
+        {
+            running = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChallengeFlowAsync(string opponent)
+    {
         var (format, deckId) = (MatchFormat.Bo1, (string?)null);
         while (true)
         {
@@ -152,6 +170,22 @@
 
     private async Task AcceptAsync(ChallengeInfo challenge)
     {
+        if (!CanAccept) return;
+        running = true;
+        StateHasChanged();
+        try
+        {
+            await AcceptFlowAsync(challenge);
+        }
+        finally
+        {
+            running = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AcceptFlowAsync(ChallengeInfo challenge)
+    {
         string? deckId = null;
         while (true)
         {
@@ -163,7 +197,7 @@
             if (await dialog.Result is not { Canceled: false, Data: AcceptChoice choice }) return;
             if (choice.Answer == AcceptAnswer.Decline || choice.Deck is not { } deck)
             {
-                await DeclineAsync(challenge);
+                await CallAsync(() => Hub.DeclineAsync(challenge.ChallengeId));
                 return;
             }
             deckId = deck.Id;
@@ -173,15 +207,22 @@
         }
     }
 
-    private async Task DeclineAsync(ChallengeInfo challenge) => await CallAsync(() => Hub.DeclineAsync(challenge.ChallengeId));
+    private async Task DeclineAsync(ChallengeInfo challenge)
+    {
+        if (CanAnswer) await CallAsync(() => Hub.DeclineAsync(challenge.ChallengeId));
+    }
 
-    private async Task CancelAsync(ChallengeInfo challenge) => await CallAsync(() => Hub.CancelAsync(challenge.ChallengeId));
+    private async Task CancelAsync(ChallengeInfo challenge)
+    {
+        if (CanAnswer) await CallAsync(() => Hub.CancelAsync(challenge.ChallengeId));
+    }
 
     /// <summary>Runs one hub call with the buttons off. A refusal without deck problems is shown as it comes, and the lobby is
     /// reloaded, so a challenge that is gone disappears; deck problems are left to <see cref="PickAnotherAsync"/>.</summary>
     private async Task<HubReply> CallAsync(Func<Task<HubReply>> call)
     {
         busy = true;
+        StateHasChanged();
         HubReply reply;
         try
         {
@@ -190,6 +231,7 @@
         finally
         {
             busy = false;
+            StateHasChanged();
         }
         if (reply.Error is { } error && reply.DeckIssues is not { Count: > 0 })
         {

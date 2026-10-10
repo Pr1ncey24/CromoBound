@@ -25,6 +25,9 @@ internal sealed class FakeGameHub : IGameHub
     /// <summary>What the next challenge call answers, by method name ("Challenge", "Accept", "Decline", "Cancel"); Ok by default.</summary>
     public Dictionary<string, HubReply> Replies { get; } = [];
 
+    /// <summary>When set, the challenge call waits for it before answering, so a test can look at the page while the call is in flight.</summary>
+    public TaskCompletionSource? Hold { get; set; }
+
     public SubmitReply Submitted { get; set; } = new(true, null, null);
     public List<PlayerAction> Actions { get; } = [];
     public List<Deck> Decks { get; } = [];
@@ -66,11 +69,12 @@ internal sealed class FakeGameHub : IGameHub
         return Task.FromResult(Match);
     }
 
-    public Task<HubReply> ChallengeAsync(string opponent, MatchFormat format, Deck deck)
+    public async Task<HubReply> ChallengeAsync(string opponent, MatchFormat format, Deck deck)
     {
         Calls.Add($"Challenge {opponent} {format} {deck.Name}");
         Decks.Add(deck);
-        return Task.FromResult(Reply("Challenge"));
+        if (Hold is { } hold) await hold.Task;
+        return Reply("Challenge");
     }
 
     public Task<HubReply> AcceptAsync(Guid challengeId, Deck deck)

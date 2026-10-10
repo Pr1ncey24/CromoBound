@@ -65,6 +65,25 @@ public class LobbyPageTests
     }
 
     [Fact]
+    public async Task While_a_challenge_is_being_sent_every_challenge_button_is_off()
+    {
+        await using var ui = await LobbyAsync();
+        var hold = ui.Hub.Hold = new TaskCompletionSource();
+        var dialogs = ui.RenderDialogs();
+        var cut = ui.Ctx.Render<Lobby>();
+
+        await cut.ClickAsync("[data-player='giulia'] .challenge");
+        await dialogs.ClickAsync("#send-challenge");
+
+        cut.WaitForAssertion(() => Assert.Single(ui.Hub.Calls));
+        cut.WaitForAssertion(() => Assert.All(cut.FindAll(".challenge"), b => Assert.True(b.HasAttribute("disabled"))));
+        hold.SetResult();
+
+        cut.WaitForAssertion(() => Assert.Equal("You challenged giulia to a best of one. Waiting for an answer.", cut.Find(".cb-sent div").TextContent));
+        Assert.Single(ui.Hub.Calls);
+    }
+
+    [Fact]
     public async Task A_refused_deck_shows_the_servers_problems_and_lets_you_pick_another()
     {
         await using var ui = await LobbyAsync();
