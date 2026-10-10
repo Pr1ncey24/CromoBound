@@ -15,8 +15,8 @@
 
 | Status | Cards |
 |---|---|
-| Full | 49 |
-| Unmapped | 886 |
+| Full | 54 |
+| Unmapped | 881 |
 
 ## Token prints without a token card (0)
 

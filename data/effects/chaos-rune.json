@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "chaos-rune",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Activated", "timing": "Reaction",
+      "cost": { "exhaustSelf": true },
+      "steps": [ { "action": "Add", "energy": 1 } ] },
+    { "kind": "Activated", "timing": "Reaction",
+      "cost": { "actions": [ { "action": "Recycle", "target": { "ref": "Self" } } ] },
+      "steps": [ { "action": "Add", "power": ["Chaos"] } ] }
+  ]
+}
