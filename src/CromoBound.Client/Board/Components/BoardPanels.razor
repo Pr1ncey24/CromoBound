@@ -205,7 +205,7 @@
                             var index = i;
                             <label class="pick @(aside.Contains(card.Id) ? "on" : "")">
                                 <CardFace Card="card" Size="hand" Upright="true" />
-                                <span><input id="@($"aside-{index}")" type="checkbox" checked="@aside.Contains(card.Id)" @onchange="e => Toggle(card.Id, e.Value is true)" /> Set aside</span>
+                                <span><input id="@($"aside-{index}")" type="checkbox" checked="@aside.Contains(card.Id)" disabled="@(aside.Count >= 2 && !aside.Contains(card.Id))" @onchange="e => Toggle(card.Id, e.Value is true)" /> Set aside</span>
                             </label>
                         }
                     </div>

@@ -154,4 +154,23 @@ public class BoardPanelsViewTests
         var mulligan = Assert.IsType<Mulligan>(Assert.Single(sent));
         Assert.Equal(new[] { hand[0].Id, hand[2].Id }, mulligan.SetAside);
     }
+
+    [Fact]
+    public async Task Once_two_cards_are_set_aside_the_other_boxes_are_disabled()
+    {
+        await using var ui = new Ui();
+        var board = new TestBoard();
+        var hand = new[] { "unit-a", "unit-b", "spell-a" }.Select(id => board.Add(board.Hand, id)).ToList();
+        var model = board.Model(new Engine.Decisions.MulliganDecision(TestBoard.Me, [.. hand.Select(c => c.Id)]));
+        var (cut, _) = Render(ui, model.Panel!);
+
+        await cut.InvokeAsync(() => cut.Find("#aside-0").Change(true));
+        await cut.InvokeAsync(() => cut.Find("#aside-1").Change(true));
+
+        Assert.False(cut.Find("#aside-0").HasAttribute("disabled"));
+        Assert.False(cut.Find("#aside-1").HasAttribute("disabled"));
+        Assert.True(cut.Find("#aside-2").HasAttribute("disabled"));
+        await cut.InvokeAsync(() => cut.Find("#aside-1").Change(false));
+        Assert.False(cut.Find("#aside-2").HasAttribute("disabled"));
+    }
 }

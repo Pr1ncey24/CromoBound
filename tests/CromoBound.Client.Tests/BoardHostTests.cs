@@ -167,4 +167,38 @@ public class BoardHostTests
 
         cut.WaitForAssertion(() => Assert.Equal(new ChoosePlayOrder(true), ui.Hub.Actions.Single()));
     }
+
+    [Fact]
+    public async Task A_page_render_with_the_same_view_keeps_the_panel_choices()
+    {
+        await using var ui = Connected();
+        var board = new TestBoard { Stage = Engine.Matches.MatchStage.Mulligan };
+        var hand = new[] { "unit-a", "unit-b" }.Select(id => board.Add(board.Hand, id)).ToList();
+        var view = board.View(new MulliganDecision(TestBoard.Me, [.. hand.Select(c => c.Id)]));
+
+        var cut = Render(ui, view);
+        cut.WaitForElement("#aside-0");
+        await cut.InvokeAsync(() => cut.Find("#aside-0").Change(true));
+        Assert.Equal("Set aside 1 and draw", cut.Find("#set-aside").TextContent.Trim());
+        cut.Render(ps => ps.Add(p => p.View, view).Add(p => p.Me, "marco").Add(p => p.Opponent, "giulia").Add(p => p.CanConcede, true));
+
+        Assert.Equal("Set aside 1 and draw", cut.Find("#set-aside").TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task A_page_render_with_the_same_view_keeps_a_half_made_move()
+    {
+        await using var ui = Connected();
+        var board = new TestBoard();
+        board.AddLane("bf-a");
+        var unit = board.Add(board.MyBase, "unit-b", might: 1);
+        var view = board.View(TestBoard.Priority(moves: [new MoveOption(unit.Id, [Place.Battlefield(0)])]));
+
+        var cut = Render(ui, view);
+        await cut.ClickAsync("button[aria-label^='Daring Poro']");
+        cut.WaitForAssertion(() => Assert.NotEmpty(cut.FindAll(".cb-hint")));
+        cut.Render(ps => ps.Add(p => p.View, view).Add(p => p.Me, "marco").Add(p => p.Opponent, "giulia").Add(p => p.CanConcede, true));
+
+        Assert.NotEmpty(cut.FindAll(".cb-hint"));
+    }
 }
