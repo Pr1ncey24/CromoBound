@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "shepherds-heirloom",
+  "status": "Full",
+  "keywords": [ { "keyword": "Equip", "cost": { "actions": [ { "action": "SpendXp", "amount": 1 } ] } } ],
+  "abilities": [
+    { "kind": "Triggered", "line": 1,
+      "trigger": { "event": "Played", "subject": { "ref": "Self" } },
+      "steps": [ { "action": "GainXp", "amount": 1 } ] },
+    { "kind": "Passive",
+      "modifiers": [ { "type": "ModifyMight", "amount": 2, "appliesTo": { "ref": "Host" } } ] }
+  ]
+}

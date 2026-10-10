@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "dorans-blade",
+  "status": "Full",
+  "keywords": [ { "keyword": "Equip", "cost": { "power": ["Body"] } } ],
+  "abilities": [
+    { "kind": "Passive",
+      "modifiers": [ { "type": "ModifyMight", "amount": 2, "appliesTo": { "ref": "Host" } } ] }
+  ]
+}

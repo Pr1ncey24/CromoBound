@@ -35,6 +35,9 @@ public sealed partial class Game
     /// <summary>Triggered abilities that fired and wait to go on the chain (spec §5.2).</summary>
     internal List<PendingTrigger> PendingTriggers { get; } = [];
 
+    /// <summary>The holders whose passives are being evaluated now: a nested might or keyword read of one sees only printed values.</summary>
+    internal HashSet<ObjectId> EvaluatingPassives { get; } = [];
+
     /// <summary>What the engine waits for. Null only when the game is over.</summary>
     public PendingDecision? Pending { get; private set; }
 
@@ -152,8 +155,11 @@ public sealed partial class Game
 
     internal Card CardOf(ObjectId id) => CardOf(State[id]);
 
-    /// <summary>Whether the card itself has the keyword: from its effects file when the engine runs it, else from the starts of its text lines (spec §7.10).</summary>
-    internal bool Has(CardInstance instance, DisplayKeyword keyword) => Effects.For(instance.CardId).Keywords.Contains(keyword);
+    /// <summary>Whether the card has the keyword: printed (from its effects file when the engine runs it, else from the starts of its
+    /// text lines, spec §7.10) or granted by one of its passives now.</summary>
+    internal bool Has(CardInstance instance, DisplayKeyword keyword) =>
+        Effects.For(instance.CardId).Keywords.Contains(keyword)
+        || Modifiers.GrantedKeywords(this, instance).Any(k => k.Keyword.ToString() == keyword.ToString());
 
     internal bool IsUnit(CardInstance instance) => CardOf(instance).Type == CardType.Unit;
 

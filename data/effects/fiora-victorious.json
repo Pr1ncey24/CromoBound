@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "fiora-victorious",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Passive", "line": 1,
+      "while": { "compare": [ { "prop": "Might", "of": { "ref": "Self" } }, "gte", 5 ] },
+      "modifiers": [
+        { "type": "GrantKeyword", "keyword": { "keyword": "Deflect" }, "appliesTo": { "ref": "Self" } },
+        { "type": "GrantKeyword", "keyword": { "keyword": "Ganking" }, "appliesTo": { "ref": "Self" } },
+        { "type": "GrantKeyword", "keyword": { "keyword": "Shield" }, "appliesTo": { "ref": "Self" } }
+      ] }
+  ]
+}

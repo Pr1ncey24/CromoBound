@@ -51,7 +51,9 @@ internal static class EffectsSupport
         if (entry.Steps.Count > 0 && !WithSteps.Contains(entry.Keyword)) problems.Add($"{at}: steps");
         if (entry.Keyword == MechanicalKeyword.Deathknell) CheckSteps(entry.Steps, at, problems, targets: false);
         if (entry.Keyword == MechanicalKeyword.Hunt && entry.Value is null) problems.Add($"{at}: value");
-        if (WithCost.Contains(entry.Keyword) && (entry.Cost is null || entry.Cost.Actions.Count > 0 || entry.Cost.ExhaustSelf is not null))
+        if (WithCost.Contains(entry.Keyword) && (entry.Cost is null || entry.Cost.ExhaustSelf is not null
+            || (entry.Cost.Actions.Count > 0 && !(entry.Keyword == MechanicalKeyword.Equip
+                && entry.Cost.Actions is [SpendXpStep { Amount.Literal: not null } spend] && IsPlain(spend)))))
             problems.Add($"{at}: cost");
     }
 
@@ -62,7 +64,7 @@ internal static class EffectsSupport
             problems.Add($"{at}: {ability.GetType().Name.Replace("Ability", "")} ability");
             return;
         }
-        var condition = ability.Condition is null || (ability is PassiveAbility && ability.Condition.Legion == true);
+        var condition = ability.Condition is null || (ability is PassiveAbility && IsSupportedCondition(ability.Condition));
         if (!condition || ability.ActiveIn is not null || ability.Script is not null)
             problems.Add($"{at}: condition, activeIn or script");
         switch (ability)
@@ -82,19 +84,27 @@ internal static class EffectsSupport
                 CheckSteps(activated.Steps, at, problems, targets: true);
                 break;
             case PassiveAbility passive:
-                if (passive.While is not null) problems.Add($"{at}: while");
+                if (passive.While is not null && !IsSupportedCondition(passive.While)) problems.Add($"{at}: while");
                 foreach (var modifier in passive.Modifiers)
                     if (!IsSupportedModifier(modifier)) problems.Add($"{at}: modifier {modifier.GetType().Name.Replace("Modifier", "")}");
                 break;
         }
     }
 
-    /// <summary>A modifier on the card itself, of a kind <see cref="Modifiers"/> evaluates: a literal energy cost reduction, or the permission to be played to a battlefield with enemy units.</summary>
-    private static bool IsSupportedModifier(Modifier modifier) => modifier.AppliesTo?.Ref == RefKind.Self && modifier switch
+    /// <summary>A modifier of a kind <see cref="Modifiers"/> evaluates: on the card itself, a literal energy cost reduction, the
+    /// permission to be played to a battlefield with enemy units, or a granted Assault, Deflect, Ganking, Shield or Tank; on the
+    /// card itself or its host, a might change.</summary>
+    private static bool IsSupportedModifier(Modifier modifier) => modifier switch
     {
-        CostReductionModifier reduction => reduction.Energy?.Literal is not null && reduction.Power.Count == 0
-            && reduction.Minimum is null && reduction.FromZone is null,
-        PermissionModifier permission => permission.Permission == Permission.PlayToBattlefieldWithEnemyUnits,
+        CostReductionModifier reduction => modifier.AppliesTo?.Ref == RefKind.Self && reduction.Energy?.Literal is not null
+            && reduction.Power.Count == 0 && reduction.Minimum is null && reduction.FromZone is null,
+        PermissionModifier permission => modifier.AppliesTo?.Ref == RefKind.Self
+            && permission.Permission == Permission.PlayToBattlefieldWithEnemyUnits,
+        ModifyMightModifier might => modifier.AppliesTo?.Ref is RefKind.Self or RefKind.Host && IsSupportedValue(might.Amount),
+        GrantKeywordModifier grant => modifier.AppliesTo?.Ref == RefKind.Self
+            && grant.Keyword.Keyword is MechanicalKeyword.Assault or MechanicalKeyword.Deflect or MechanicalKeyword.Ganking
+                or MechanicalKeyword.Shield or MechanicalKeyword.Tank
+            && grant.Keyword.Cost is null && grant.Keyword.Steps.Count == 0,
         _ => false,
     };
 
