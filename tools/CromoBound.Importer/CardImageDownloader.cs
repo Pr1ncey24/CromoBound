@@ -10,16 +10,19 @@ public sealed record ImageDownloadReport(int Downloaded, int Skipped, IReadOnlyL
 
 /// <summary>Downloads printing images into one folder as <c>{printingId}.png</c> (spec §3.1). A file already there is skipped, so a
 /// run resumes and only fetches what is new. At most <see cref="MaxAtOnce"/> downloads run at once. Only a successful, non-empty PNG
-/// answer is saved, and it is written to a temporary file first, so a failed download never leaves a file behind.</summary>
+/// answer is saved, and it is written to a temporary file first, so a failed download never leaves a file behind. The client's timeout
+/// covers the whole answer, body included, so a stalled download fails instead of hanging the run.</summary>
 public sealed class CardImageDownloader(HttpClient http)
 {
     public const int MaxAtOnce = 4;
 
-    public async Task<ImageDownloadReport> DownloadAsync(IReadOnlyList<ImageSource> images, string folder, CancellationToken cancel = default)
+    public async Task<ImageDownloadReport> DownloadAsync(IReadOnlyList<ImageSource> images, string folder, CancellationToken cancel = default,
+        IProgress<int>? progress = null)
     {
         Directory.CreateDirectory(folder);
         var downloaded = 0;
         var skipped = 0;
+        var finished = 0;
         var failed = new ConcurrentBag<string>();
         using var gate = new SemaphoreSlim(MaxAtOnce);
         await Task.WhenAll(images.Select(async image =>
@@ -28,6 +31,7 @@ public sealed class CardImageDownloader(HttpClient http)
             if (File.Exists(target))
             {
                 Interlocked.Increment(ref skipped);
+                progress?.Report(Interlocked.Increment(ref finished));
                 return;
             }
             await gate.WaitAsync(cancel);
@@ -35,6 +39,7 @@ public sealed class CardImageDownloader(HttpClient http)
             {
                 if (await TryDownloadAsync(image.Url, target, cancel)) Interlocked.Increment(ref downloaded);
                 else failed.Add(image.PrintingId);
+                progress?.Report(Interlocked.Increment(ref finished));
             }
             finally
             {
@@ -49,7 +54,7 @@ public sealed class CardImageDownloader(HttpClient http)
         var part = target + ".part";
         try
         {
-            using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancel);
+            using var response = await http.GetAsync(url, cancel);
             if (!response.IsSuccessStatusCode || response.Content.Headers.ContentType?.MediaType != "image/png") return false;
             await using (var file = File.Create(part)) await response.Content.CopyToAsync(file, cancel);
             if (new FileInfo(part).Length == 0) return false;

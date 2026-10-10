@@ -81,6 +81,31 @@ public class CardImageTests
         Assert.InRange(handler.MostAtOnce, 2, CardImageDownloader.MaxAtOnce);
     }
 
+    [Fact]
+    public async Task Progress_counts_every_finished_image_up_to_the_total()
+    {
+        using var dir = new TempDir();
+        dir.Write("kept.png", "kept");
+        var handler = new FakeHandler(request => request.RequestUri!.AbsolutePath == "/bad.png"
+            ? new HttpResponseMessage(HttpStatusCode.NotFound)
+            : Image(Png));
+        var seen = new SyncProgress();
+
+        await Downloader(handler).DownloadAsync([Source("kept"), Source("bad"), Source("a1"), Source("b2")], dir.Root, progress: seen);
+
+        Assert.Equal(new[] { 1, 2, 3, 4 }, seen.Values.Order());
+    }
+
+    private sealed class SyncProgress : IProgress<int>
+    {
+        public List<int> Values { get; } = [];
+
+        public void Report(int value)
+        {
+            lock (Values) Values.Add(value);
+        }
+    }
+
     /// <summary>Answers after a short delay and records how many requests were open at the same time.</summary>
     private sealed class SlowHandler(byte[] bytes) : HttpMessageHandler
     {

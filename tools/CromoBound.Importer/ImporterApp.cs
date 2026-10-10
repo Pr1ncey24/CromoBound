@@ -51,7 +51,11 @@ public static class ImporterApp
         var sources = printings.Where(p => !string.IsNullOrEmpty(p.ImageUrl)).Select(p => new ImageSource(p.Id, p.ImageUrl!)).ToList();
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CromoBound-Importer/1.0");
-        var report = await new CardImageDownloader(http).DownloadAsync(sources, Path.GetFullPath(folder));
+        var progress = new SyncProgress(done =>
+        {
+            if (done % 100 == 0) Console.WriteLine($"Images: {done} of {sources.Count} done.");
+        });
+        var report = await new CardImageDownloader(http).DownloadAsync(sources, Path.GetFullPath(folder), progress: progress);
         Console.WriteLine($"Images: {report.Downloaded} downloaded, {report.Skipped} already there, {report.Failed.Count} failed, "
             + $"{printings.Count() - sources.Count} printings without an image link.");
         foreach (var id in report.Failed) Console.Error.WriteLine($"Failed: {id}");
@@ -66,5 +70,11 @@ public static class ImporterApp
         foreach (var issue in issues) Console.Error.WriteLine($"{issue.Location}: {issue.Message}");
         Console.WriteLine(issues.Count == 0 ? "Validation passed." : $"Validation found {issues.Count} issue(s).");
         return issues.Count == 0 ? 0 : 1;
+    }
+
+    /// <summary>Reports on the calling thread at once, unlike <see cref="Progress{T}"/>, which posts to the thread pool.</summary>
+    private sealed class SyncProgress(Action<int> report) : IProgress<int>
+    {
+        public void Report(int value) => report(value);
     }
 }
