@@ -24,7 +24,7 @@ internal static class ValueResolver
         ValueProperty.Might => game.MightOf(instance.Id),
         ValueProperty.EnergyCost => game.CardOf(instance).Cost?.Energy ?? 0,
         ValueProperty.Damage => instance.Damage,
-        ValueProperty.EmpowerCount => instance.Empowered ? 1 : 0,
+        ValueProperty.EmpowerCount => instance.EmpowerCount,
         _ => throw new InvalidOperationException($"The {prop} property isn't supported so far."),
     };
 }

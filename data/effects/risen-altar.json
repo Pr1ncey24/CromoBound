@@ -1,0 +1,12 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "risen-altar",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Passive", "line": 1,
+      "modifiers": [
+        { "type": "KeywordCostReduction", "keyword": "Empower", "energy": 1, "orPower": ["Any"],
+          "appliesTo": { "select": "Unit", "all": true, "filter": { "relation": "Friendly", "location": { "ref": "Here" } } } }
+      ] }
+  ]
+}

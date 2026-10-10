@@ -63,7 +63,7 @@ internal static class ViewBuilder
             card.Id, card.CardId, card.PrintingId, card.Owner, card.Controller,
             card.Exhausted, card.Stunned, card.Buffed, card.Empowered, card.Damage,
             game.Db.Cards[card.CardId].Type == CardType.Unit ? game.MightOf(card.Id) : null, card.Role,
-            effects.Status, effects.ManualLines, card.AttachedTo);
+            effects.Status, effects.ManualLines, card.AttachedTo, EmpowerCount: card.EmpowerCount);
     }
 
     private static BattlefieldView Battlefield(Game game, BattlefieldState battlefield, PlayerId viewer)

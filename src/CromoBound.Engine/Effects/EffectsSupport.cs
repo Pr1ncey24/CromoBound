@@ -20,7 +20,7 @@ internal static class EffectsSupport
     /// <summary>The keywords that take a value (Hunt 3, Assault 2), a cost (Empower, Equip) or steps (Deathknell). Any other
     /// parameter would be ignored by the engine, so it is reported (spec §7: never silent).</summary>
     private static readonly HashSet<MechanicalKeyword> WithValue =
-        [MechanicalKeyword.Hunt, MechanicalKeyword.Assault, MechanicalKeyword.Shield, MechanicalKeyword.Deflect];
+        [MechanicalKeyword.Hunt, MechanicalKeyword.Assault, MechanicalKeyword.Shield, MechanicalKeyword.Deflect, MechanicalKeyword.Empower];
     private static readonly HashSet<MechanicalKeyword> WithCost = [MechanicalKeyword.Empower, MechanicalKeyword.Equip];
     private static readonly HashSet<MechanicalKeyword> WithSteps = [MechanicalKeyword.Deathknell];
 
@@ -102,6 +102,10 @@ internal static class EffectsSupport
         PermissionModifier permission => modifier.AppliesTo?.Ref == RefKind.Self
             && permission.Permission == Permission.PlayToBattlefieldWithEnemyUnits,
         ModifyMightModifier might => modifier.AppliesTo?.Ref is RefKind.Self or RefKind.Host && IsSupportedValue(might.Amount),
+        KeywordCostReductionModifier keyword => keyword.Keyword == MechanicalKeyword.Empower
+            && (keyword.Energy is null || keyword.Energy.Literal is not null)
+            && (modifier.AppliesTo?.Ref == RefKind.Self
+                || modifier.AppliesTo is { Select: SelectKind.Unit, All: true } applies && IsSupportedFilter(applies.Filter)),
         GrantKeywordModifier grant => modifier.AppliesTo?.Ref == RefKind.Self
             && grant.Keyword.Keyword is MechanicalKeyword.Assault or MechanicalKeyword.Deflect or MechanicalKeyword.Ganking
                 or MechanicalKeyword.Shield or MechanicalKeyword.Tank

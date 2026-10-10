@@ -24,7 +24,7 @@
             if (Card.MightChanged) lines.Add($"Might {Card.Might} (printed {Card.PrintedMight})");
             if (Card.Stunned) lines.Add("Stunned");
             if (Card.Buffed) lines.Add("Buffed");
-            if (Card.Empowered) lines.Add("Empowered");
+            if (Card.Empowered) lines.Add(Card.EmpowerText);
             if (Card.Gear > 0) lines.Add($"{Card.Gear} gear attached");
             return lines;
         }

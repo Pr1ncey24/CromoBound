@@ -32,7 +32,15 @@ public sealed class CardInstance
     public bool Exhausted { get; set; }
     public bool Stunned { get; set; }
     public bool Buffed { get; set; }
-    public bool Empowered { get; set; }
+    /// <summary>How many times it was Empowered (Kayle can be up to three times); 0 when it isn't.</summary>
+    public int EmpowerCount { get; set; }
+
+    public bool Empowered
+    {
+        get => EmpowerCount > 0;
+        set => EmpowerCount = value ? Math.Max(EmpowerCount, 1) : 0;
+    }
+
     public bool Facedown { get; set; }
     public CombatRole? Role { get; set; }
     public int Damage { get; set; }

@@ -267,4 +267,17 @@ public class BoardViewTests
 
         Assert.Contains("1 damage", cut.Find(".cb-zoom").TextContent);
     }
+
+    [Fact]
+    public async Task An_empowered_card_shows_how_many_times()
+    {
+        await using var ui = new Ui();
+        var board = new TestBoard();
+        board.MyBase.Add(board.Card("unit-a", TestBoard.Me) with { Empowered = true, EmpowerCount = 2 });
+        board.MyBase.Add(board.Card("unit-b", TestBoard.Me) with { Empowered = true, EmpowerCount = 1 });
+
+        var cut = Render(ui, board.Model(), []);
+
+        Assert.Equal(new[] { "Empowered x2", "Empowered" }, cut.FindAll(".cb-basezone .chip").Select(c => c.TextContent));
+    }
 }

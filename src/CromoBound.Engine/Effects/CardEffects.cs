@@ -74,7 +74,10 @@ internal sealed class CardEffects(CardDatabase db)
                     {
                         Line = line,
                         Cost = entry.Cost,
-                        UseOnlyIf = new Condition { Not = new Condition { Empowered = true } },
+                        UseOnlyIf = new Condition
+                        {
+                            Compare = new Comparison(new Value { Prop = ValueProperty.EmpowerCount, Of = ObjectRef.Self }, CompareOp.Lt, entry.Value ?? 1),
+                        },
                         Steps = [new EmpowerStep { Target = ObjectRef.Self }],
                     };
                     break;

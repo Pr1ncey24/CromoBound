@@ -8,7 +8,7 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
-internal enum ActivationStage { Targets, Choose, Pay, Finalize, Cancelled }
+internal enum ActivationStage { Targets, Choose, Reduce, Pay, Finalize, Cancelled }
 
 /// <summary>Activating an ability (spec §5.3): choose the cost action's cards, pay energy and power, then pay the rest of the cost
 /// and put the ability on the chain. Nothing is spent before the last stage, so cancelling leaves no trace.</summary>
@@ -21,6 +21,9 @@ internal sealed class ActivationTask(PlayerId player, ObjectId source, int abili
     public EffectContext? Context { get; set; }
     public IReadOnlyList<ObjectId> Chosen { get; set; } = [];
     public TotalCost? Cost { get; set; }
+
+    /// <summary>How many Empower cost reductions were applied.</summary>
+    public int Reductions { get; set; }
 
     public override bool Run(Game game) => game.RunActivation(this);
 }
@@ -92,14 +95,19 @@ public sealed partial class Game
                 case ActivationStage.Choose:
                     if (AskCostCards(task, ability, context)) return false;
                     break;
-                case ActivationStage.Pay:
+                case ActivationStage.Reduce:
                     task.Cost ??= ability.Cost is { } cost ? new TotalCost(cost.Energy ?? 0, cost.Power) : new TotalCost(0, []);
-                    if (task.Cost.Energy == 0 && task.Cost.Power.Count == 0)
+                    if (AskEmpowerReduction(task, source, ability)) return false;
+                    task.Stage = ActivationStage.Pay;
+                    break;
+                case ActivationStage.Pay:
+                    var total = task.Cost!;
+                    if (total.Energy == 0 && total.Power.Count == 0)
                     {
                         task.Stage = ActivationStage.Finalize;
                         break;
                     }
-                    AskPay(task.Player, task.Cost, CardOf(source).Domains,
+                    AskPay(task.Player, total, CardOf(source).Domains,
                         onPaid: () => task.Stage = ActivationStage.Finalize,
                         onCancel: () => task.Stage = ActivationStage.Cancelled,
                         onAdjust: adjusted => task.Cost = adjusted);
@@ -115,7 +123,7 @@ public sealed partial class Game
     /// is a forced choice. Moves the task on to paying, or asks and returns true.</summary>
     private bool AskCostCards(ActivationTask task, ActivatedAbility ability, EffectContext context)
     {
-        task.Stage = ActivationStage.Pay;
+        task.Stage = ActivationStage.Reduce;
         if (CostAction(ability) is not { } recycle) return false;
         var options = CostCards(context, recycle);
         var count = CostCount(context, recycle);
@@ -141,11 +149,47 @@ public sealed partial class Game
             if (action is not ChooseCards choose) return Reject(RejectionCode.UnexpectedAction, "Choose the cards to recycle, or cancel.");
             if (CheckPick(choose.Cards, options, count, count, "cards") is { } rejection) return rejection;
             task.Chosen = [.. choose.Cards];
-            task.Stage = ActivationStage.Pay;
+            task.Stage = ActivationStage.Reduce;
             return null;
         });
         return true;
     }
+
+    /// <summary>Risen Altar (docs/effects-fiora.md §4.3): each Empower reduction lowers an Empower activation's cost by its energy, or
+    /// by one power symbol when it names orPower; the player picks when both are possible, otherwise the possible one applies.
+    /// Returns true when it asked.</summary>
+    private bool AskEmpowerReduction(ActivationTask task, CardInstance source, ActivatedAbility ability)
+    {
+        if (ability.Steps is not [EmpowerStep]) return false;
+        var reductions = Modifiers.KeywordReductions(this, source, MechanicalKeyword.Empower);
+        while (task.Reductions < reductions.Count)
+        {
+            var (reduction, context) = reductions[task.Reductions];
+            var cost = task.Cost!;
+            var energy = reduction.Energy is { } amount ? ValueResolver.Resolve(this, context, amount) : 0;
+            var byEnergy = energy > 0 && cost.Energy > 0;
+            var byPower = reduction.OrPower.Count > 0 && cost.Power.Count > 0;
+            if (byEnergy && byPower)
+            {
+                Ask(new OptionalDecision(task.Player, source.CardId, "Lower the Empower cost by 1 energy? No lowers one power instead."), (_, action) =>
+                {
+                    if (action is not ChooseOptional choice) return Reject(RejectionCode.UnexpectedAction, "Answer yes or no.");
+                    task.Cost = choice.Yes ? Lower(cost, energy) : WithoutOnePower(cost);
+                    task.Reductions++;
+                    return null;
+                });
+                return true;
+            }
+            if (byEnergy) task.Cost = Lower(cost, energy);
+            else if (byPower) task.Cost = WithoutOnePower(cost);
+            task.Reductions++;
+        }
+        return false;
+    }
+
+    private static TotalCost Lower(TotalCost cost, int energy) => cost with { Energy = Math.Max(0, cost.Energy - energy) };
+
+    private static TotalCost WithoutOnePower(TotalCost cost) => cost with { Power = [.. cost.Power.Skip(1)] };
 
     /// <summary>The rest of the cost is paid (exhaust the source; recycle the chosen cards that are still there), then the ability
     /// goes on the chain and its controller gets priority.</summary>

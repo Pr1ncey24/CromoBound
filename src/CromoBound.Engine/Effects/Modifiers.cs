@@ -33,6 +33,32 @@ internal static class Modifiers
     public static IEnumerable<KeywordEntry> GrantedKeywords(Game game, CardInstance instance) =>
         ActiveModifiers<GrantKeywordModifier>(game, instance, game.EvaluatingGrants).Select(m => m.Modifier.Keyword);
 
+    /// <summary>How many times the object can be Empowered: its Empower keyword's value, 1 without one.</summary>
+    public static int EmpowerLimit(Game game, CardInstance instance) =>
+        game.Effects.For(instance.CardId).KeywordEntries.Where(k => k.Keyword == MechanicalKeyword.Empower).Select(k => k.Value ?? 1).DefaultIfEmpty(1).Max();
+
+    /// <summary>The KeywordCostReduction modifiers for the keyword that apply to the holder now: from any card on the board or any
+    /// battlefield, whose condition holds and whose appliesTo includes the holder. A battlefield's belong to its controller
+    /// (CR 190.6). In id order.</summary>
+    public static List<(KeywordCostReductionModifier Modifier, EffectContext Context)> KeywordReductions(Game game, CardInstance holder,
+        MechanicalKeyword keyword)
+    {
+        List<(KeywordCostReductionModifier, EffectContext)> found = [];
+        foreach (var source in game.State.Objects.Where(o => o.Place.IsLocation || o.Place.Kind == PlaceKind.BattlefieldCard))
+        {
+            var context = new EffectContext { Controller = game.HandledBy(source), Source = source.Id, SourceCardId = source.CardId };
+            foreach (var passive in game.Effects.For(source.CardId).Abilities.OfType<PassiveAbility>())
+            {
+                if (passive.Condition is { } condition && !ConditionResolver.Holds(game, context, condition)) continue;
+                if (passive.While is { } holds && !ConditionResolver.Holds(game, context, holds)) continue;
+                foreach (var reduction in passive.Modifiers.OfType<KeywordCostReductionModifier>().Where(m => m.Keyword == keyword))
+                    if (reduction.AppliesTo is { } applies && ObjectResolver.Resolve(game, context, applies).Contains(holder.Id))
+                        found.Add((reduction, context));
+            }
+        }
+        return found;
+    }
+
     /// <summary>The might the card's passives (its own and its gear's) give it now. While they are evaluated, a nested read of the
     /// card leaves out its passive might.</summary>
     private static int PassiveMight(Game game, CardInstance unit) =>

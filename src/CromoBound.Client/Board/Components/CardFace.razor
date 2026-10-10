@@ -52,7 +52,7 @@ else
             if (Card.Might is { } might) parts.Add($"might {might}");
             if (Card.Stunned) parts.Add("stunned");
             if (Card.Buffed) parts.Add("buffed");
-            if (Card.Empowered) parts.Add("empowered");
+            if (Card.Empowered) parts.Add(Card.EmpowerText.ToLowerInvariant());
             if (Card.Gear > 0) parts.Add($"{Card.Gear} gear attached");
             if (Card.Mark == PayMark.Exhaust) parts.Add("exhaust to pay");
             if (Card.Mark == PayMark.Recycle) parts.Add("recycle to pay");
@@ -87,7 +87,7 @@ else
             <span class="chips">
                 @if (Card.Stunned) { <span class="chip">Stunned</span> }
                 @if (Card.Buffed) { <span class="chip">Buffed</span> }
-                @if (Card.Empowered) { <span class="chip">Empowered</span> }
+                @if (Card.Empowered) { <span class="chip">@Card.EmpowerText</span> }
                 @if (Card.Gear > 0) { <span class="chip">+@Card.Gear gear</span> }
             </span>
         }

@@ -62,6 +62,18 @@ public sealed partial class Game
         MarkDirty();
     }
 
+    /// <summary>The first Empower is a status change (BecameEmpowered triggers); each later one raises the count.</summary>
+    internal void Empower(ObjectId id)
+    {
+        if (!State[id].Empowered)
+        {
+            SetStatus(id, StatusKind.Empowered, true);
+            return;
+        }
+        State[id].EmpowerCount++;
+        MarkDirty();
+    }
+
     internal void DealDamage(ObjectId unit, int amount)
     {
         if (amount <= 0) return;

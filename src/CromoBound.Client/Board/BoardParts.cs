@@ -18,8 +18,11 @@ public enum RunePay { Exhaust, Recycle, Both }
 public sealed record BoardCard(
     ObjectId Id, string CardId, string? PrintingId, string Name, CardType? Type, int? Cost, int? PrintedMight,
     bool Exhausted, bool Stunned, bool Buffed, bool Empowered, int Damage, int? Might, int Gear,
-    bool Clickable = false, Ring Ring = Ring.None, PayMark Mark = PayMark.None)
+    bool Clickable = false, Ring Ring = Ring.None, PayMark Mark = PayMark.None, int EmpowerCount = 0)
 {
+    /// <summary>"Empowered", or "Empowered x2" and up when it was Empowered more than once.</summary>
+    public string EmpowerText => EmpowerCount > 1 ? $"Empowered x{EmpowerCount}" : "Empowered";
+
     public bool MightChanged => Might is not null && PrintedMight is not null && Might != PrintedMight;
 }
 

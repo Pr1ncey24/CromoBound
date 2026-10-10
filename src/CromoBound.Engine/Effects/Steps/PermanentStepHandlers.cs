@@ -35,7 +35,7 @@ internal sealed class KillHandler : StepHandler<KillStep>
     }
 }
 
-/// <summary>Empowers the board objects that aren't Empowered yet (Empower, spec §8.1).</summary>
+/// <summary>Empowers the board objects below their limit (Empower, spec §8.1; Kayle's three, docs/effects-fiora.md §3.5).</summary>
 internal sealed class EmpowerHandler : StepHandler<EmpowerStep>
 {
     protected override StepOutcome Run(Game game, ResolveEffectTask task, EmpowerStep step)
@@ -43,10 +43,10 @@ internal sealed class EmpowerHandler : StepHandler<EmpowerStep>
         List<ObjectId> targets =
         [
             .. ObjectResolver.Resolve(game, task.Context, step.Target)
-                .Where(id => game.State[id].Place.IsLocation && !game.State[id].Empowered),
+                .Where(id => game.State[id].Place.IsLocation && game.State[id].EmpowerCount < Modifiers.EmpowerLimit(game, game.State[id])),
         ];
         if (targets.Count == 0) return StepOutcome.DidNothing;
-        foreach (var target in targets) game.SetStatus(target, StatusKind.Empowered, true);
+        foreach (var target in targets) game.Empower(target);
         task.Result = new EffectVar(targets, [], null, true);
         return StepOutcome.Done;
     }

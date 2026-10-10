@@ -1,0 +1,16 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "kayle-justified",
+  "status": "Full",
+  "keywords": [ { "keyword": "Empower", "value": 3, "cost": { "energy": 3 } } ],
+  "abilities": [
+    { "kind": "Passive", "line": 3,
+      "modifiers": [ { "type": "ModifyMight", "amount": { "mul": [2, { "prop": "EmpowerCount", "of": { "ref": "Self" } }] }, "appliesTo": { "ref": "Self" } } ] },
+    { "kind": "Passive", "line": 4,
+      "while": { "compare": [ { "prop": "EmpowerCount", "of": { "ref": "Self" } }, "gte", 3 ] },
+      "modifiers": [
+        { "type": "GrantKeyword", "keyword": { "keyword": "Deflect", "value": 3 }, "appliesTo": { "ref": "Self" } },
+        { "type": "GrantKeyword", "keyword": { "keyword": "Ganking" }, "appliesTo": { "ref": "Self" } }
+      ] }
+  ]
+}

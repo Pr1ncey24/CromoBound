@@ -111,7 +111,8 @@ public sealed partial class BoardModel
             return new BoardCard(
                 card.Id, card.CardId, card.PrintingId ?? info?.DefaultPrintingId, info?.Name ?? CardBook.Unknown, info?.Type, info?.Energy,
                 info?.Might, card.Exhausted, card.Stunned, card.Buffed, card.Empowered, card.Damage, card.Might, _gear.GetValueOrDefault(card.Id),
-                model._cardSteps.ContainsKey(card.Id), model._rings.GetValueOrDefault(card.Id), model._marks.GetValueOrDefault(card.Id));
+                model._cardSteps.ContainsKey(card.Id), model._rings.GetValueOrDefault(card.Id), model._marks.GetValueOrDefault(card.Id),
+                card.EmpowerCount);
         }
 
         public BoardSide Side(PlayerId player, string name, BoardModel model)
