@@ -2,10 +2,12 @@
 
 <div class="cb-lane @(Lane.IsDestination ? "dest" : "")" style="left: @(200 + Lane.Index * 380)px" role="group" aria-label="@Lane.Card.Name">
     <div class="field-card"><CardFace Card="Lane.Card" Size="field" Locked="Locked" OnClick="OnCard" OnHover="OnHover" /></div>
-    <div class="theirs">
-        @foreach (var unit in Lane.Theirs)
+    <div class="theirs cb-spread">
+        @{ var theirLefts = Spread.Lefts(Lane.Theirs.Count, SideBoxes.Card, Lane.HasHidden ? SideBoxes.LaneRowBesideHidden : SideBoxes.LaneRow, 10, center: !Lane.HasHidden); }
+        @for (var i = 0; i < Lane.Theirs.Count; i++)
         {
-            <CardFace @key="unit.Id" Card="unit" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            var unit = Lane.Theirs[i];
+            <CardFace @key="unit.Id" Card="unit" Style="@At(theirLefts[i])" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
         }
     </div>
     @if (Lane.HasHidden)
@@ -21,10 +23,12 @@
             }
         </div>
     }
-    <div class="mine">
-        @foreach (var unit in Lane.Mine)
+    <div class="mine cb-spread">
+        @{ var myLefts = Spread.Lefts(Lane.Mine.Count, SideBoxes.Card, SideBoxes.LaneRow, 10, center: true); }
+        @for (var i = 0; i < Lane.Mine.Count; i++)
         {
-            <CardFace @key="unit.Id" Card="unit" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            var unit = Lane.Mine[i];
+            <CardFace @key="unit.Id" Card="unit" Style="@At(myLefts[i])" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
         }
     </div>
     @if (Lane.Controller is { } controller)
@@ -49,4 +53,6 @@
     [Parameter] public EventCallback<BoardCard> OnCard { get; set; }
     [Parameter] public EventCallback<BoardCard?> OnHover { get; set; }
     [Parameter] public EventCallback<int> OnLane { get; set; }
+
+    private static string At(double left) => FormattableString.Invariant($"left: {left:0.#}px");
 }

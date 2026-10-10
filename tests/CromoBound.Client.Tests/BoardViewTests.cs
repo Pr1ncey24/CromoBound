@@ -47,6 +47,32 @@ public class BoardViewTests
     }
 
     [Fact]
+    public async Task A_crowded_side_keeps_its_runes_base_and_lane_cards_inside_their_boxes()
+    {
+        await using var ui = new Ui();
+        var board = new TestBoard();
+        for (var i = 0; i < 12; i++) board.Add(board.MyBase, i % 3 == 0 ? "order-rune" : "fury-rune", exhausted: i < 3);
+        for (var i = 0; i < 9; i++) board.Add(board.MyBase, i % 2 == 0 ? "unit-a" : "gear-a");
+        board.AddLane("bf-a", TestBoard.Me);
+        for (var i = 0; i < 7; i++) board.AddToLane(0, "unit-b", TestBoard.Me);
+
+        var cut = Render(ui, board.Model(), []);
+
+        static double Left(AngleSharp.Dom.IElement card) =>
+            double.Parse(System.Text.RegularExpressions.Regex.Match(card.GetAttribute("style") ?? "", @"left:\s*([\d.]+)px").Groups[1].Value,
+                System.Globalization.CultureInfo.InvariantCulture);
+        var runes = cut.FindAll(".cb-side.me .cb-runes .cb-card");
+        var bases = cut.FindAll(".cb-side.me .cb-basezone .cb-card");
+        var lane = cut.FindAll(".cb-lane .mine .cb-card");
+        Assert.Equal((12, 9, 7), (runes.Count, bases.Count, lane.Count));
+        Assert.All(runes, r => Assert.InRange(Left(r), 0, SideBoxes.RuneRow - SideBoxes.RuneCard));
+        Assert.All(bases, c => Assert.InRange(Left(c), 0, SideBoxes.BaseRow - SideBoxes.Card));
+        Assert.All(lane, c => Assert.InRange(Left(c), 0, SideBoxes.LaneRow - SideBoxes.Card));
+        Assert.Equal("9 ready / 12", cut.Find(".cb-side.me .cb-runes .cb-zcount").TextContent);
+        Assert.Equal("9 cards", cut.Find(".cb-side.me .cb-basezone .cb-zcount").TextContent);
+    }
+
+    [Fact]
     public async Task A_card_without_an_image_shows_its_name()
     {
         await using var ui = new Ui();

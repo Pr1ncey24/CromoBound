@@ -13,21 +13,28 @@
         <span class="cb-lbl">Floating</span>
         <span>@PoolText</span>
     </div>
-    <div class="cb-base" role="group" aria-label="@($"{Whose} base")">
-        <span class="cb-lbl">@(Side.IsMe ? "Base · Runes" : "Base")</span>
-        <div class="row">
-            <div class="runes">
-                @foreach (var rune in Side.Runes)
-                {
-                    <CardFace @key="rune.Id" Card="rune" Size="rune" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
-                }
-            </div>
-            <div class="units">
-                @foreach (var card in Side.Base)
-                {
-                    <CardFace @key="card.Id" Card="card" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
-                }
-            </div>
+    <div class="cb-zone cb-runes" role="group" aria-label="@($"{Whose} runes")">
+        <span class="cb-lbl">Runes</span>
+        <span class="cb-zcount">@($"{Side.Runes.Count(r => !r.Exhausted)} ready / {Side.Runes.Count}")</span>
+        <div class="cb-spread">
+            @{ var runeLefts = Spread.Lefts(Side.Runes.Count, SideBoxes.RuneCard, SideBoxes.RuneRow, 6); }
+            @for (var i = 0; i < Side.Runes.Count; i++)
+            {
+                var rune = Side.Runes[i];
+                <CardFace @key="rune.Id" Card="rune" Size="rune" Style="@At(runeLefts[i])" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            }
+        </div>
+    </div>
+    <div class="cb-zone cb-basezone" role="group" aria-label="@($"{Whose} base")">
+        <span class="cb-lbl">Base</span>
+        <span class="cb-zcount">@(Side.Base.Count == 1 ? "1 card" : $"{Side.Base.Count} cards")</span>
+        <div class="cb-spread">
+            @{ var baseLefts = Spread.Lefts(Side.Base.Count, SideBoxes.Card, SideBoxes.BaseRow, 8); }
+            @for (var i = 0; i < Side.Base.Count; i++)
+            {
+                var card = Side.Base[i];
+                <CardFace @key="card.Id" Card="card" Style="@At(baseLefts[i])" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            }
         </div>
         @if (Side.BaseIsDestination && !Locked)
         {
@@ -118,20 +125,22 @@
         }
     }
 
-    /// <summary>The hand fans out; it closes up when it holds many cards. A chosen card rises.</summary>
+    private static string At(double left) => FormattableString.Invariant($"left: {left:0.#}px");
+
+    /// <summary>The hand fans out in its row and closes up when it holds many cards. A chosen card rises.</summary>
     private static string HandStyle(int index, int count, BoardCard card)
     {
-        var step = count <= 5 ? 96 : Math.Max(40, 480 / (count - 1));
+        var left = 20 + Spread.Lefts(count, SideBoxes.HandCard, SideBoxes.HandRow, -8)[index];
         var middle = (count - 1) / 2.0;
-        var left = 40 + index * step;
         var top = card.Ring == Ring.Selected ? -24 : 10 + Math.Abs(index - middle) * 6;
         var turn = (index - middle) * 5;
-        return FormattableString.Invariant($"left: {left}px; top: {top}px; rotate: {turn}deg");
+        return FormattableString.Invariant($"left: {left:0.#}px; top: {top}px; rotate: {turn}deg");
     }
 
     private static string BackStyle(int index, int count)
     {
         var middle = (count - 1) / 2.0;
-        return FormattableString.Invariant($"left: {60 + index * 44}px; top: {Math.Abs(index - middle) * 6}px; rotate: {(middle - index) * 5}deg");
+        var left = Spread.Lefts(count, SideBoxes.Back, SideBoxes.BackRow, -26, center: true)[index];
+        return FormattableString.Invariant($"left: {left:0.#}px; top: {Math.Abs(index - middle) * 6}px; rotate: {(middle - index) * 5}deg");
     }
 }

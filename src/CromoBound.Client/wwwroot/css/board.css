@@ -23,7 +23,7 @@ button.cb-card { cursor: pointer; font: inherit; }
 .cb-card.field { width: 170px; height: 110px; border-radius: 16px; }
 .cb-card.zoom { width: 300px; height: 418px; border-radius: 14px; }
 .cb-card.exhausted { rotate: 90deg; }
-.cb-card.rune.exhausted { opacity: .55; }
+.cb-card.rune.exhausted { rotate: none; opacity: .45; translate: 0 10px; }
 .cb-card.ring-legal { border-color: #ff7a6b; box-shadow: 0 0 0 1px #ff7a6b, 0 0 16px rgba(255,122,107,.5); }
 .cb-card.ring-suggested { outline: 2px solid #ff7a6b; outline-offset: 3px; }
 .cb-card.ring-selected { outline: 2px solid #ff7a6b; outline-offset: 3px; translate: 0 -10px; box-shadow: 0 0 0 1px #ff7a6b, 0 0 16px rgba(255,122,107,.5); }
@@ -56,13 +56,20 @@ button.cb-card { cursor: pointer; font: inherit; }
 .cb-pool { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 16px; background: rgba(14,9,9,.6); border: 1px solid #3a2222; font-size: 14px; color: #d7c7c3; }
 .me .cb-pool { left: 24px; top: 572px; }
 .them .cb-pool { left: 950px; top: 236px; }
-.cb-base { width: 730px; height: 130px; }
-.me .cb-base { left: 200px; top: 600px; }
-.them .cb-base { left: 200px; top: 170px; }
-.cb-base .row { position: absolute; left: 0; top: 22px; display: flex; align-items: flex-start; gap: 40px; }
-.cb-base .runes, .cb-base .units { display: flex; align-items: flex-start; gap: 8px; }
-.cb-base .units { gap: 14px; }
-.cb-base .move-base { position: absolute; right: 0; top: 0; min-height: 36px; font-size: 13px; }
+.cb-zone { width: 330px; height: 132px; box-sizing: border-box; border: 1px dashed #3a2a2b; border-radius: 14px; }
+.them .cb-zone { border-color: #2e2438; }
+.cb-zone > .cb-lbl { position: absolute; left: 10px; top: 6px; }
+.cb-zone .cb-zcount { position: absolute; right: 10px; top: 6px; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: #d7c7c3; }
+.cb-basezone { width: 384px; }
+.me .cb-runes { left: 200px; top: 598px; }
+.me .cb-basezone { left: 546px; top: 598px; }
+.them .cb-runes { left: 200px; top: 168px; }
+.them .cb-basezone { left: 546px; top: 168px; }
+.cb-runes .cb-spread { position: absolute; left: 12px; top: 40px; width: 306px; height: 72px; }
+.cb-basezone .cb-spread { position: absolute; left: 8px; top: 24px; width: 368px; height: 106px; }
+.cb-basezone .move-base { position: absolute; right: 8px; bottom: 8px; z-index: 50; min-height: 36px; font-size: 13px; }
+.cb-spread > .cb-card { position: absolute; top: 0; }
+.cb-spread > .cb-card:hover, .cb-spread > .cb-card:focus-visible { z-index: 40; translate: 0 -14px; box-shadow: 0 0 0 2px #ff7a6b, 0 10px 22px rgba(0,0,0,.6); }
 .me .cb-legend { left: 958px; top: 636px; }
 .me .cb-champion { left: 1042px; top: 636px; }
 .them .cb-legend { left: 106px; top: 158px; }
@@ -90,7 +97,7 @@ button.cb-card { cursor: pointer; font: inherit; }
 .cb-lane { position: absolute; top: 312px; width: 360px; height: 276px; border-radius: 18px; background: rgba(14,9,9,.35); }
 .cb-lane.dest { outline: 2px dashed #ff7a6b; outline-offset: -2px; background: rgba(224,74,58,.08); }
 .cb-lane .field-card { position: absolute; left: 95px; top: 83px; }
-.cb-lane .theirs, .cb-lane .mine { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: 10px; }
+.cb-lane .theirs, .cb-lane .mine { position: absolute; left: 8px; width: 344px; height: 106px; }
 .cb-lane .theirs { top: 11px; }
 .cb-lane .mine { top: 159px; }
 .cb-lane .hidden { position: absolute; left: 278px; top: 18px; }
