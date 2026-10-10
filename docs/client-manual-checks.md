@@ -43,5 +43,17 @@ You need two accounts (an admin and a player) and two browsers, or one normal an
 - [ ] A player who opens `/admin/users` and `/admin/maintenance` sees only "You can't do that.", with no admin tabs.
 - [ ] The same player's direct calls to `/api/admin/users` are refused (403), and the answer names no role.
 
+## The board (4b-1)
+- [ ] With the card images filled, every card on the board shows its art; with the `card-images` folder empty, cards show their name, cost and might instead, and the board still works.
+- [ ] The board fills the window and keeps its shape when the window is resized; there is no top bar on the match page.
+- [ ] A Bo1 without combat: play order, both mulligans (keep, and set aside 2), a unit played and paid with the suggestion, a unit moved to a battlefield, holding it scores, end turn, to the end of the game.
+- [ ] Paying: clicking a rune cycles exhaust, recycle and unused; Suggest restores the suggestion; Cancel withdraws the play; a payment that isn't enough shows the engine's message and keeps the choice.
+- [ ] Moving two units together offers only the battlefields both can reach; Esc and Cancel drop the move.
+- [ ] A card the engine resolves by hand shows its text with Done; a start-of-turn card shows the turn point with Continue.
+- [ ] Request undo shows "Waiting for ..." on your side and the question on the other; Refuse and Allow both work.
+- [ ] A Bo3: the battlefield pick and the sideboarding dialogs, with the waiting state on the side that finished first.
+- [ ] Hovering a card shows the card zoom with its damage and might; the XP switch in the board settings hides the legend XP and stays off after a reload.
+- [ ] Stopping the server mid-turn locks the board under the reconnecting banner; the board comes back as it was.
+
 ## Release build
 - [ ] `dotnet publish src/CromoBound.Server -c Release` has 0 warnings, and the published app passes "Signing in" and "Lobby" above.

@@ -38,7 +38,7 @@ public class ClientConnectionTests
     }
 
     /// <summary>Starts a connection signed in as the user, as the browser's would be by its cookie, with a listener keeping the notices.</summary>
-    private static async Task<(GameConnection Connection, Notices Notices)> ConnectAsync(ServerFactory factory, string userName)
+    internal static async Task<(GameConnection Connection, Notices Notices)> ConnectAsync(ServerFactory factory, string userName)
     {
         var cookie = await factory.SessionCookieAsync(userName, ServerFactory.PlayerPassword);
         var connection = new GameConnection(new Uri("https://localhost/hub"), options =>
@@ -62,7 +62,7 @@ public class ClientConnectionTests
     }
 
     /// <summary>The notices a connection received, waited for with a bound.</summary>
-    private sealed class Notices : IGameClient
+    internal sealed class Notices : IGameClient
     {
         private readonly List<object> _received = [];
         private readonly SemaphoreSlim _arrived = new(0);
