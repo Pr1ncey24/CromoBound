@@ -1,0 +1,52 @@
+@using CromoBound.Engine.State
+
+<div class="cb-lane @(Lane.IsDestination ? "dest" : "")" style="left: @(200 + Lane.Index * 380)px" role="group" aria-label="@Lane.Card.Name">
+    <div class="field-card"><CardFace Card="Lane.Card" Size="field" Locked="Locked" OnClick="OnCard" OnHover="OnHover" /></div>
+    <div class="theirs">
+        @foreach (var unit in Lane.Theirs)
+        {
+            <CardFace @key="unit.Id" Card="unit" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+        }
+    </div>
+    @if (Lane.HasHidden)
+    {
+        <div class="hidden">
+            @if (Lane.Hidden is { } hidden)
+            {
+                <CardFace Card="hidden" Size="pile" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            }
+            else
+            {
+                <span class="cb-back" role="img" aria-label="A hidden card" style="position: relative; display: block; width: 64px; height: 88px"></span>
+            }
+        </div>
+    }
+    <div class="mine">
+        @foreach (var unit in Lane.Mine)
+        {
+            <CardFace @key="unit.Id" Card="unit" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+        }
+    </div>
+    @if (Lane.Controller is { } controller)
+    {
+        <span class="owner @(controller == Me ? "" : "theirs-owner")">@(controller == Me ? "Yours" : $"{Opponent}'s")</span>
+    }
+    @if (Lane.Contested)
+    {
+        <span class="contested">CONTESTED</span>
+    }
+    @if (Lane.IsDestination && !Locked)
+    {
+        <button type="button" class="cb-btn cb-gold move-here" @onclick="() => OnLane.InvokeAsync(Lane.Index)">Move here</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BoardLane Lane { get; set; } = default!;
+    [Parameter] public PlayerId Me { get; set; }
+    [Parameter] public string Opponent { get; set; } = "";
+    [Parameter] public bool Locked { get; set; }
+    [Parameter] public EventCallback<BoardCard> OnCard { get; set; }
+    [Parameter] public EventCallback<BoardCard?> OnHover { get; set; }
+    [Parameter] public EventCallback<int> OnLane { get; set; }
+}

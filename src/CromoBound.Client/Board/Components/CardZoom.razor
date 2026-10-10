@@ -1,0 +1,32 @@
+<div class="cb-zoom" aria-hidden="true">
+    <CardFace Card="Card" Size="zoom" Upright="true" />
+    @if (Lines.Count > 0)
+    {
+        <ul>
+            @foreach (var line in Lines)
+            {
+                <li>@line</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BoardCard Card { get; set; } = default!;
+
+    private List<string> Lines
+    {
+        get
+        {
+            var lines = new List<string>();
+            if (Card.Exhausted) lines.Add("Exhausted");
+            if (Card.Damage > 0) lines.Add($"{Card.Damage} damage");
+            if (Card.MightChanged) lines.Add($"Might {Card.Might} (printed {Card.PrintedMight})");
+            if (Card.Stunned) lines.Add("Stunned");
+            if (Card.Buffed) lines.Add("Buffed");
+            if (Card.Empowered) lines.Add("Empowered");
+            if (Card.Gear > 0) lines.Add($"{Card.Gear} gear attached");
+            return lines;
+        }
+    }
+}

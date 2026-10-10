@@ -1,0 +1,137 @@
+<div class="cb-side @(Side.IsMe ? "me" : "them")">
+    <div class="cb-points" role="img" aria-label="@($"{Whose} points: {Side.Points} of 8")">
+        <span class="who">@(Side.IsMe ? "You" : Side.Name)</span>
+        <span class="n">@Side.Points</span>
+        <span class="pips" aria-hidden="true">
+            @for (var i = 0; i < 8; i++)
+            {
+                <span class="pip @(i < Side.Points ? "on" : "")"></span>
+            }
+        </span>
+    </div>
+    <div class="cb-pool" role="group" aria-label="@($"{Whose} floating energy and power")">
+        <span class="cb-lbl">Floating</span>
+        <span>@PoolText</span>
+    </div>
+    <div class="cb-base" role="group" aria-label="@($"{Whose} base")">
+        <span class="cb-lbl">@(Side.IsMe ? "Base · Runes" : "Base")</span>
+        <div class="row">
+            <div class="runes">
+                @foreach (var rune in Side.Runes)
+                {
+                    <CardFace @key="rune.Id" Card="rune" Size="rune" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+                }
+            </div>
+            <div class="units">
+                @foreach (var card in Side.Base)
+                {
+                    <CardFace @key="card.Id" Card="card" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+                }
+            </div>
+        </div>
+        @if (Side.BaseIsDestination && !Locked)
+        {
+            <button type="button" class="cb-btn cb-gold move-base" @onclick="OnBase">Move here</button>
+        }
+    </div>
+    @if (Side.Legend is { } legend)
+    {
+        <div class="cb-legend">
+            <CardFace Card="legend" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            @if (ShowXp)
+            {
+                <span class="cb-xpbadge">XP @Side.Xp</span>
+            }
+        </div>
+    }
+    @if (Side.Champion is { } champion)
+    {
+        <div class="cb-champion"><CardFace Card="champion" Locked="Locked" OnClick="OnCard" OnHover="OnHover" /></div>
+    }
+    <div class="cb-banished cb-pilebox">
+        @if (Side.Banished.Count > 0)
+        {
+            <CardFace Card="Side.Banished[^1]" Size="pile" OnHover="OnHover" />
+        }
+        else
+        {
+            <span class="empty" role="img" aria-label="@($"{Whose} banished cards, none")"></span>
+        }
+        <span class="cap">Banished</span>
+        <span class="count">@Side.Banished.Count</span>
+    </div>
+    <div class="cb-trash cb-pilebox">
+        @if (Side.TrashTop is { } top)
+        {
+            <CardFace Card="top" Size="pile" OnHover="OnHover" />
+        }
+        else
+        {
+            <span class="empty" role="img" aria-label="@($"{Whose} trash, empty")"></span>
+        }
+        <span class="cap">Trash</span>
+        <span class="count">@Side.TrashCount</span>
+    </div>
+    <div class="cb-deck cb-pilebox deck" role="img" aria-label="@($"{Whose} main deck, {Side.MainDeckCount} cards")">
+        <span class="count">@Side.MainDeckCount</span>
+    </div>
+    <div class="cb-runedeck cb-pilebox deck runes" role="img" aria-label="@($"{Whose} rune deck, {Side.RuneDeckCount} runes")">
+        <span class="count">@Side.RuneDeckCount</span>
+    </div>
+    <div class="cb-hand" role="group" aria-label="@($"{Whose} hand, {Side.HandCount} cards")">
+        @if (Side.IsMe)
+        {
+            @for (var i = 0; i < Side.Hand.Count; i++)
+            {
+                var card = Side.Hand[i];
+                <CardFace @key="card.Id" Card="card" Size="hand" Upright="true" Style="@HandStyle(i, Side.Hand.Count, card)" Locked="Locked" OnClick="OnCard" OnHover="OnHover" />
+            }
+        }
+        else
+        {
+            @for (var i = 0; i < Side.HandCount; i++)
+            {
+                <span class="cb-back" aria-hidden="true" style="@BackStyle(i, Side.HandCount)"></span>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BoardSide Side { get; set; } = default!;
+    [Parameter] public bool Locked { get; set; }
+    [Parameter] public bool ShowXp { get; set; }
+    [Parameter] public EventCallback<BoardCard> OnCard { get; set; }
+    [Parameter] public EventCallback<BoardCard?> OnHover { get; set; }
+    [Parameter] public EventCallback OnBase { get; set; }
+
+    private string Whose => Side.IsMe ? "Your" : $"{Side.Name}'s";
+
+    private string PoolText
+    {
+        get
+        {
+            var parts = new List<string> { $"Energy {Side.Pool.Energy}" };
+            parts.AddRange(Side.Pool.Power.Where(p => p.Value > 0).Select(p => $"{p.Key} {p.Value}"));
+            if (Side.Pool.UniversalPower > 0) parts.Add($"Any {Side.Pool.UniversalPower}");
+            return string.Join(" · ", parts);
+        }
+    }
+
+    /// <summary>The hand fans out; it closes up when it holds many cards. A chosen card rises.</summary>
+    private static string HandStyle(int index, int count, BoardCard card)
+    {
+        var step = count <= 5 ? 96 : Math.Max(40, 480 / (count - 1));
+        var middle = (count - 1) / 2.0;
+        var left = 40 + index * step;
+        var top = card.Ring == Ring.Selected ? -24 : 10 + Math.Abs(index - middle) * 6;
+        var turn = (index - middle) * 5;
+        return FormattableString.Invariant($"left: {left}px; top: {top}px; rotate: {turn}deg");
+    }
+
+    private static string BackStyle(int index, int count)
+    {
+        var middle = (count - 1) / 2.0;
+        return FormattableString.Invariant($"left: {60 + index * 44}px; top: {Math.Abs(index - middle) * 6}px; rotate: {(middle - index) * 5}deg");
+    }
+}

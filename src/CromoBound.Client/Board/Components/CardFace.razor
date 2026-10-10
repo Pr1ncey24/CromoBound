@@ -1,0 +1,98 @@
+@if (Card.Clickable && !Locked && OnClick.HasDelegate)
+{
+    <button type="button" class="@Classes" style="@Style" aria-label="@Label" @onclick="() => OnClick.InvokeAsync(Card)"
+            @onmouseenter="() => OnHover.InvokeAsync(Card)" @onmouseleave="() => OnHover.InvokeAsync(null)">@Face</button>
+}
+else
+{
+    <div class="@Classes" style="@Style" role="img" aria-label="@Label"
+         @onmouseenter="() => OnHover.InvokeAsync(Card)" @onmouseleave="() => OnHover.InvokeAsync(null)">@Face</div>
+}
+
+@code {
+    [Parameter, EditorRequired] public BoardCard Card { get; set; } = default!;
+
+    /// <summary>"", "hand", "rune", "pile", "field" or "zoom".</summary>
+    [Parameter] public string Size { get; set; } = "";
+
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public bool Locked { get; set; }
+
+    /// <summary>Drawn upright even when exhausted (the zoom).</summary>
+    [Parameter] public bool Upright { get; set; }
+
+    [Parameter] public EventCallback<BoardCard> OnClick { get; set; }
+    [Parameter] public EventCallback<BoardCard?> OnHover { get; set; }
+
+    private bool imageFailed;
+    private string? shownPrinting;
+
+    protected override void OnParametersSet()
+    {
+        if (shownPrinting == Card.PrintingId) return;
+        shownPrinting = Card.PrintingId;
+        imageFailed = false;
+    }
+
+    private bool ShowsImage => Card.PrintingId is not null && !imageFailed;
+
+    private string Classes => string.Join(' ', new[]
+    {
+        "cb-card", Size, !Upright && Card.Exhausted ? "exhausted" : "",
+        Card.Ring switch { Ring.Legal => "ring-legal", Ring.Suggested => "ring-suggested", Ring.Selected => "ring-selected", _ => "" },
+    }.Where(c => c.Length > 0));
+
+    private string Label
+    {
+        get
+        {
+            var parts = new List<string> { Card.Name };
+            if (Card.Exhausted) parts.Add("exhausted");
+            if (Card.Damage > 0) parts.Add($"{Card.Damage} damage");
+            if (Card.Might is { } might) parts.Add($"might {might}");
+            if (Card.Stunned) parts.Add("stunned");
+            if (Card.Buffed) parts.Add("buffed");
+            if (Card.Empowered) parts.Add("empowered");
+            if (Card.Gear > 0) parts.Add($"{Card.Gear} gear attached");
+            if (Card.Mark == PayMark.Exhaust) parts.Add("exhaust to pay");
+            if (Card.Mark == PayMark.Recycle) parts.Add("recycle to pay");
+            return string.Join(", ", parts);
+        }
+    }
+
+    private RenderFragment Face => @<text>
+        @if (ShowsImage)
+        {
+            <img src="cards/img/@Card.PrintingId" alt="" loading="lazy" @onerror="() => imageFailed = true" />
+        }
+        else
+        {
+            <span class="ph"><span class="nm">@Card.Name</span></span>
+            @if (Card.Cost is { } cost)
+            {
+                <span class="cost">@cost</span>
+            }
+        }
+        @if (Card.Might is { } might && (!ShowsImage || Card.MightChanged))
+        {
+            <span class="might @(Card.MightChanged ? "changed" : "")">@might</span>
+        }
+        @if (Card.Damage > 0)
+        {
+            <span class="dmg">@Card.Damage</span>
+        }
+        @if (Card.Stunned || Card.Buffed || Card.Empowered || Card.Gear > 0)
+        {
+            <span class="chips">
+                @if (Card.Stunned) { <span class="chip">Stunned</span> }
+                @if (Card.Buffed) { <span class="chip">Buffed</span> }
+                @if (Card.Empowered) { <span class="chip">Empowered</span> }
+                @if (Card.Gear > 0) { <span class="chip">+@Card.Gear gear</span> }
+            </span>
+        }
+        @if (Card.Mark != PayMark.None)
+        {
+            <span class="mark @(Card.Mark == PayMark.Exhaust ? "exhaust" : "recycle")" aria-hidden="true">@(Card.Mark == PayMark.Exhaust ? "E" : "R")</span>
+        }
+    </text>;
+}

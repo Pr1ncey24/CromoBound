@@ -1,0 +1,84 @@
+@using CromoBound.Engine.Actions
+@using CromoBound.Models.Effects
+
+<aside class="cb-side-panel" aria-label="Match panel">
+    <div class="head">
+        <div>
+            <span class="turn">Turn @Model.Turn</span>
+            @if (Model.Badge.Length > 0)
+            {
+                <span class="cb-badge @(Model.Badge == "YOUR TURN" ? "" : "theirs")" role="status">@Model.Badge</span>
+            }
+            <span id="score-line" class="score">@Model.ScoreLine</span>
+        </div>
+        <button type="button" class="gear" aria-label="Board settings" aria-expanded="@(settingsOpen ? "true" : "false")" @onclick="() => settingsOpen = !settingsOpen">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+        </button>
+        @if (settingsOpen)
+        {
+            <div class="cb-settings" role="group" aria-label="Board settings">
+                <span class="cb-lbl">Board</span>
+                <label>Show XP on legends <input id="show-xp" type="checkbox" checked="@ShowXp" @onchange="e => ShowXpChanged.InvokeAsync(e.Value is true)" /></label>
+            </div>
+        }
+    </div>
+    <ol class="cb-phases" aria-label="Phases">
+        @foreach (var phase in Enum.GetValues<Phase>())
+        {
+            <li class="@(phase == Model.Phase ? "current" : "")" aria-current="@(phase == Model.Phase ? "step" : null)">@phase</li>
+        }
+    </ol>
+    @if (Model.Chain.Count > 0)
+    {
+        <ol class="cb-chain" aria-label="The chain">
+            @foreach (var item in Model.Chain)
+            {
+                <li><strong>@item.Name</strong><span class="who">On the chain · @item.Controller</span></li>
+            }
+        </ol>
+    }
+    <button type="button" id="big-button" disabled="@(Locked || !Model.Button.Enabled)" @onclick="() => OnStep.InvokeAsync(Model.Button.Step)">
+        @Model.Button.Label
+        @if (Model.Button.Detail is { } detail)
+        {
+            <small>@detail</small>
+        }
+    </button>
+    @if (Model.Extras.Count > 0)
+    {
+        <div class="pair">
+            @foreach (var extra in Model.Extras)
+            {
+                <button type="button" id="@($"extra-{extra.Label.ToLowerInvariant()}")" class="cb-btn cb-ghost extra" disabled="@(Locked || !extra.Enabled)"
+                        @onclick="() => OnStep.InvokeAsync(extra.Step)">@extra.Label</button>
+            }
+        </div>
+    }
+    <div class="pair">
+        <button type="button" id="request-undo" class="cb-btn cb-ghost" disabled="@(Locked || !Model.CanRequestUndo)"
+                @onclick="() => OnStep.InvokeAsync(new SendStep(new RequestUndo()))">@(Model.UndoWaiting ? $"Waiting for {Opponent}..." : "Request undo")</button>
+        <button type="button" id="concede" class="cb-btn cb-text" disabled="@(!CanConcede)" @onclick="OnConcede">Concede</button>
+    </div>
+    <section class="cb-log" aria-labelledby="log-title">
+        <h2 id="log-title" class="cb-lbl">Activity</h2>
+        <ol>
+            @foreach (var line in Enumerable.Reverse(Model.Log))
+            {
+                <li>@line</li>
+            }
+        </ol>
+    </section>
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public BoardModel Model { get; set; } = default!;
+    [Parameter] public string Opponent { get; set; } = "";
+    [Parameter] public bool Locked { get; set; }
+    [Parameter] public bool ShowXp { get; set; }
+    [Parameter] public EventCallback<bool> ShowXpChanged { get; set; }
+    [Parameter] public bool CanConcede { get; set; }
+    [Parameter] public EventCallback OnConcede { get; set; }
+    [Parameter] public EventCallback<BoardStep> OnStep { get; set; }
+
+    private bool settingsOpen;
+}

@@ -1,0 +1,126 @@
+@using CromoBound.Engine.State
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="cb-board-frame" @ref="frame">
+    <div class="cb-board @(Locked ? "locked" : "")" tabindex="0" @onkeydown="KeyAsync">
+        <h1 class="cb-visually-hidden">@Model.Me.Name vs @Model.Them.Name</h1>
+        <div class="cb-field">
+            <div class="cb-half them" aria-hidden="true"></div>
+            <div class="cb-half me" aria-hidden="true"></div>
+            <div class="cb-centerline" aria-hidden="true"></div>
+            <SideView Side="Model.Them" Locked="Locked" ShowXp="ShowXp" OnCard="ClickCardAsync" OnHover="Hover" />
+            @foreach (var lane in Model.Lanes)
+            {
+                <LaneView @key="lane.Index" Lane="lane" Me="Model.Me.Player" Opponent="@Model.Them.Name" Locked="Locked"
+                          OnCard="ClickCardAsync" OnHover="Hover" OnLane="ClickLaneAsync" />
+            }
+            <SideView Side="Model.Me" Locked="Locked" ShowXp="ShowXp" OnCard="ClickCardAsync" OnHover="Hover" OnBase="ClickBaseAsync" />
+            @if (Model.Hint is { } hint)
+            {
+                <div class="cb-hint" role="status">
+                    <span>@hint</span>
+                    <button type="button" id="cancel-move" class="cb-btn cb-text" @onclick="CancelAsync">Cancel</button>
+                </div>
+            }
+            @if (menu is { } open)
+            {
+                <CardMenu Menu="open" Title="@NameOf(open.Card)" OnPick="PickAsync" OnClose="() => menu = null" />
+            }
+            @ChildContent
+        </div>
+        <MatchPanel Model="Model" Opponent="@Model.Them.Name" Locked="Locked" ShowXp="ShowXp" ShowXpChanged="ShowXpChanged"
+                    CanConcede="CanConcede" OnConcede="OnConcede" OnStep="StepAsync" />
+        @if (zoomed is { } card)
+        {
+            <CardZoom Card="card" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BoardModel Model { get; set; } = default!;
+    [Parameter] public EventCallback<BoardStep> OnStep { get; set; }
+    [Parameter] public bool Locked { get; set; }
+    [Parameter] public bool ShowXp { get; set; }
+    [Parameter] public EventCallback<bool> ShowXpChanged { get; set; }
+    [Parameter] public bool CanConcede { get; set; }
+    [Parameter] public EventCallback OnConcede { get; set; }
+
+    /// <summary>Drawn over the field: Task 5's panels.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference frame;
+    private MenuStep? menu;
+    private BoardCard? zoomed;
+    private BoardModel? shown;
+
+    /// <summary>A new model (a new view or interaction) closes a menu that belonged to the old one.</summary>
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(shown, Model)) return;
+        shown = Model;
+        menu = null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await JS.InvokeVoidAsync("cromoBoard.fit", frame);
+    }
+
+    private Task ClickCardAsync(BoardCard card) => StepAsync(Model.Click(card.Id));
+
+    private Task ClickLaneAsync(int lane) => StepAsync(Model.ClickLane(lane));
+
+    private Task ClickBaseAsync() => StepAsync(Model.ClickBase());
+
+    private Task CancelAsync() => StepAsync(Model.Cancel());
+
+    private void Hover(BoardCard? card) => zoomed = card;
+
+    private Task PickAsync(MenuItem item)
+    {
+        menu = null;
+        return StepAsync(item.Step);
+    }
+
+    /// <summary>A menu opens here; everything else goes to the host. A locked board takes nothing.</summary>
+    private async Task StepAsync(BoardStep step)
+    {
+        if (Locked || step is NoStep) return;
+        if (step is MenuStep open)
+        {
+            menu = open;
+            return;
+        }
+        await OnStep.InvokeAsync(step);
+    }
+
+    private async Task KeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key != "Escape") return;
+        if (menu is not null)
+        {
+            menu = null;
+            return;
+        }
+        await StepAsync(Model.Cancel());
+    }
+
+    private string NameOf(ObjectId id) =>
+        Model.Me.Base.Concat(Model.Me.Runes).Concat(Model.Me.Hand).Concat(Model.Lanes.SelectMany(l => l.Mine))
+            .Concat(new[] { Model.Me.Legend, Model.Me.Champion }.OfType<BoardCard>())
+            .FirstOrDefault(c => c.Id == id)?.Name ?? CardBook.Unknown;
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("cromoBoard.release", frame);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

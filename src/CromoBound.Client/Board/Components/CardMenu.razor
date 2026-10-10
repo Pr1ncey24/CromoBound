@@ -1,0 +1,15 @@
+<div class="cb-menu" role="menu" aria-label="@Title">
+    <span class="cb-lbl">@Title</span>
+    @foreach (var item in Menu.Items)
+    {
+        <button type="button" role="menuitem" class="item" @onclick="() => OnPick.InvokeAsync(item)">@item.Label</button>
+    }
+    <button type="button" role="menuitem" class="item close" @onclick="OnClose">Close</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MenuStep Menu { get; set; } = default!;
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public EventCallback<MenuItem> OnPick { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}
