@@ -14,3 +14,5 @@ data/import-report.md
 *.db-shm
 *.db-wal
 card-images/
+.dev-cert/
+compose.yaml

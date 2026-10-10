@@ -66,3 +66,6 @@ nunit-*.xml
 
 # Downloaded card images (deploy data, not source)
 card-images/
+
+# A local HTTPS certificate for compose.yaml (never commit a private key)
+.dev-cert/

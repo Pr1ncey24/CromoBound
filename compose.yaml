@@ -1,0 +1,44 @@
+# Runs CromoBound on this machine for testing, over HTTPS at https://localhost:5001 (the session cookie is HTTPS-only).
+# The VPS uses its own compose file with Caddy in front (docs/server-deploy.md); this one is for a developer machine only.
+#
+# Once:
+#   1. Put a trusted certificate in .dev-cert/cromobound.pfx (git-ignored). On Windows, the .NET developer certificate:
+#        dotnet dev-certs https --trust
+#        dotnet dev-certs https -ep .dev-cert\cromobound.pfx -p devpass
+#      (from WSL, copy it in: cp /mnt/c/<where you exported it>/cromobound.pfx .dev-cert/)
+#   2. Optionally fill card-images/ (git-ignored): dotnet run --project tools/CromoBound.Importer -- images card-images
+#
+# Then:
+#   docker compose up --build
+# and sign in at https://localhost:5001 as owner / a-long-first-password (created on the first start only).
+#
+# The database and the cookie keys live on named volumes, so they survive restarts; `docker compose down -v` starts over.
+
+name: cromobound-local
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Part of the engine version saved in every match; a different value abandons running matches at startup.
+        SOURCE_REVISION: ${SOURCE_REVISION:-local}
+    image: cromobound:local
+    environment:
+      # First start only: the admin account is created while there are no users.
+      CROMOBOUND_ADMIN_USER: owner
+      CROMOBOUND_ADMIN_PASSWORD: a-long-first-password
+      ASPNETCORE_HTTPS_PORTS: "8443"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/cromobound.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${DEV_CERT_PASSWORD:-devpass}
+    ports:
+      - "5001:8443"
+    volumes:
+      - db:/var/lib/cromobound/db
+      - keys:/var/lib/cromobound/keys
+      - ./card-images:/var/lib/cromobound/images:ro
+      - ./.dev-cert:/certs:ro
+
+volumes:
+  db:
+  keys:
