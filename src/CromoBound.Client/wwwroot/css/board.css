@@ -1,7 +1,7 @@
 /* The board (spec 5): the approved Board mock at 1440x900, scaled as one canvas by js/board.js. */
 .cb-board-frame { position: relative; margin: 0 auto; width: calc(1440px * var(--board-scale, 1)); height: calc(900px * var(--board-scale, 1)); overflow: hidden; }
 .cb-board { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; transform: scale(var(--board-scale, 1)); transform-origin: top left; overflow: hidden; background: #090707; color: #f2e9e6; font-family: Nunito, system-ui, sans-serif; outline: none; }
-.cb-field { position: absolute; left: 0; top: 0; width: 1140px; height: 900px; overflow: hidden; }
+.cb-playfield { position: absolute; left: 0; top: 0; width: 1140px; height: 900px; overflow: hidden; }
 .cb-half { position: absolute; left: 0; width: 1140px; height: 450px; }
 .cb-half.them { top: 0; background: #120e15; }
 .cb-half.me { top: 450px; background: #170f0d; }
@@ -137,7 +137,7 @@ button.cb-card { cursor: pointer; font: inherit; }
 .cb-log h2 { margin: 0; }
 .cb-log ol { margin: 0; padding: 0; list-style: none; flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column-reverse; gap: 6px; font-size: 13px; color: #d7c7c3; }
 .cb-log li { border-left: 2px solid #b8463a; padding-left: 8px; }
-.cb-board.locked .cb-field { cursor: progress; }
+.cb-board.locked .cb-playfield { cursor: progress; }
 
 /* Panels over the board: prompts float over the field, pre-game steps sit on a dimmed field. */
 .cb-prompt { position: absolute; left: 340px; top: 236px; z-index: 6; width: 460px; box-sizing: border-box; padding: 18px 20px; background: #161112; border: 1px solid #5a2420; border-radius: 24px; box-shadow: 0 18px 50px rgba(0,0,0,.7); display: flex; flex-direction: column; gap: 14px; }

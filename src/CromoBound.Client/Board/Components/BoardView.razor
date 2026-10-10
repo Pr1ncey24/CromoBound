@@ -6,7 +6,7 @@
 <div class="cb-board-frame" @ref="frame">
     <div class="cb-board @(Locked ? "locked" : "")" tabindex="0" @onkeydown="KeyAsync">
         <h1 class="cb-visually-hidden">@Model.Me.Name vs @Model.Them.Name</h1>
-        <div class="cb-field">
+        <div class="cb-playfield">
             <div class="cb-half them" aria-hidden="true"></div>
             <div class="cb-half me" aria-hidden="true"></div>
             <div class="cb-centerline" aria-hidden="true"></div>

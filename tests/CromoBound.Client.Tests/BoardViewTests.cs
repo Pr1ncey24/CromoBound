@@ -145,7 +145,7 @@ public class BoardViewTests
         var zoom = cut.Find(".cb-zoom");
         Assert.Contains("2 damage", zoom.TextContent);
         Assert.Contains("Might 4 (printed 2)", zoom.TextContent);
-        await cut.InvokeAsync(() => cut.Find(".cb-field [aria-label^='Blade Twirler']").MouseLeave());
+        await cut.InvokeAsync(() => cut.Find(".cb-playfield [aria-label^='Blade Twirler']").MouseLeave());
         Assert.Empty(cut.FindAll(".cb-zoom"));
     }
 
