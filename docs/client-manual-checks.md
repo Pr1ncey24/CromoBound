@@ -40,6 +40,8 @@ You need two accounts (an admin and a player) and two browsers, or one normal an
 - [ ] Users lists every account with role and account state; creating one with a short password shows the server's message in the dialog.
 - [ ] Make admin, Remove admin, Disable and Enable update the row; disabling your own account pops up "You can't do that to your own account."
 - [ ] Maintenance mode shows the blue banner to every player and disables Challenge and Accept; the running-matches count drops as matches end.
+- [ ] A player who opens `/admin/users` and `/admin/maintenance` sees only "You can't do that.", with no admin tabs.
+- [ ] The same player's direct calls to `/api/admin/users` are refused (403), and the answer names no role.
 
 ## Release build
 - [ ] `dotnet publish src/CromoBound.Server -c Release` has 0 warnings, and the published app passes "Signing in" and "Lobby" above.

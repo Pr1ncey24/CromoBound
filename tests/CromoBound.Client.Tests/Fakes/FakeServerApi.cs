@@ -14,6 +14,9 @@ internal sealed class FakeServerApi(SessionState session) : IServerApi
     /// <summary>When set, the next command fails with this message (once).</summary>
     public string? NextError { get; set; }
 
+    /// <summary>When set, the next query (a read) fails with this message (once).</summary>
+    public string? NextQueryError { get; set; }
+
     /// <summary>When set, the next <c>MeAsync</c> throws (once), like a request that timed out.</summary>
     public bool FailNextMe { get; set; }
 
@@ -67,6 +70,11 @@ internal sealed class FakeServerApi(SessionState session) : IServerApi
         {
             session.End();
             return new ApiResult<T>(default, SessionState.Ended);
+        }
+        if (NextQueryError is { } error)
+        {
+            NextQueryError = null;
+            return new ApiResult<T>(default, error);
         }
         return new ApiResult<T>(value(), null);
     }

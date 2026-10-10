@@ -6,36 +6,46 @@
 @inject ISnackbar Snackbar
 
 <main class="cb-main narrow">
-    <AdminTabs />
     @if (Session.Me?.CanManageUsers != true)
     {
         <p class="cb-error" role="alert">@ServerApi.Forbidden</p>
     }
     else
     {
+        <AdminTabs />
         <section class="cb-panel cb-maintenance" aria-labelledby="maintenance-title">
             <h1 id="maintenance-title" class="cb-title">Maintenance</h1>
-            <label class="cb-switch-row">
-                <span class="cb-switch-text">
-                    <span class="cb-switch-title">Maintenance mode</span>
-                    <span class="cb-sub">While it's on, no one can start a challenge or a match. Running matches go on.</span>
-                </span>
-                <input @key="version" id="maintenance-switch" type="checkbox" role="switch" class="cb-switch"
-                       checked="@status.On" disabled="@busy" @onchange="ToggleAsync" />
-            </label>
-            <div class="cb-running">
-                <div id="running" class="cb-big">@status.RunningMatches</div>
-                <div class="cb-switch-text">
-                    <span class="cb-switch-title">running matches</span>
-                    <span class="cb-sub">Updates live. Deploy when this reaches 0: a match still running when the new version starts is abandoned.</span>
+            @if (error is not null)
+            {
+                <p class="cb-error" role="alert">@error</p>
+            }
+            else if (status is { } known)
+            {
+                <label class="cb-switch-row">
+                    <span class="cb-switch-text">
+                        <span class="cb-switch-title">Maintenance mode</span>
+                        <span class="cb-sub">While it's on, no one can start a challenge or a match. Running matches go on.</span>
+                    </span>
+                    <input @key="version" id="maintenance-switch" type="checkbox" role="switch" class="cb-switch"
+                           checked="@known.On" disabled="@busy" @onchange="ToggleAsync" />
+                </label>
+                <div class="cb-running">
+                    <div id="running" class="cb-big">@known.RunningMatches</div>
+                    <div class="cb-switch-text">
+                        <span class="cb-switch-title">running matches</span>
+                        <span class="cb-sub">Updates live. Deploy when this reaches 0: a match still running when the new version starts is abandoned.</span>
+                    </div>
                 </div>
-            </div>
+            }
         </section>
     }
 </main>
 
 @code {
-    private MaintenanceStatus status = new(false, 0);
+    /// <summary>Null until a load succeeds, and again after one fails: an unknown count must never read as 0.</summary>
+    private MaintenanceStatus? status;
+
+    private string? error;
     private bool busy;
 
     /// <summary>Bumped to rebuild the switch, so a refused change shows the switch as it really is.</summary>
@@ -57,13 +67,15 @@
 
     private async Task LoadAsync()
     {
-        if ((await Api.MaintenanceAsync()).Value is { } loaded) status = loaded;
+        var loaded = await Api.MaintenanceAsync();
+        status = loaded.Value;
+        error = loaded.Value is null ? loaded.Error ?? ServerApi.Unexpected : null;
     }
 
     private async Task ToggleAsync()
     {
         busy = true;
-        var result = await Api.SetMaintenanceAsync(!status.On);
+        var result = await Api.SetMaintenanceAsync(status?.On != true);
         busy = false;
         if (result.Value is { } changed) status = changed;
         else Snackbar.Add(result.Error ?? ServerApi.Unexpected, Severity.Error);

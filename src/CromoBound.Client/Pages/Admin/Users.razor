@@ -5,13 +5,13 @@
 @inject ISnackbar Snackbar
 
 <main class="cb-main">
-    <AdminTabs />
     @if (Session.Me?.CanManageUsers != true)
     {
         <p class="cb-error" role="alert">@ServerApi.Forbidden</p>
     }
     else
     {
+        <AdminTabs />
         <section class="cb-panel" aria-labelledby="users-title">
             <div class="cb-head">
                 <h1 id="users-title" class="cb-title">Users</h1>

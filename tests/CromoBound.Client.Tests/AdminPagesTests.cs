@@ -42,6 +42,20 @@ public class AdminPagesTests
 
         Assert.Equal(ServerApi.Forbidden, cut.Find("[role=alert]").TextContent);
         Assert.Empty(cut.FindAll("table"));
+        Assert.Empty(cut.FindAll(".cb-tabs"));
+    }
+
+    [Fact]
+    public async Task A_player_gets_a_plain_refusal_on_the_maintenance_page_too()
+    {
+        await using var ui = new Ui();
+
+        var cut = ui.Ctx.Render<Maintenance>();
+
+        Assert.Equal(ServerApi.Forbidden, cut.Find("[role=alert]").TextContent);
+        Assert.Empty(cut.FindAll(".cb-tabs"));
+        Assert.Empty(cut.FindAll("#running"));
+        Assert.Empty(cut.FindAll("#maintenance-switch"));
     }
 
     [Fact]
@@ -143,5 +157,25 @@ public class AdminPagesTests
 
         cut.WaitForAssertion(() => Assert.Contains(ServerApi.Unexpected, ui.Notices));
         Assert.False(cut.Find("#maintenance-switch").HasAttribute("checked"));
+    }
+
+    [Fact]
+    public async Task A_failed_load_shows_the_error_and_no_count()
+    {
+        await using var ui = Admin();
+        ui.Api.Maintenance = new MaintenanceStatus(true, 3);
+        ui.Api.NextQueryError = "The server isn't answering.";
+
+        var cut = ui.Ctx.Render<Maintenance>();
+
+        cut.WaitForAssertion(() => Assert.Equal("The server isn't answering.", cut.Find("[role=alert]").TextContent));
+        Assert.Empty(cut.FindAll("#running"));
+        Assert.Empty(cut.FindAll("#maintenance-switch"));
+
+        await cut.InvokeAsync(() => ui.Lobby.PlayerChanged(new PlayerPresence("giulia", true, false)));
+
+        cut.WaitForAssertion(() => Assert.Equal("3", cut.Find("#running").TextContent));
+        Assert.Empty(cut.FindAll("[role=alert]"));
+        Assert.True(cut.Find("#maintenance-switch").HasAttribute("checked"));
     }
 }
