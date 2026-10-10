@@ -114,15 +114,21 @@ internal static class EffectsSupport
         };
     }
 
-    /// <summary>Energy, power, exhausting the source, and at most one cost action: recycling a number of cards from your trash.</summary>
+    /// <summary>Energy, power, exhausting the source, and at most one cost action: recycling a number of cards from your trash,
+    /// killing the source, or spending a number of XP.</summary>
     private static bool IsSupportedCost(Cost cost) => cost.Actions switch
     {
         [] => true,
         [RecycleStep recycle] => recycle.Target is null && recycle.Count?.Literal is not null
             && recycle.From is { Zone: Zone.Trash, Position: null } from && (from.Owner is null || from.Owner.Kind == PlayerKind.You)
-            && recycle.Player is null && recycle.Chooser is null && recycle.Script is null && recycle.Store is null,
+            && IsPlain(recycle),
+        [KillStep kill] => kill.Target.Ref == RefKind.Self && IsPlain(kill),
+        [SpendXpStep spend] => spend.Amount.Literal is not null && IsPlain(spend),
         _ => false,
     };
+
+    /// <summary>A cost action acts for the ability's controller and names nothing else.</summary>
+    private static bool IsPlain(Step step) => step.Player is null && step.Chooser is null && step.Script is null && step.Store is null;
 
     private static void CheckSteps(IReadOnlyList<Step> steps, string at, List<string> problems, bool targets)
     {
@@ -158,6 +164,10 @@ internal static class EffectsSupport
                 break;
             case GainXpStep xp:
                 CheckValue(xp.Amount, at, problems);
+                break;
+            case ModifyMightStep might:
+                CheckValue(might.Amount, at, problems);
+                if (might.Duration is not (null or Duration.ThisTurn)) problems.Add($"{at}: duration");
                 break;
             case ChoosePlayerStep choose:
                 if (choose.Filter is not null && !IsPlayerFilter(choose.Filter)) problems.Add($"{at}: filter");
@@ -232,7 +242,7 @@ internal static class EffectsSupport
     }
 
     /// <summary>The steps whose handler asks for a non-slot selector through <see cref="ResolutionChoice"/>.</summary>
-    private static bool ChoosesOnResolution(Step step) => step is DealStep or KillStep;
+    private static bool ChoosesOnResolution(Step step) => step is DealStep or KillStep or ModifyMightStep;
 
     /// <summary>Card filters may use relation (Friendly or Enemy), type, token, other, mighty, location (Here, or any battlefield)
     /// and a supported not; nothing else yet.</summary>

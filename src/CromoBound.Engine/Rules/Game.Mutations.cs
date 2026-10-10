@@ -166,6 +166,23 @@ public sealed partial class Game
         Emit(new XpChanged(player, state.Xp));
     }
 
+    internal void SpendXp(PlayerId player, int amount)
+    {
+        if (amount <= 0) return;
+        var state = State.Player(player);
+        state.Xp -= amount;
+        Emit(new XpChanged(player, state.Xp));
+        MarkDirty();
+    }
+
+    /// <summary>A might change for a duration (2a's might modifiers: cleanup expires ThisTurn, combat's end ThisCombat).</summary>
+    internal void ModifyMight(ObjectId unit, int amount, Duration duration)
+    {
+        State[unit].Modifiers.Add(new MightModifier(amount, duration));
+        Emit(new MightModified(unit, amount, duration));
+        MarkDirty();
+    }
+
     /// <summary>A rune's Reaction Add (CR 429): exhaust for 1 energy, or recycle to the bottom of the Rune Deck for 1 power of its domain.</summary>
     internal void ApplyRune(PlayerId player, ObjectId rune, RuneUse use)
     {

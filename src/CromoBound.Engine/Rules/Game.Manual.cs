@@ -108,10 +108,8 @@ public sealed partial class Game
                 SetStatus(status.Card, status.Status, status.Value);
                 return null;
             case ManualModifyMight might:
-                if (BoardUnit(might.Unit) is not { } target) return Reject(RejectionCode.UnknownObject, "Choose a unit in play.");
-                target.Modifiers.Add(new MightModifier(might.Amount, might.Duration));
-                Emit(new MightModified(might.Unit, might.Amount, might.Duration));
-                MarkDirty();
+                if (BoardUnit(might.Unit) is null) return Reject(RejectionCode.UnknownObject, "Choose a unit in play.");
+                ModifyMight(might.Unit, might.Amount, might.Duration);
                 return null;
             case ManualAdjustPoints points:
                 if (!IsPlayer(points.Player)) return Reject(RejectionCode.UnknownObject, "No such player.");

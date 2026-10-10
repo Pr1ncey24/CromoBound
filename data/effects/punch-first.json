@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "punch-first",
+  "status": "Full",
+  "keywords": [ { "keyword": "Action" } ],
+  "abilities": [
+    { "kind": "Spell", "line": 2,
+      "steps": [ { "action": "ModifyMight", "target": { "select": "Unit", "count": 1 }, "amount": 5, "duration": "ThisTurn" } ] }
+  ]
+}

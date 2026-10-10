@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "harnessed-dragon",
+  "status": "Full",
+  "abilities": [
+    { "kind": "Triggered", "line": 1,
+      "trigger": { "event": "Played", "subject": { "ref": "Self" } },
+      "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "relation": "Enemy" } } } ] }
+  ]
+}

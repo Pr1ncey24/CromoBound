@@ -161,6 +161,33 @@ public class CardEffectsTests
     }
 
     [Theory]
+    [InlineData("""{ "actions": [ { "action": "Kill", "target": { "ref": "Self" } } ] }""", true)]
+    [InlineData("""{ "actions": [ { "action": "SpendXp", "amount": 2 } ] }""", true)]
+    [InlineData("""{ "actions": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] }""", false)]
+    [InlineData("""{ "actions": [ { "action": "Kill", "target": { "ref": "Host" } } ] }""", false)]
+    [InlineData("""{ "actions": [ { "action": "SpendXp", "amount": { "var": "n" } } ] }""", false)]
+    [InlineData("""{ "actions": [ { "action": "SpendXp", "amount": 1 }, { "action": "Kill", "target": { "ref": "Self" } } ] }""", false)]
+    public void Kill_self_and_spend_xp_are_the_cost_actions_let_through(string cost, bool supported)
+    {
+        var file = CromoJson.Deserialize<EffectsFile>($$"""
+            { "cardId": "gear-1", "status": "Full", "abilities": [ { "kind": "Activated", "cost": {{cost}}, "steps": [ { "action": "Draw" } ] } ] }
+            """);
+
+        Assert.Equal(supported, EffectsSupport.Problems(file, CardType.Gear).Count == 0);
+    }
+
+    [Fact]
+    public void A_might_step_with_a_count_selector_inside_an_optional_block_is_supported()
+    {
+        var file = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "spell", "status": "Full", "abilities": [ { "kind": "Spell",
+              "steps": [ { "action": "Optional", "reflexive": true, "steps": [ { "action": "ModifyMight", "amount": 2, "target": { "select": "Unit", "count": 1 } } ] } ] } ] }
+            """);
+
+        Assert.Empty(EffectsSupport.Problems(file, CardType.Spell));
+    }
+
+    [Theory]
     [InlineData("""{ "keyword": "Tank", "value": 2 }""", "keywords[0]: value")]
     [InlineData("""{ "keyword": "Accelerate", "cost": { "energy": 1 } }""", "keywords[0]: cost")]
     [InlineData("""{ "keyword": "Vision", "steps": [ { "action": "Draw" } ] }""", "keywords[0]: steps")]

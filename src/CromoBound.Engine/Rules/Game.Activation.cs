@@ -54,6 +54,7 @@ public sealed partial class Game
         var context = ActivationContext(player, source);
         if (ability.UseOnlyIf is { } condition && !ConditionResolver.Holds(this, context, condition)) return false;
         if (ability.Cost?.ExhaustSelf == true && source.Exhausted) return false;
+        if (State.Player(player).Xp < XpCost(context, ability)) return false;
         if (!HasSlotCandidates(ActivationContext(player, source, ability))) return false;
         return CostAction(ability) is not { } recycle || CostCards(context, recycle).Count >= CostCount(context, recycle);
     }
@@ -68,6 +69,11 @@ public sealed partial class Game
         [.. ZoneResolver.Resolve(this, context, recycle.From!).SelectMany(place => State.At(place))];
 
     private int CostCount(EffectContext context, RecycleStep recycle) => ValueResolver.Resolve(this, context, recycle.Count!);
+
+    private static bool KillsSelf(ActivatedAbility ability) => ability.Cost?.Actions is [KillStep { Target.Ref: RefKind.Self }];
+
+    private int XpCost(EffectContext context, ActivatedAbility ability) =>
+        ability.Cost?.Actions is [SpendXpStep spend] ? ValueResolver.Resolve(this, context, spend.Amount) : 0;
 
     internal bool RunActivation(ActivationTask task)
     {
@@ -146,6 +152,8 @@ public sealed partial class Game
     private void FinishActivation(ActivationTask task, CardInstance source, ActivatedAbility ability, EffectContext context)
     {
         if (ability.Cost?.ExhaustSelf == true) SetStatus(source.Id, StatusKind.Exhausted, true);
+        if (XpCost(context, ability) is var xp and > 0) SpendXp(task.Player, xp);
+        if (KillsSelf(ability)) Kill(source.Id);
         foreach (var card in task.Chosen.Where(State.Exists).ToList()) Recycle(card);
         if (State.Chain.Count == 0) ChainStartedByTrigger = false;
         var item = AddAbilityItem(task.Player, source.Id, source.CardId, AbilityKind.Activated, AbilityText(source.CardId, ability), ability.Steps, context);

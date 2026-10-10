@@ -211,4 +211,28 @@ public class ActivationTests
         Assert.Equal(MappingStatus.Full, info.Status);
         Assert.Empty(info.Abilities);
     }
+
+    /// <summary>gear-1 with a default-timing ability whose cost is spending 2 XP: draw 1.</summary>
+    private const string SpendsXp = """
+        { "cardId": "gear-1", "status": "Full", "abilities": [
+          { "kind": "Activated", "cost": { "actions": [ { "action": "SpendXp", "amount": 2 } ] }, "steps": [ { "action": "Draw", "amount": 1 } ] } ] }
+        """;
+
+    [Fact]
+    public void A_spend_xp_cost_needs_the_xp_and_lowers_it_when_paid()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("gear-1", SpendsXp)));
+        var gear = game.Put("gear-1", Place.Base(P1));
+        var engine = game.Start();
+        Assert.Empty(engine.Decision<PriorityDecision>().Activations);
+
+        Assert.True(engine.SubmitManual(P1, new ManualAdjustXp(P1, 3)).Accepted);
+        Assert.Equal(new[] { new ActivateOption(gear, 0) }, engine.Decision<PriorityDecision>().Activations);
+
+        var started = engine.Accept(P1, new ActivateAbility(gear, 0));
+
+        Assert.Contains(started.Events, e => e is XpChanged { Xp: 1 });
+        Assert.Equal(1, game.State.Player(P1).Xp);
+        Assert.Contains(started.Events, e => e is AbilityActivated { Ability: 0 });
+    }
 }

@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/effects.schema.json",
+  "cardId": "divining-shells",
+  "status": "Full",
+  "keywords": [ { "keyword": "Vision" } ],
+  "abilities": [
+    { "kind": "Activated", "line": 2, "timing": "Action",
+      "cost": { "exhaustSelf": true, "actions": [ { "action": "Kill", "target": { "ref": "Self" } } ] },
+      "steps": [ { "action": "ModifyMight", "target": { "select": "Unit", "count": 1 }, "amount": 2, "duration": "ThisTurn" } ] }
+  ]
+}
