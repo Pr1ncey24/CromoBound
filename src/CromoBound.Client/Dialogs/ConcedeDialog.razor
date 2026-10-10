@@ -1,0 +1,14 @@
+<MudDialog>
+    <DialogContent>
+        <p class="cb-sub">@Message</p>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="keep-playing" Variant="Variant.Text" Color="Color.Secondary" OnClick="() => Dialog.Cancel()">Keep playing</MudButton>
+        <MudButton id="confirm-concede" Variant="Variant.Outlined" Class="cb-danger-button" OnClick="() => Dialog.Close(DialogResult.Ok(true))">Concede</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Parameter] public string Message { get; set; } = "";
+}

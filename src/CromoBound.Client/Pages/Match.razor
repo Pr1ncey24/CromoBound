@@ -1,0 +1,143 @@
+@page "/match/{Id:guid}"
+@implements IDisposable
+@using CromoBound.Engine.Actions
+@using CromoBound.Engine.Views
+@inject LobbyState Lobby
+@inject IGameHub Hub
+@inject SessionState Session
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<main class="cb-main narrow">
+    @if (!Lobby.Loaded || (Lobby.MatchId != Id && Lobby.Ended?.MatchId != Id))
+    {
+        <p class="cb-sub">Loading the match...</p>
+    }
+    else
+    {
+        <section class="cb-panel cb-match" aria-labelledby="match-title">
+            <div class="cb-head">
+                <div>
+                    <h1 id="match-title" class="cb-title">@Me vs @Opponent</h1>
+                    <span id="match-format" class="cb-sub">@FormatLine</span>
+                </div>
+                @if (Lobby.CurrentView is { } stageView)
+                {
+                    <span id="match-stage" class="cb-stage">@Formats.Stage(stageView.Stage)</span>
+                }
+            </div>
+            @if (Lobby.CurrentView is { } view)
+            {
+                <div class="cb-score" role="group" aria-label="Games won">
+                    <div><span>You</span><b id="my-wins" class="mine">@Wins(view, mine: true)</b></div>
+                    <div class="cb-pips" aria-hidden="true">
+                        @for (var game = 0; game < Games(view); game++)
+                        {
+                            <span class="cb-pip @(game < Wins(view, true) + Wins(view, false) ? "on" : "")"></span>
+                        }
+                    </div>
+                    <div><span>@Opponent</span><b id="their-wins">@Wins(view, mine: false)</b></div>
+                </div>
+            }
+            else
+            {
+                <p class="cb-sub">Waiting for the match to begin...</p>
+            }
+            <div class="cb-placeholder">The board comes in the next update. For now you can follow the score here and concede.</div>
+            <div class="cb-actions">
+                <MudButton id="concede" Variant="Variant.Outlined" Class="cb-danger-button" Disabled="@(!CanConcede)" OnClick="ConcedeAsync">Concede this game</MudButton>
+            </div>
+        </section>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool busy;
+    private bool resultShown;
+
+    private string Me => Session.Me?.UserName ?? "";
+    private string Opponent => Lobby.Opponent ?? "your opponent";
+
+    private string FormatLine => Lobby.CurrentView is { } view ? $"{Formats.Name(view.Format)} · game {view.GameNumber}" : "";
+
+    private bool CanConcede => Lobby.IsConnected && Lobby.MatchId == Id && Lobby.CurrentView is { Stage: not MatchStage.Over } && !busy;
+
+    private static int Games(PlayerView view) => view.Format == MatchFormat.Bo3 ? 3 : 1;
+
+    private static int Wins(PlayerView view, bool mine) => view.Players[mine ? view.Viewer.Index : 1 - view.Viewer.Index].GameWins;
+
+    protected override void OnInitialized() => Lobby.Changed += OnChanged;
+
+    protected override void OnParametersSet() => Check();
+
+    private void OnChanged() => _ = InvokeAsync(() =>
+    {
+        Check();
+        StateHasChanged();
+    });
+
+    /// <summary>The end of this match shows its result, once; a match id that isn't the player's running match goes back to the
+    /// lobby (spec §8). Before the lobby has loaded there is nothing to compare with, so the page waits.</summary>
+    private void Check()
+    {
+        if (!Lobby.Loaded) return;
+        if (Lobby.Ended is { } ended && ended.MatchId == Id)
+        {
+            if (resultShown) return;
+            resultShown = true;
+            _ = ShowEndThenLeaveAsync(ended);
+            return;
+        }
+        if (Lobby.MatchId != Id) Nav.NavigateTo("");
+    }
+
+    /// <summary>Not awaited by <see cref="Check"/>: the dialog stays open until the player closes it, and the page keeps rendering
+    /// meanwhile.</summary>
+    private async Task ShowEndThenLeaveAsync(MatchEndedNotice ended)
+    {
+        await ShowEndAsync(ended);
+        Nav.NavigateTo("");
+    }
+
+    private async Task ShowEndAsync(MatchEndedNotice ended)
+    {
+        if (ended.Reason == MatchEndReason.Abandoned)
+        {
+            await (await Dialogs.ShowAsync<AbandonedDialog>("Your match was stopped", DialogDefaults.Options)).Result;
+            return;
+        }
+        var seat = Lobby.Seat?.Index ?? 0;
+        var title = string.Equals(ended.Winner, Me, StringComparison.OrdinalIgnoreCase) ? "You win the match" : $"{ended.Winner} wins the match";
+        var parameters = new DialogParameters<ResultDialog>
+        {
+            { d => d.Opponent, Opponent }, { d => d.MyWins, ended.GameWins[seat] }, { d => d.TheirWins, ended.GameWins[1 - seat] },
+        };
+        await (await Dialogs.ShowAsync<ResultDialog>(title, parameters, DialogDefaults.Options)).Result;
+    }
+
+    private async Task ConcedeAsync()
+    {
+        if (Lobby.CurrentView is not { } view) return;
+        var message = view.Format == MatchFormat.Bo3
+            ? $"{Opponent} wins game {view.GameNumber}. In a best of three, the match goes on to the next game unless this one decides it."
+            : $"{Opponent} wins the match.";
+        var dialog = await Dialogs.ShowAsync<ConcedeDialog>("Concede this game?",
+            new DialogParameters<ConcedeDialog> { { d => d.Message, message } }, DialogDefaults.Options);
+        if (await dialog.Result is not { Canceled: false }) return;
+        busy = true;
+        try
+        {
+            var reply = await Hub.SubmitAsync(Id, new Concede());
+            if (!reply.Accepted) Snackbar.Add(reply.Rejection?.Message ?? reply.Error ?? GameConnection.Unexpected, Severity.Error);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    public void Dispose() => Lobby.Changed -= OnChanged;
+}

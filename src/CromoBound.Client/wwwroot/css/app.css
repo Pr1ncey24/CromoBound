@@ -100,3 +100,17 @@ textarea.cb-input { padding: 12px; min-height: 200px; font-family: ui-monospace,
 .cb-dialog-body { display: flex; flex-direction: column; gap: 18px; }
 .cb-fieldset { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
 .cb-problems ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.cb-match { padding: 28px; gap: 28px; }
+.cb-stage { padding: 6px 14px; border-radius: 999px; background: rgba(224,74,58,.14); border: 1px solid #b8463a; color: var(--cb-accent-strong); font-weight: 600; letter-spacing: .06em; font-size: 13px; text-transform: uppercase; }
+.cb-score span { font-size: 15px; color: var(--cb-soft); }
+.cb-score b { color: var(--cb-soft); }
+.cb-score b.mine { color: var(--cb-accent-strong); }
+.cb-pips { flex-direction: row !important; justify-content: center; gap: 10px !important; }
+.cb-pip { width: 14px; height: 14px; transform: rotate(45deg); border: 2px solid var(--cb-accent-edge); box-sizing: border-box; }
+.cb-pip.on { background: var(--cb-primary); border-color: var(--cb-primary); }
+.cb-result { display: flex; align-items: center; justify-content: center; gap: 28px; padding: 8px 0; }
+.cb-result div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cb-result span { font-size: 14px; color: var(--cb-muted); }
+.cb-result b { font-weight: 700; font-size: 52px; line-height: 1; color: var(--cb-soft); }
+.cb-result .cb-pip { background: var(--cb-accent-edge); border: 0; width: 12px; height: 12px; }
+.cb-danger-button { color: var(--cb-danger) !important; border-color: #7a2a3e !important; }

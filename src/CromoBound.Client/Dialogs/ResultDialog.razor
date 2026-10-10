@@ -1,0 +1,19 @@
+<MudDialog>
+    <DialogContent>
+        <div class="cb-result" role="group" aria-label="Games won">
+            <div><span>You</span><b id="result-mine">@MyWins</b></div>
+            <span class="cb-pip" aria-hidden="true"></span>
+            <div><span>@Opponent</span><b id="result-theirs">@TheirWins</b></div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="back-to-lobby" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialog.Close()">Back to the lobby</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Parameter] public string Opponent { get; set; } = "";
+    [Parameter] public int MyWins { get; set; }
+    [Parameter] public int TheirWins { get; set; }
+}
