@@ -1,0 +1,125 @@
+@page "/decks"
+@inject DeckStore Store
+
+<main class="cb-main">
+    <div>
+        <h1 class="cb-title">Your decks</h1>
+        <p class="cb-sub">Kept in this browser only. The server checks a deck when you challenge or accept.</p>
+    </div>
+    <div class="cb-row">
+        <section class="cb-col-main" aria-label="Saved decks">
+            @if (decks.Count == 0)
+            {
+                <p class="cb-sub">You have no decks yet. Paste one on the right.</p>
+            }
+            <div class="cb-deck-grid">
+                @foreach (var deck in decks)
+                {
+                    <div>
+                        <div class="cb-deckbox">
+                            <span class="back" aria-hidden="true"></span>
+                            <span class="mid" aria-hidden="true"></span>
+                            <div class="front">
+                                <div class="label">
+                                    @if (renaming == deck.Id)
+                                    {
+                                        <label class="cb-label" for="rename-@deck.Id">New name</label>
+                                        <input id="rename-@deck.Id" class="cb-input rename-input" @bind="newName" @bind:event="oninput" />
+                                    }
+                                    else
+                                    {
+                                        <span class="cb-deck-name">@deck.Deck.Name</span>
+                                        <span class="cb-deck-counts">@DeckStore.Counts(deck.Deck)</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cb-actions">
+                            @if (renaming == deck.Id)
+                            {
+                                <MudButton Class="rename-cancel" Variant="Variant.Text" Color="Color.Secondary" OnClick="() => renaming = null">Cancel</MudButton>
+                                <MudButton Class="rename-save" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SaveNameAsync(deck)">Save</MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Class="rename" Variant="Variant.Text" Color="Color.Secondary" OnClick="() => StartRename(deck)" aria-label="@($"Rename {deck.Deck.Name}")">Rename</MudButton>
+                                <MudButton Class="delete cb-danger-text" Variant="Variant.Text" OnClick="() => DeleteAsync(deck)" aria-label="@($"Delete {deck.Deck.Name}")">Delete</MudButton>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+        <section class="cb-col-side cb-panel" aria-labelledby="add-title">
+            <h2 id="add-title" class="cb-section-title">Add a deck</h2>
+            <div class="cb-field">
+                <label class="cb-label" for="paste">Paste the deck's JSON</label>
+                <textarea id="paste" class="cb-input @(error is null ? "" : "invalid")" rows="9" @bind="text" @bind:event="oninput"></textarea>
+            </div>
+            @if (error is not null)
+            {
+                <p class="cb-error" role="alert">@error</p>
+            }
+            <div class="cb-actions">
+                <label class="cb-upload">
+                    Upload a .json file
+                    <InputFile accept=".json,application/json" OnChange="UploadAsync" class="cb-visually-hidden" />
+                </label>
+                <MudButton id="add-deck" Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync">Add deck</MudButton>
+            </div>
+        </section>
+    </div>
+</main>
+
+@code {
+    private IReadOnlyList<StoredDeck> decks = [];
+    private string text = "";
+    private string? error;
+    private string? renaming;
+    private string newName = "";
+
+    protected override async Task OnInitializedAsync() => decks = await Store.ListAsync();
+
+    private async Task AddAsync()
+    {
+        var added = await Store.AddAsync(text);
+        error = added.Error;
+        if (!added.Ok) return;
+        text = "";
+        decks = await Store.ListAsync();
+    }
+
+    /// <summary>Fills the box with the file, so the player sees it before adding; a file over the limit isn't read at all.</summary>
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        if (e.File.Size > DeckStore.MaxBytes)
+        {
+            error = DeckStore.TooBig;
+            return;
+        }
+        using var reader = new StreamReader(e.File.OpenReadStream(DeckStore.MaxBytes));
+        text = await reader.ReadToEndAsync();
+        error = null;
+    }
+
+    private void StartRename(StoredDeck deck)
+    {
+        renaming = deck.Id;
+        newName = deck.Deck.Name;
+    }
+
+    private async Task SaveNameAsync(StoredDeck deck)
+    {
+        var renamed = await Store.RenameAsync(deck.Id, newName);
+        error = renamed.Error;
+        if (!renamed.Ok) return;
+        renaming = null;
+        decks = await Store.ListAsync();
+    }
+
+    private async Task DeleteAsync(StoredDeck deck)
+    {
+        error = (await Store.DeleteAsync(deck.Id)).Error;
+        decks = await Store.ListAsync();
+    }
+}

@@ -17,5 +17,7 @@ builder.Services.AddScoped<SessionKeeper>();
 builder.Services.AddScoped<IGameHub, GameConnection>();
 builder.Services.AddScoped<LobbyState>();
 builder.Services.AddScoped<LobbySync>();
+builder.Services.AddScoped<IBrowserStorage, LocalBrowserStorage>();
+builder.Services.AddScoped<DeckStore>();
 
 await builder.Build().RunAsync();
