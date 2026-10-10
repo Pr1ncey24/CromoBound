@@ -71,6 +71,11 @@ Each one is small and self-contained, and goes in only because a card above need
 - Mighty means 5 or more might (CR 706-711).
 - The game keeps the set of Mighty units in its state. A unit entering the board joins the set silently if it is already Mighty (§4.1). After each step, cleanup and might change, the game compares, and emits `BecameMighty` for each unit already on the board that crossed to 5 or more. Because the set is in the state, replay and undo need nothing new.
 
+### 3.7 Elder Dragon's lethal damage
+- Each unit remembers which players' sources damaged it this turn (cleared with the damage at end of turn).
+- Cleanup also kills an enemy unit that has any damage from a player who controls an active Lethal passive.
+- Combat damage: for that player's assignments, every enemy unit's lethal amount is 1 (`CombatDamage.Lethal`).
+
 ### 3.8 Paying or refusing Deflect (Plan P)
 - One rule for spells, activations and triggers, replacing Plan O's two Deflect paths:
   - Once the targets are chosen, every enemy target with Deflect X is listed with its tax.
@@ -82,11 +87,6 @@ Each one is small and self-contained, and goes in only because a card above need
 - Its "tax paid" mark lives on the chain item. This removes the double-charge bug and the joint-affordability gap carried over from Plan O.
 - A refused target is announced with a public event, so the log can say "giulia didn't pay Deflect for Kayle".
 - The board needs a panel for this choice, to be mocked with 4b-2.
-
-### 3.7 Elder Dragon's lethal damage
-- Each unit remembers which players' sources damaged it this turn (cleared with the damage at end of turn).
-- Cleanup also kills an enemy unit that has any damage from a player who controls an active Lethal passive.
-- Combat damage: for that player's assignments, every enemy unit's lethal amount is 1 (`CombatDamage.Lethal`).
 
 ## 4. Rules readings
 
