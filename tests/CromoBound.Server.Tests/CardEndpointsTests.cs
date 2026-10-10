@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using CromoBound.Contracts;
+using CromoBound.Data;
 using CromoBound.Models.Cards;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CromoBound.Server.Tests;
 
@@ -53,14 +55,37 @@ public class CardEndpointsTests
         foreach (var card in cards)
         {
             var entry = catalog.Cards.Single(c => c.Id == card.Id);
-            Assert.Equal((card.Name, card.Type, card.Supertype, card.Might, card.Cost?.Energy),
-                (entry.Name, entry.Type, entry.Supertype, entry.Might, entry.Energy));
+            Assert.Equal((card.Name, card.Type, card.Supertype, card.Might, card.Cost?.Energy, card.DefaultPrintingId),
+                (entry.Name, entry.Type, entry.Supertype, entry.Might, entry.Energy, entry.DefaultPrintingId));
             Assert.Equal(card.Domains, entry.Domains);
             Assert.Equal(card.Cost?.Power ?? [], entry.Power);
         }
         var json = await response.Content.ReadAsStringAsync();
         Assert.Contains("\"type\":\"Unit\"", json);
         Assert.Contains("\"power\":[]", json);
+    }
+
+    [Fact]
+    public async Task The_catalog_names_each_cards_default_printing()
+    {
+        var source = ServerFactory.TestCards;
+        var cards = source.Cards.Values.Select(c => source.Printings.ContainsKey($"p-{c.Id}") ? c with { DefaultPrintingId = $"p-{c.Id}" } : c);
+        var withDefaults = new CardDatabase
+        {
+            Cards = cards.ToDictionary(c => c.Id, StringComparer.Ordinal),
+            Printings = source.Printings,
+            Sets = source.Sets,
+            Effects = source.Effects,
+        };
+        using var factory = new ServerFactory(services: services => services.AddSingleton(withDefaults));
+        var player = await PlayerAsync(factory);
+
+        var catalog = await player.GetFromJsonAsync<CardCatalog>("/api/cards", WireJson.Options);
+
+        Assert.NotNull(catalog);
+        Assert.Equal(withDefaults.Cards.Values.Select(c => c.DefaultPrintingId).Order(StringComparer.Ordinal), catalog.Cards.Select(c => c.DefaultPrintingId).Order(StringComparer.Ordinal));
+        Assert.Contains(catalog.Cards, c => c.DefaultPrintingId is not null);
+        Assert.Contains(catalog.Cards, c => c.DefaultPrintingId is null);
     }
 
     [Fact]

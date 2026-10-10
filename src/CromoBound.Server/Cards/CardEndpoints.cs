@@ -23,7 +23,7 @@ internal static class CardEndpoints
 
     public static CardCatalog CatalogOf(CardDatabase cards) => new(
         [.. cards.Cards.Values.OrderBy(c => c.Id, StringComparer.Ordinal).Select(c => new CatalogCard(
-            c.Id, c.Name, c.Type, c.Supertype, c.Domains, c.Cost?.Energy, c.Cost?.Power ?? [], c.Might))],
+            c.Id, c.Name, c.Type, c.Supertype, c.Domains, c.Cost?.Energy, c.Cost?.Power ?? [], c.Might, c.DefaultPrintingId))],
         [.. cards.Printings.Values.OrderBy(p => p.Id, StringComparer.Ordinal).Select(p => new CatalogPrinting(p.Id, p.CardId, p.Orientation))]);
 
     private static IResult Image(string printingId, CardDatabase cards, IOptions<ServerOptions> options, HttpContext http)
