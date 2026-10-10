@@ -99,4 +99,20 @@ public class LayoutTests
 
         cut.WaitForAssertion(() => Assert.EndsWith($"/match/{match}", ui.Nav.Uri));
     }
+
+    [Fact]
+    public async Task A_match_abandoned_at_startup_is_explained_once()
+    {
+        await using var ui = new Ui();
+        ui.Hub.Lobby = new LobbyReply([], [], null, new MatchEndedNotice(Guid.NewGuid(), MatchEndReason.Abandoned, [0, 0], null), false);
+        var cut = ui.Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, "<p id='page'>page</p>"));
+        cut.WaitForAssertion(() => Assert.Equal(1, ui.Hub.Starts));
+
+        await cut.InvokeAsync(() => ui.Hub.SetStateAsync(HubState.Connected));
+
+        cut.WaitForAssertion(() => Assert.Contains("The server was updated while your match was running", cut.Markup));
+        await cut.ClickAsync("#abandoned-ok");
+        await cut.InvokeAsync(() => ui.Lobby.SetConnection(HubState.Connected));
+        cut.WaitForAssertion(() => Assert.DoesNotContain("The server was updated while your match was running", cut.Markup));
+    }
 }

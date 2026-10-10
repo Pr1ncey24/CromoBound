@@ -1,5 +1,218 @@
 @page "/"
+@implements IDisposable
+@inject LobbyState State
+@inject LobbySync Sync
+@inject IGameHub Hub
+@inject DeckStore Store
+@inject SessionState Session
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <main class="cb-main">
-    <h1 class="cb-title">Play</h1>
+    <div class="cb-head">
+        <div>
+            <h1 class="cb-title">Play</h1>
+            <p class="cb-sub">@Subtitle</p>
+        </div>
+        <MudButton Href="decks" Variant="Variant.Outlined" Color="Color.Secondary">Your decks (@deckCount)</MudButton>
+    </div>
+    @if (!State.Loaded)
+    {
+        <p class="cb-sub">Connecting to the lobby...</p>
+    }
+    else
+    {
+        <div class="cb-row">
+            <section class="cb-col-main" aria-labelledby="players-title">
+                <h2 id="players-title" class="cb-section-title">Players</h2>
+                @if (State.Players.Count == 0)
+                {
+                    <p class="cb-sub">No one else has an account yet.</p>
+                }
+                <div class="cb-grid">
+                    @foreach (var player in State.Players)
+                    {
+                        <div class="cb-panel cb-player @StatusClass(player)" data-player="@player.UserName">
+                            <div class="cb-player-head">
+                                <span class="cb-avatar-lg" aria-hidden="true">@player.UserName[..1].ToUpperInvariant()</span>
+                                <div>
+                                    <span class="cb-player-name">@player.UserName</span>
+                                    <span class="cb-status"><span class="cb-dot" aria-hidden="true"></span>@Status(player)</span>
+                                </div>
+                            </div>
+                            <MudButton Class="challenge" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanChallenge(player))"
+                                       OnClick="() => ChallengeAsync(player.UserName)" aria-label="@($"Challenge {player.UserName}")">Challenge</MudButton>
+                        </div>
+                    }
+                </div>
+                @if (State.Sent is not null)
+                {
+                    <p class="cb-sub">You have an open challenge. Cancel it to challenge someone else.</p>
+                }
+            </section>
+            <section class="cb-col-side" aria-labelledby="challenges-title">
+                <h2 id="challenges-title" class="cb-section-title">Challenges</h2>
+                @foreach (var challenge in State.Received)
+                {
+                    <div class="cb-panel highlight cb-received" data-from="@challenge.From">
+                        <div class="cb-head">
+                            <span class="cb-kicker accent">Received</span>
+                            <span class="cb-chip">@Formats.Name(challenge.Format)</span>
+                        </div>
+                        <div><strong>@challenge.From</strong> challenges you</div>
+                        <div class="cb-actions">
+                            <MudButton Class="decline" Variant="Variant.Text" Color="Color.Secondary" Disabled="@(!CanAnswer)"
+                                       OnClick="() => DeclineAsync(challenge)">Decline</MudButton>
+                            <MudButton Class="accept" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!CanAccept)"
+                                       OnClick="() => AcceptAsync(challenge)">Accept</MudButton>
+                        </div>
+                    </div>
+                }
+                <div class="cb-panel cb-sent">
+                    <span class="cb-kicker">Sent</span>
+                    @if (State.Sent is { } sent)
+                    {
+                        <div>You challenged <strong>@sent.To</strong> to @Formats.InSentence(sent.Format). Waiting for an answer.</div>
+                        <div class="cb-actions">
+                            <MudButton id="cancel-challenge" Variant="Variant.Text" Color="Color.Secondary" Disabled="@(!CanAnswer)"
+                                       OnClick="() => CancelAsync(sent)">Cancel challenge</MudButton>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="cb-sub">You haven't challenged anyone.</p>
+                    }
+                </div>
+            </section>
+        </div>
+    }
 </main>
+
+@code {
+    private int deckCount;
+    private bool busy;
+
+    private string Me => Session.Me?.UserName ?? "";
+
+    private string Subtitle => State.Online switch
+    {
+        0 => "Pick an opponent and a deck. None of your friends are online right now.",
+        1 => "Pick an opponent and a deck. 1 of your friends is online.",
+        var n => $"Pick an opponent and a deck. {n} of your friends are online.",
+    };
+
+    private bool CanAnswer => State.IsConnected && !busy;
+    private bool CanAccept => CanAnswer && !State.Maintenance && State.MatchId is null;
+    private bool CanChallenge(PlayerPresence player) => CanAccept && State.Sent is null && !player.InMatch;
+
+    private static string Status(PlayerPresence player) => player.InMatch ? "In a match" : player.Online ? "Online" : "Offline";
+    private static string StatusClass(PlayerPresence player) => player.InMatch ? "busy" : player.Online ? "online" : "off";
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        GoToMatchIfPlaying();
+        deckCount = (await Store.ListAsync()).Count;
+    }
+
+    private void OnChanged() => _ = InvokeAsync(() =>
+    {
+        GoToMatchIfPlaying();
+        StateHasChanged();
+    });
+
+    /// <summary>A player in a match plays it (spec §6.3).</summary>
+    private void GoToMatchIfPlaying()
+    {
+        if (State.MatchId is { } id) Nav.NavigateTo($"match/{id}");
+    }
+
+    private async Task ChallengeAsync(string opponent)
+    {
+        var (format, deckId) = (MatchFormat.Bo1, (string?)null);
+        while (true)
+        {
+            var parameters = new DialogParameters<ChallengeDialog>
+            {
+                { d => d.Decks, await Store.ListAsync() }, { d => d.Format, format }, { d => d.DeckId, deckId },
+            };
+            var dialog = await Dialogs.ShowAsync<ChallengeDialog>($"Challenge {opponent}", parameters, DialogDefaults.Options);
+            if (await dialog.Result is not { Canceled: false, Data: ChallengeChoice choice }) return;
+            (format, deckId) = (choice.Format, choice.Deck.Id);
+            var reply = await CallAsync(() => Hub.ChallengeAsync(opponent, choice.Format, choice.Deck.Deck));
+            if (reply.Id is { } id)
+            {
+                State.ChallengeSent(new ChallengeInfo(id, Me, opponent, choice.Format));
+                return;
+            }
+            if (!await PickAnotherAsync(reply, choice.Deck)) return;
+        }
+    }
+
+    private async Task AcceptAsync(ChallengeInfo challenge)
+    {
+        string? deckId = null;
+        while (true)
+        {
+            var parameters = new DialogParameters<AcceptDialog>
+            {
+                { d => d.Challenge, challenge }, { d => d.Decks, await Store.ListAsync() }, { d => d.DeckId, deckId },
+            };
+            var dialog = await Dialogs.ShowAsync<AcceptDialog>($"Play {challenge.From}?", parameters, DialogDefaults.Options);
+            if (await dialog.Result is not { Canceled: false, Data: AcceptChoice choice }) return;
+            if (choice.Answer == AcceptAnswer.Decline || choice.Deck is not { } deck)
+            {
+                await DeclineAsync(challenge);
+                return;
+            }
+            deckId = deck.Id;
+            var reply = await CallAsync(() => Hub.AcceptAsync(challenge.ChallengeId, deck.Deck));
+            if (reply.Id is not null) return;
+            if (!await PickAnotherAsync(reply, deck)) return;
+        }
+    }
+
+    private async Task DeclineAsync(ChallengeInfo challenge) => await CallAsync(() => Hub.DeclineAsync(challenge.ChallengeId));
+
+    private async Task CancelAsync(ChallengeInfo challenge) => await CallAsync(() => Hub.CancelAsync(challenge.ChallengeId));
+
+    /// <summary>Runs one hub call with the buttons off. A refusal without deck problems is shown as it comes, and the lobby is
+    /// reloaded, so a challenge that is gone disappears; deck problems are left to <see cref="PickAnotherAsync"/>.</summary>
+    private async Task<HubReply> CallAsync(Func<Task<HubReply>> call)
+    {
+        busy = true;
+        HubReply reply;
+        try
+        {
+            reply = await call();
+        }
+        finally
+        {
+            busy = false;
+        }
+        if (reply.Error is { } error && reply.DeckIssues is not { Count: > 0 })
+        {
+            Snackbar.Add(error, Severity.Error);
+            await Sync.ReloadAsync();
+        }
+        return reply;
+    }
+
+    /// <summary>Shows a refused deck's problems; true when the player wants to pick another deck.</summary>
+    private async Task<bool> PickAnotherAsync(HubReply reply, StoredDeck deck)
+    {
+        if (reply.DeckIssues is not { Count: > 0 } issues) return false;
+        var parameters = new DialogParameters<DeckProblemsDialog>
+        {
+            { d => d.DeckName, deck.Deck.Name }, { d => d.Problems, issues.Select(i => i.Message).ToList() },
+        };
+        var dialog = await Dialogs.ShowAsync<DeckProblemsDialog>("That deck isn't legal", parameters, DialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: DeckProblemsAnswer.PickAnother }) return true;
+        if (result is { Canceled: false, Data: DeckProblemsAnswer.GoToDecks }) Nav.NavigateTo("decks");
+        return false;
+    }
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

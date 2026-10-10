@@ -1,4 +1,5 @@
 using Bunit;
+using CromoBound.Client.Layout;
 using CromoBound.Client.Services;
 using CromoBound.Client.Tests.Fakes;
 using CromoBound.Contracts;
@@ -44,6 +45,17 @@ internal sealed class Ui : IAsyncDisposable
 
     public IReadOnlyList<string> Notices =>
         [.. Ctx.Services.GetRequiredService<ISnackbar>().ShownSnackbars.Select(s => s.Message ?? "")];
+
+    /// <summary>Dialogs show in the provider, which a page rendered on its own doesn't have.</summary>
+    public IRenderedComponent<MudDialogProvider> RenderDialogs() => Ctx.Render<MudDialogProvider>();
+
+    /// <summary>A page inside the real layout, which brings its own providers, banners and global navigation.</summary>
+    public IRenderedComponent<MainLayout> RenderInLayout<TPage>() where TPage : IComponent =>
+        Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, b =>
+        {
+            b.OpenComponent<TPage>(0);
+            b.CloseComponent();
+        }));
 
     public ValueTask DisposeAsync() => Ctx.DisposeAsync();
 }

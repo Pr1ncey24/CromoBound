@@ -1,0 +1,12 @@
+<MudDialog>
+    <DialogContent>
+        <p class="cb-sub">The server was updated while your match was running, so it couldn't go on. Nobody wins it, and you're free to play again.</p>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="abandoned-ok" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialog.Close()">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+}

@@ -96,7 +96,12 @@ else if (ready)
         return Task.CompletedTask;
     }
 
-    private void OnLobbyChanged() => _ = InvokeAsync(StateHasChanged);
+    private void OnLobbyChanged() => _ = InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        if (Lobby.TakeAbandoned() is not null)
+            await Dialogs.ShowAsync<AbandonedDialog>("Your match was stopped", DialogDefaults.Options);
+    });
 
     private void OnNotice(string text) => _ = InvokeAsync(() => Snackbar.Add(text, Severity.Info));
 

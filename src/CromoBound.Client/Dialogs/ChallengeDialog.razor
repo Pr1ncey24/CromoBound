@@ -1,0 +1,65 @@
+<MudDialog>
+    <DialogContent>
+        <div class="cb-dialog-body">
+            <fieldset class="cb-fieldset">
+                <legend class="cb-label">Format</legend>
+                <div class="cb-choices">
+                    <label class="cb-choice @(format == MatchFormat.Bo1 ? "on" : "")">
+                        <input id="bo1" type="radio" name="format" checked="@(format == MatchFormat.Bo1)" @onchange="() => format = MatchFormat.Bo1" />
+                        Best of one
+                    </label>
+                    <label class="cb-choice @(format == MatchFormat.Bo3 ? "on" : "")">
+                        <input id="bo3" type="radio" name="format" checked="@(format == MatchFormat.Bo3)" @onchange="() => format = MatchFormat.Bo3" />
+                        Best of three
+                    </label>
+                </div>
+            </fieldset>
+            @if (Decks.Count == 0)
+            {
+                <p class="cb-sub">You have no decks yet. <a href="decks" @onclick="Cancel">Add one on the decks page.</a></p>
+            }
+            else
+            {
+                <div class="cb-field">
+                    <label class="cb-label" for="deck">Your deck</label>
+                    <select id="deck" class="cb-input" @bind="deckId">
+                        @foreach (var deck in Decks)
+                        {
+                            <option value="@deck.Id">@deck.Deck.Name</option>
+                        }
+                    </select>
+                    <a href="decks" @onclick="Cancel">Manage decks</a>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="challenge-cancel" Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton id="send-challenge" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(Chosen is null)" OnClick="Send">Send challenge</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<StoredDeck> Decks { get; set; } = [];
+    [Parameter] public MatchFormat Format { get; set; } = MatchFormat.Bo1;
+    [Parameter] public string? DeckId { get; set; }
+
+    private MatchFormat format;
+    private string? deckId;
+
+    protected override void OnInitialized()
+    {
+        format = Format;
+        deckId = Decks.Any(d => d.Id == DeckId) ? DeckId : Decks.FirstOrDefault()?.Id;
+    }
+
+    private StoredDeck? Chosen => Decks.FirstOrDefault(d => d.Id == deckId);
+
+    private void Cancel() => Dialog.Cancel();
+
+    private void Send()
+    {
+        if (Chosen is { } deck) Dialog.Close(DialogResult.Ok(new ChallengeChoice(format, deck)));
+    }
+}

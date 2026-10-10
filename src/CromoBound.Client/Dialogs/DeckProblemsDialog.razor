@@ -1,0 +1,25 @@
+<MudDialog>
+    <DialogContent>
+        <div class="cb-dialog-body cb-problems">
+            <p class="cb-sub">The server refused <strong>@DeckName</strong>. It found:</p>
+            <ul>
+                @foreach (var problem in Problems)
+                {
+                    <li>@problem</li>
+                }
+            </ul>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="go-to-decks" Variant="Variant.Text" Color="Color.Secondary" OnClick="() => Answer(DeckProblemsAnswer.GoToDecks)">Go to decks</MudButton>
+        <MudButton id="pick-another" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Answer(DeckProblemsAnswer.PickAnother)">Pick another deck</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Parameter] public string DeckName { get; set; } = "";
+    [Parameter] public IReadOnlyList<string> Problems { get; set; } = [];
+
+    private void Answer(DeckProblemsAnswer answer) => Dialog.Close(DialogResult.Ok(answer));
+}

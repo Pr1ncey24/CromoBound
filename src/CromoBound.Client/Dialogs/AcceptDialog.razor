@@ -1,0 +1,50 @@
+<MudDialog>
+    <DialogContent>
+        <div class="cb-dialog-body">
+            <p class="cb-sub">@Challenge.From challenges you to @Formats.InSentence(Challenge.Format). Pick the deck you play with.</p>
+            @if (Decks.Count == 0)
+            {
+                <p class="cb-sub">You have no decks yet. <a href="decks" @onclick="NotNow">Add one on the decks page.</a></p>
+            }
+            else
+            {
+                <div class="cb-field">
+                    <label class="cb-label" for="deck">Your deck</label>
+                    <select id="deck" class="cb-input" @bind="deckId">
+                        @foreach (var deck in Decks)
+                        {
+                            <option value="@deck.Id">@deck.Deck.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton id="decline-in-dialog" Variant="Variant.Text" Color="Color.Secondary" OnClick="Decline">Decline</MudButton>
+        <MudButton id="not-now" Variant="Variant.Text" Color="Color.Secondary" OnClick="NotNow">Not now</MudButton>
+        <MudButton id="accept-and-play" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(Chosen is null)" OnClick="Accept">Accept and play</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+    [Parameter, EditorRequired] public ChallengeInfo Challenge { get; set; } = default!;
+    [Parameter] public IReadOnlyList<StoredDeck> Decks { get; set; } = [];
+    [Parameter] public string? DeckId { get; set; }
+
+    private string? deckId;
+
+    protected override void OnInitialized() => deckId = Decks.Any(d => d.Id == DeckId) ? DeckId : Decks.FirstOrDefault()?.Id;
+
+    private StoredDeck? Chosen => Decks.FirstOrDefault(d => d.Id == deckId);
+
+    private void NotNow() => Dialog.Cancel();
+
+    private void Decline() => Dialog.Close(DialogResult.Ok(new AcceptChoice(AcceptAnswer.Decline, null)));
+
+    private void Accept()
+    {
+        if (Chosen is { } deck) Dialog.Close(DialogResult.Ok(new AcceptChoice(AcceptAnswer.Accept, deck)));
+    }
+}
