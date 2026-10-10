@@ -52,6 +52,7 @@ public sealed class LobbyState(SessionState session) : IGameClient
         _received = [.. lobby.Challenges.Where(c => !IsMine(c)).OrderBy(c => c.From, StringComparer.OrdinalIgnoreCase)];
         Sent = lobby.Challenges.FirstOrDefault(IsMine);
         if (lobby.MatchId != MatchId) (Opponent, Seat, CurrentView) = (null, null, null);
+        if (MatchId is { } tracked && lobby.MatchId is null && lobby.Ended?.MatchId != tracked) Notice?.Invoke("Your match ended while you were away.");
         MatchId = lobby.MatchId;
         if (match is { MatchId: { } id } && id == MatchId)
         {

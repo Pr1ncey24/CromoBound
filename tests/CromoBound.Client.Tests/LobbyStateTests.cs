@@ -155,6 +155,32 @@ public class LobbyStateTests
     }
 
     [Fact]
+    public async Task A_match_that_ended_while_away_is_announced()
+    {
+        var (state, notices) = Marco();
+        await state.MatchStarted(new MatchStartedNotice(M, "giulia", new PlayerId(0)));
+
+        state.Load(Reply(), null);
+
+        Assert.Equal("Your match ended while you were away.", Assert.Single(notices));
+        Assert.Null(state.MatchId);
+    }
+
+    [Fact]
+    public async Task A_match_that_ended_with_its_notice_or_as_abandoned_is_not_announced_again()
+    {
+        var (state, notices) = Marco();
+        await state.MatchStarted(new MatchStartedNotice(M, "giulia", new PlayerId(0)));
+        await state.MatchEnded(new MatchEndedNotice(M, MatchEndReason.Finished, [1, 0], "marco"));
+        state.Load(Reply(), null);
+        await state.MatchStarted(new MatchStartedNotice(A, "giulia", new PlayerId(0)));
+        state.Load(Reply(ended: new MatchEndedNotice(A, MatchEndReason.Abandoned, [0, 0], null)), null);
+        state.Load(Reply(), null);
+
+        Assert.Empty(notices);
+    }
+
+    [Fact]
     public async Task Presence_and_maintenance_notices_update_the_lobby()
     {
         var (state, _) = Marco();
