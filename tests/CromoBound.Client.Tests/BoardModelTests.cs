@@ -133,4 +133,34 @@ public class BoardModelTests
 
         Assert.Equal(("", 0, (Phase?)null), (model.Badge, model.Turn, model.Phase));
     }
+
+    [Fact]
+    public void Gear_attached_to_a_unit_in_the_base_is_only_a_count_on_that_unit()
+    {
+        var board = new TestBoard();
+        var unit = board.Add(board.MyBase, "unit-a", might: 2);
+        board.Add(board.MyBase, "gear-a", attachedTo: unit.Id);
+        board.Add(board.MyBase, "gear-a");
+
+        var model = board.Model();
+
+        Assert.Equal(new[] { "Blade Twirler", "Doran's Blade" }, model.Me.Base.Select(c => c.Name));
+        Assert.Equal(1, model.Me.Base.Single(c => c.Id == unit.Id).Gear);
+    }
+
+    [Fact]
+    public void Gear_attached_to_a_unit_at_a_battlefield_is_only_a_count_on_that_unit()
+    {
+        var board = new TestBoard();
+        board.AddLane("bf-a", TestBoard.Me);
+        var mine = board.AddToLane(0, "unit-a", TestBoard.Me, might: 2);
+        board.Lanes[0].Units.Add(board.Card("gear-a", TestBoard.Me, attachedTo: mine.Id));
+        var theirs = board.AddToLane(0, "unit-b", TestBoard.Them, might: 1);
+        board.Lanes[0].Units.Add(board.Card("gear-a", TestBoard.Them, attachedTo: theirs.Id));
+
+        var lane = Assert.Single(board.Model().Lanes);
+
+        Assert.Equal(("Blade Twirler", 1), (Assert.Single(lane.Mine).Name, lane.Mine[0].Gear));
+        Assert.Equal(("Daring Poro", 1), (Assert.Single(lane.Theirs).Name, lane.Theirs[0].Gear));
+    }
 }

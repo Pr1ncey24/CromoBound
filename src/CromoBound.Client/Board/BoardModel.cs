@@ -117,7 +117,7 @@ public sealed partial class BoardModel
         public BoardSide Side(PlayerId player, string name, BoardModel model)
         {
             var side = view.Players[player.Index];
-            var onBase = side.Base.Select(c => Card(c, model)).ToList();
+            var onBase = side.Base.Where(c => c.AttachedTo is null).Select(c => Card(c, model)).ToList();
             return new BoardSide(
                 player, name, player == view.Viewer, side.Points, side.Xp, side.Pool,
                 side.Legend.Select(c => Card(c, model)).FirstOrDefault(), side.ChampionZone.Select(c => Card(c, model)).FirstOrDefault(),
@@ -129,8 +129,8 @@ public sealed partial class BoardModel
 
         public BoardLane Lane(BattlefieldView lane, BoardModel model) => new(
             lane.Index, Card(lane.Card, model), lane.Controller, lane.ContestedBy is not null,
-            [.. lane.Units.Where(u => u.Controller == view.Viewer).Select(u => Card(u, model))],
-            [.. lane.Units.Where(u => u.Controller != view.Viewer).Select(u => Card(u, model))],
+            [.. lane.Units.Where(u => u.AttachedTo is null && u.Controller == view.Viewer).Select(u => Card(u, model))],
+            [.. lane.Units.Where(u => u.AttachedTo is null && u.Controller != view.Viewer).Select(u => Card(u, model))],
             lane.HasFacedown, lane.Facedown is { } hidden ? Card(hidden, model) : null, model._destinations.Contains(lane.Index));
 
         public CardView? Find(ObjectId id) => AllCards(view).FirstOrDefault(c => c.Id == id);
