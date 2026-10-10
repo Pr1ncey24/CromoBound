@@ -70,12 +70,12 @@ public class CardEffectsTests
     [InlineData("""{ "action": "ExtraTurn" }""", "abilities[0].steps[0]: step ExtraTurn")]
     [InlineData("""{ "action": "GainXp", "amount": { "min": [1, 2] } }""", "abilities[0].steps[0]: value")]
     [InlineData("""{ "action": "Draw", "amount": { "min": [1, 2] } }""", "abilities[0].steps[0]: value")]
-    [InlineData("""{ "action": "Kill", "target": { "select": "Unit", "all": true } }""", "abilities[0].steps[0]: target")]
+    [InlineData("""{ "action": "Kill", "target": { "select": "Unit" } }""", "abilities[0].steps[0]: target")]
     [InlineData("""{ "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "tags": ["Mech"] } } }""", "abilities[0].steps[0]: target")]
     [InlineData("""{ "action": "Draw", "player": { "controllerOf": { "ref": "Self" } } }""", "abilities[0].steps[0]: player")]
     [InlineData("""{ "action": "Deal", "amount": 2, "split": true, "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: split, bonus or source")]
     [InlineData("""{ "action": "Optional", "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
-    [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] }""", "abilities[0].steps[0].steps[0]: target")]
+    [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "tags": ["Mech"] } } } ] }""", "abilities[0].steps[0].steps[0]: target")]
     [InlineData("""{ "action": "ChooseCard", "from": { "zone": "Hand" } }""", "abilities[0].steps[0]: from")]
     [InlineData("""{ "action": "ChoosePlayer", "filter": { "relation": "Friendly" } }""", "abilities[0].steps[0]: filter")]
     [InlineData("""{ "action": "Predict", "amount": 2 }""", "abilities[0].steps[0]: value")]
@@ -136,7 +136,7 @@ public class CardEffectsTests
     }
 
     [Fact]
-    public void A_triggered_ability_cant_have_target_selectors_yet()
+    public void A_triggered_ability_can_have_target_selectors()
     {
         var file = CromoJson.Deserialize<EffectsFile>("""
             { "cardId": "unit-3", "status": "Full", "abilities": [ { "kind": "Triggered",
@@ -144,7 +144,18 @@ public class CardEffectsTests
               "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] } ] }
             """);
 
-        Assert.Equal(new[] { "abilities[0].steps[0]: target" }, EffectsSupport.Problems(file, CardType.Unit));
+        Assert.Empty(EffectsSupport.Problems(file, CardType.Unit));
+    }
+
+    [Fact]
+    public void A_selector_inside_an_optional_block_is_chosen_on_resolution_so_it_is_supported()
+    {
+        var file = CromoJson.Deserialize<EffectsFile>("""
+            { "cardId": "spell", "status": "Full", "abilities": [ { "kind": "Spell",
+              "steps": [ { "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] } ] } ] }
+            """);
+
+        Assert.Empty(EffectsSupport.Problems(file, CardType.Spell));
     }
 
     [Theory]

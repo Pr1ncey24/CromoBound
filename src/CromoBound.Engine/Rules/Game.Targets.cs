@@ -17,16 +17,17 @@ public sealed partial class Game
         [.. Effects.For(cardId).Abilities.OfType<SpellAbility>().SelectMany(a => a.Steps)];
 
     /// <summary>A spell the engine runs can be played only if every required target slot has enough candidates (rule 355).</summary>
-    private bool HasTargetsFor(PlayerId player, CardInstance card)
-    {
-        var slots = TargetSlots.Of(SpellSteps(card.CardId));
-        if (slots.Count == 0) return true;
-        var context = new EffectContext { Controller = player, Source = card.Id, SourceCardId = card.CardId, Slots = slots };
-        return slots.All(slot => ObjectResolver.Candidates(this, context, slot).Count >= (slot.Count ?? 0));
-    }
+    private bool HasTargetsFor(PlayerId player, CardInstance card) =>
+        HasSlotCandidates(new EffectContext
+        {
+            Controller = player, Source = card.Id, SourceCardId = card.CardId, Slots = TargetSlots.Of(SpellSteps(card.CardId)),
+        });
 
-    /// <summary>Spec §5.1: one decision per target slot, in JSON order. When the candidates are exactly as many as required the
-    /// choice is forced: it is applied without asking and announced with <see cref="ChoiceMade"/>. Returns true when it asked.</summary>
+    /// <summary>Every slot has at least as many candidates as it requires.</summary>
+    internal bool HasSlotCandidates(EffectContext context) =>
+        context.Slots.All(slot => ObjectResolver.Candidates(this, context, slot).Count >= (slot.Count ?? 0));
+
+    /// <summary>Spec §5.1: the spell's slots, chosen while it is played; cancelling undoes the play.</summary>
     private bool AskTargets(PlayCardTask task)
     {
         var item = task.Item!;
@@ -38,37 +39,45 @@ public sealed partial class Game
             SourceCardId = card.CardId,
             Slots = TargetSlots.Of(SpellSteps(card.CardId)),
         };
-        var context = item.Effect;
+        if (!HasSlotCandidates(item.Effect))
+        {
+            UndoPlay(task);
+            return false;
+        }
+        return AskSlotTargets(task.Player, card.Id, item.Effect, item, () => UndoPlay(task));
+    }
+
+    /// <summary>One decision per unfilled slot, in JSON order (spec §5.1). When the candidates are exactly as many as required the
+    /// choice is forced: it is applied without asking and announced with <see cref="ChoiceMade"/>. Returns true when it asked.
+    /// Callers check <see cref="HasSlotCandidates"/> first.</summary>
+    internal bool AskSlotTargets(PlayerId player, ObjectId card, EffectContext context, ChainItem? item, Action? onCancel)
+    {
         while (context.Targets.Count < context.Slots.Count)
         {
             var slot = context.Slots[context.Targets.Count];
             var options = ObjectResolver.Candidates(this, context, slot);
-            var min = slot.Count ?? 0;
+            var min = Math.Min(slot.Count ?? 0, options.Count);
             var max = Math.Min(slot.Count ?? slot.UpTo ?? 0, options.Count);
-            if (options.Count < min)
-            {
-                UndoPlay(task);
-                return false;
-            }
             if (options.Count == min)
             {
                 context.Targets.Add(options);
-                Emit(new ChoiceMade(task.Player, "Targets", options));
-                Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, options));
+                Emit(new ChoiceMade(player, "Targets", options));
+                if (item is not null) Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, options));
                 continue;
             }
-            Ask(new ChooseTargetsDecision(task.Player, card.Id, context.Targets.Count, options, min, max), (_, action) =>
+            Ask(new ChooseTargetsDecision(player, card, context.Targets.Count, options, min, max), (_, action) =>
             {
-                if (action is CancelPlay)
+                if (action is CancelPlay && onCancel is not null)
                 {
-                    UndoPlay(task);
+                    onCancel();
                     return null;
                 }
-                if (action is not ChooseTargets choose) return Reject(RejectionCode.UnexpectedAction, "Choose the targets, or cancel.");
+                if (action is not ChooseTargets choose)
+                    return Reject(RejectionCode.UnexpectedAction, onCancel is null ? "Choose the targets." : "Choose the targets, or cancel.");
                 var chosen = choose.Targets;
                 if (CheckPick(chosen, options, min, max, "targets") is { } rejection) return rejection;
                 context.Targets.Add([.. chosen]);
-                Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, [.. chosen]));
+                if (item is not null) Emit(new TargetsChosen(item.Id, context.Targets.Count - 1, [.. chosen]));
                 return null;
             });
             return true;

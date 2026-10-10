@@ -13,6 +13,14 @@ internal sealed class PutTriggersOnChainTask : GameTask
     public override bool Run(Game game) => game.PutTriggersOnChain();
 }
 
+/// <summary>Chooses a triggered ability's targets right after it went on the chain (CR 382-388). Started at once, so cleanups and
+/// other triggers wait for the choice.</summary>
+internal sealed class ChooseItemTargetsTask(ChainItem item, PlayerId player) : GameTask
+{
+    public override bool Run(Game game) =>
+        !game.State.Chain.Contains(item) || !game.AskSlotTargets(player, item.Source!.Value, item.Effect!, item, onCancel: null);
+}
+
 public sealed partial class Game
 {
     /// <summary>The turn player's triggers go on the chain first, then the opponent's, so the opponent's resolve first. A player
@@ -42,17 +50,29 @@ public sealed partial class Game
         return true;
     }
 
-    /// <summary>Each trigger becomes a finalized ability item; a chain they start doesn't pass focus when it closes (CR 346.1).</summary>
+    /// <summary>Each trigger becomes a finalized ability item; a chain they start doesn't pass focus when it closes (CR 346.1).
+    /// A trigger with targets chooses them right after (one task per item, in the order they went on); one whose required target
+    /// has no candidate is dropped.</summary>
     private void AddTriggers(List<PendingTrigger> triggers)
     {
+        List<ChainItem> targeting = [];
         foreach (var trigger in triggers)
         {
             PendingTriggers.Remove(trigger);
+            var context = new EffectContext
+            {
+                Controller = trigger.Controller,
+                Source = trigger.Source,
+                SourceCardId = trigger.SourceCardId,
+                Slots = TargetSlots.Of(trigger.Ability.Steps),
+            };
+            if (!HasSlotCandidates(context)) continue;
             if (State.Chain.Count == 0) ChainStartedByTrigger = true;
-            var context = new EffectContext { Controller = trigger.Controller, Source = trigger.Source, SourceCardId = trigger.SourceCardId };
             var item = AddAbilityItem(trigger.Controller, trigger.Source, trigger.SourceCardId, AbilityKind.Triggered,
                 AbilityText(trigger.SourceCardId, trigger.Ability), trigger.Ability.Steps, context);
             Emit(new TriggerAdded(item.Id, trigger.Source, trigger.Controller));
+            if (context.Slots.Count > 0) targeting.Add(item);
         }
+        for (var i = targeting.Count - 1; i >= 0; i--) Push(new ChooseItemTargetsTask(targeting[i], targeting[i].Controller) { Started = true });
     }
 }

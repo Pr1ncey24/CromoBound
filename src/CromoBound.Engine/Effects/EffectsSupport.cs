@@ -74,12 +74,12 @@ internal static class EffectsSupport
                 if (!IsSupportedTrigger(triggered.Trigger, type)) problems.Add($"{at}: trigger");
                 if (triggered.If is not null || triggered.Optional is not null || triggered.Cost is not null || triggered.Limit is not null)
                     problems.Add($"{at}: if, optional, cost or limit");
-                CheckSteps(triggered.Steps, at, problems, targets: false);
+                CheckSteps(triggered.Steps, at, problems, targets: true);
                 break;
             case ActivatedAbility activated:
                 if (activated.UseOnlyIf is not null || activated.Limit is not null) problems.Add($"{at}: useOnlyIf or limit");
                 if (activated.Cost is { } cost && !IsSupportedCost(cost)) problems.Add($"{at}: cost");
-                CheckSteps(activated.Steps, at, problems, targets: false);
+                CheckSteps(activated.Steps, at, problems, targets: true);
                 break;
             case PassiveAbility passive:
                 if (passive.While is not null) problems.Add($"{at}: while");
@@ -129,7 +129,8 @@ internal static class EffectsSupport
         for (var j = 0; j < steps.Count; j++) CheckStep(steps[j], $"{at}.steps[{j}]", problems, targets);
     }
 
-    /// <summary><paramref name="targets"/>: target selectors are allowed (a spell's steps, chosen while playing); elsewhere only Self.</summary>
+    /// <summary><paramref name="targets"/>: the top-level steps of a spell, trigger or activation, whose target selectors are slots chosen
+    /// when the ability goes on the chain; elsewhere a selector is chosen on resolution.</summary>
     private static void CheckStep(Step step, string at, List<string> problems, bool targets)
     {
         if (!StepRegistry.Supports(step.GetType()))
@@ -218,8 +219,13 @@ internal static class EffectsSupport
         || condition.Paid is not null
         || condition.TurnOf is { Kind: PlayerKind.You or PlayerKind.Opponent };
 
+    /// <summary>Self, Host, a variable, a slot (top-level target steps of spells, triggers and activations) or, anywhere else, a
+    /// unit, gear or permanent selector chosen on resolution; selectors need a supported filter.</summary>
     private static bool IsSupportedTarget(ObjectRef reference, bool targets) =>
-        reference.Ref == RefKind.Self || (targets && TargetSlots.IsTarget(reference) && IsSupportedFilter(reference.Filter));
+        reference.Ref is RefKind.Self or RefKind.Host
+        || reference.Var is not null
+        || (reference.Select is SelectKind.Unit or SelectKind.Gear or SelectKind.Permanent && IsSupportedFilter(reference.Filter)
+            && (targets ? TargetSlots.IsTarget(reference) || reference.All == true : true));
 
     /// <summary>Card filters may use relation (Friendly or Enemy), type, token, other, mighty, location (Here, or any battlefield)
     /// and a supported not; nothing else yet.</summary>

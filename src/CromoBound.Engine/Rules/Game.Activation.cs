@@ -8,7 +8,7 @@ using CromoBound.Models.Effects;
 
 namespace CromoBound.Engine.Rules;
 
-internal enum ActivationStage { Choose, Pay, Finalize, Cancelled }
+internal enum ActivationStage { Targets, Choose, Pay, Finalize, Cancelled }
 
 /// <summary>Activating an ability (spec §5.3): choose the cost action's cards, pay energy and power, then pay the rest of the cost
 /// and put the ability on the chain. Nothing is spent before the last stage, so cancelling leaves no trace.</summary>
@@ -18,6 +18,7 @@ internal sealed class ActivationTask(PlayerId player, ObjectId source, int abili
     public ObjectId Source { get; } = source;
     public int Ability { get; } = ability;
     public ActivationStage Stage { get; set; }
+    public EffectContext? Context { get; set; }
     public IReadOnlyList<ObjectId> Chosen { get; set; } = [];
     public TotalCost? Cost { get; set; }
 
@@ -53,11 +54,12 @@ public sealed partial class Game
         var context = ActivationContext(player, source);
         if (ability.UseOnlyIf is { } condition && !ConditionResolver.Holds(this, context, condition)) return false;
         if (ability.Cost?.ExhaustSelf == true && source.Exhausted) return false;
+        if (!HasSlotCandidates(ActivationContext(player, source, ability))) return false;
         return CostAction(ability) is not { } recycle || CostCards(context, recycle).Count >= CostCount(context, recycle);
     }
 
-    private static EffectContext ActivationContext(PlayerId player, CardInstance source) =>
-        new() { Controller = player, Source = source.Id, SourceCardId = source.CardId };
+    private static EffectContext ActivationContext(PlayerId player, CardInstance source, ActivatedAbility? ability = null) =>
+        new() { Controller = player, Source = source.Id, SourceCardId = source.CardId, Slots = ability is null ? [] : TargetSlots.Of(ability.Steps) };
 
     /// <summary>The ability's cost action, run in cost mode: "recycle N from your trash" is the only one EffectsSupport lets through.</summary>
     private static RecycleStep? CostAction(ActivatedAbility ability) => ability.Cost?.Actions is [RecycleStep recycle] ? recycle : null;
@@ -74,9 +76,13 @@ public sealed partial class Game
             if (task.Stage == ActivationStage.Cancelled) return true;
             if (OnBoard(task.Source) is not { } source) return true;
             var ability = (ActivatedAbility)Effects.For(source.CardId).Abilities[task.Ability];
-            var context = ActivationContext(task.Player, source);
+            var context = task.Context ??= ActivationContext(task.Player, source, ability);
             switch (task.Stage)
             {
+                case ActivationStage.Targets:
+                    if (AskSlotTargets(task.Player, source.Id, context, null, () => task.Stage = ActivationStage.Cancelled)) return false;
+                    if (task.Stage == ActivationStage.Targets) task.Stage = ActivationStage.Choose;
+                    break;
                 case ActivationStage.Choose:
                     if (AskCostCards(task, ability, context)) return false;
                     break;
@@ -142,7 +148,8 @@ public sealed partial class Game
         if (ability.Cost?.ExhaustSelf == true) SetStatus(source.Id, StatusKind.Exhausted, true);
         foreach (var card in task.Chosen.Where(State.Exists).ToList()) Recycle(card);
         if (State.Chain.Count == 0) ChainStartedByTrigger = false;
-        AddAbilityItem(task.Player, source.Id, source.CardId, AbilityKind.Activated, AbilityText(source.CardId, ability), ability.Steps, context);
+        var item = AddAbilityItem(task.Player, source.Id, source.CardId, AbilityKind.Activated, AbilityText(source.CardId, ability), ability.Steps, context);
+        for (var slot = 0; slot < context.Targets.Count; slot++) Emit(new TargetsChosen(item.Id, slot, context.Targets[slot]));
         Emit(new AbilityActivated(source.Id, task.Ability, task.Player));
     }
 }
