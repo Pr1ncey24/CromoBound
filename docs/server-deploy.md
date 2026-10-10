@@ -10,9 +10,10 @@ file and the keys that encrypt session cookies live on named volumes, so they su
 - Ports 80 and 443 open, plus SSH for administration, and nothing else.
 
 ## 2. Build the image
-On the VPS, in a clone of the repository at the commit to deploy:
+On the VPS, in a clone of the repository at the commit to deploy (the examples use `/opt/cromobound/src`):
 
 ```bash
+cd /opt/cromobound/src
 git pull
 docker build --build-arg SOURCE_REVISION=$(git rev-parse HEAD) -t cromobound:latest .
 ```
@@ -107,12 +108,15 @@ stops the server, and the log names it.
 
 ## 5. First start
 
-Fill the card images folder once, from the repository clone. The importer runs in a throwaway SDK container and downloads every
-printing's image (about 1450 files) into `/opt/cromobound/card-images`:
+Fill the card images folder once, from the repository clone (section 2). The importer runs in a throwaway SDK container and downloads
+every printing's image (about 1450 files) into `/opt/cromobound/card-images`. The container runs as your user, so the images and the
+build folders it leaves in the clone belong to you, not to root:
 
 ```bash
+cd /opt/cromobound/src
 mkdir -p /opt/cromobound/card-images
-docker run --rm -v "$PWD":/src -v /opt/cromobound/card-images:/out -w /src mcr.microsoft.com/dotnet/sdk:10.0 \
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e DOTNET_CLI_HOME=/tmp \
+  -v "$PWD":/src -v /opt/cromobound/card-images:/out -w /src mcr.microsoft.com/dotnet/sdk:10.0 \
   dotnet run --project tools/CromoBound.Importer -- images /out
 ```
 
@@ -142,7 +146,7 @@ Passwords have at least 12 characters, and usernames 3 to 24 letters, digits, `_
 1. Turn maintenance on, so no new challenges or matches start:
    `curl -b jar -H 'Content-Type: application/json' -d '{"on":true}' https://play.example.com/api/admin/maintenance`
 2. Wait until `runningMatches` is 0: `curl -b jar https://play.example.com/api/admin/maintenance`
-3. Build the new image (section 2), then run `docker compose up -d app`.
+3. Build the new image (section 2, from `/opt/cromobound/src`), then run `docker compose up -d app` from `/opt/cromobound`.
 4. If the new version adds cards (a new set), fill the card images again with the command in section 5. The app doesn't need a
    restart for new images.
 
