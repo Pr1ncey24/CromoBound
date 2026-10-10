@@ -191,25 +191,51 @@ internal static class EffectsSupport
 
     private static void CheckValue(Value value, string at, List<string> problems)
     {
-        if (value.Literal is null) problems.Add($"{at}: value");
+        if (!IsSupportedValue(value)) problems.Add($"{at}: value");
     }
+
+    /// <summary>A literal, a variable, a property of Self, Host or a variable, or a sum or product of supported values.</summary>
+    public static bool IsSupportedValue(Value value) =>
+        value.Literal is not null
+        || value.Var is not null
+        || (value.Prop is ValueProperty.Might or ValueProperty.EnergyCost or ValueProperty.Damage or ValueProperty.EmpowerCount
+            && value.Of is { } of && (of.Ref is RefKind.Self or RefKind.Host || of.Var is not null))
+        || (value.Sum is { Count: > 0 } sum && sum.All(IsSupportedValue))
+        || (value.Mul is { Count: > 0 } mul && mul.All(IsSupportedValue));
+
+    /// <summary>all, any, not, empowered, legion, exists (Self, a variable, or a selector with a supported filter), compare of supported
+    /// values, paid and turnOf (You or Opponent).</summary>
+    public static bool IsSupportedCondition(Condition condition) =>
+        (condition.All is { } all && all.All(IsSupportedCondition))
+        || (condition.Any is { } any && any.All(IsSupportedCondition))
+        || (condition.Not is { } not && IsSupportedCondition(not))
+        || condition.Empowered is not null
+        || condition.Legion is not null
+        || (condition.Exists is { } exists && (exists.Ref == RefKind.Self || exists.Var is not null
+            || (exists.Select is SelectKind.Unit or SelectKind.Gear or SelectKind.Permanent && IsSupportedFilter(exists.Filter))))
+        || (condition.Compare is { } compare && IsSupportedValue(compare.Left) && IsSupportedValue(compare.Right))
+        || condition.Paid is not null
+        || condition.TurnOf is { Kind: PlayerKind.You or PlayerKind.Opponent };
 
     private static bool IsSupportedTarget(ObjectRef reference, bool targets) =>
         reference.Ref == RefKind.Self || (targets && TargetSlots.IsTarget(reference) && IsSupportedFilter(reference.Filter));
 
-    /// <summary>Card filters may use relation (Friendly or Enemy), type, token and other; nothing else yet.</summary>
-    private static bool IsSupportedFilter(Filter? filter) =>
-        filter is null || (filter.Relation is null or Relation.Friendly or Relation.Enemy && HasOnlyBasicFields(filter));
+    /// <summary>Card filters may use relation (Friendly or Enemy), type, token, other, mighty, location (Here, or any battlefield)
+    /// and a supported not; nothing else yet.</summary>
+    public static bool IsSupportedFilter(Filter? filter) =>
+        filter is null
+        || (filter.Relation is null or Relation.Friendly or Relation.Enemy && HasOnlyBasicFields(filter)
+            && (filter.Location is null || filter.Location is { Ref: RefKind.Here } || filter.Location is { Select: SelectKind.Battlefield, Filter: null })
+            && (filter.Not is null || IsSupportedFilter(filter.Not)));
 
     /// <summary>A ChoosePlayer filter: a relation of Opponent or Self and nothing else.</summary>
     private static bool IsPlayerFilter(Filter filter) =>
         filter.Relation is Relation.Opponent or Relation.Self && filter.Type is null && filter.Token is null && filter.Other is null
-        && HasOnlyBasicFields(filter);
+        && filter.Mighty is null && filter.Location is null && filter.Not is null && HasOnlyBasicFields(filter);
 
-    /// <summary>None of the fields beyond relation, type, token and other is set.</summary>
+    /// <summary>None of the fields beyond relation, type, token, other, mighty, location and not is set.</summary>
     private static bool HasOnlyBasicFields(Filter filter) =>
-        filter.Controller is null && filter.Owner is null && filter.Location is null && filter.Zone is null
+        filter.Controller is null && filter.Owner is null && filter.Zone is null
         && filter.Supertype is null && filter.Tags.Count == 0 && filter.Domains.Count == 0 && filter.Name is null
-        && filter.Might is null && filter.EnergyCost is null && filter.Status.Count == 0 && filter.Mighty is null
-        && filter.Keyword is null && filter.Not is null;
+        && filter.Might is null && filter.EnergyCost is null && filter.Status.Count == 0 && filter.Keyword is null;
 }

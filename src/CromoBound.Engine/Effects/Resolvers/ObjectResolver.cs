@@ -22,6 +22,9 @@ internal static class ObjectResolver
     {
         if (reference.Ref == RefKind.Self)
             return context.Source is { } source && game.State.Exists(source) ? [source] : [];
+        if (reference.Ref == RefKind.Host)
+            return context.Source is { } gear && game.State.Exists(gear) && game.State[gear].AttachedTo is { } host && game.State.Exists(host)
+                ? [host] : [];
         if (reference.Var is { } name)
             return context.Vars.TryGetValue(name, out var stored) ? [.. stored.Objects.Where(game.State.Exists)] : [];
         var slot = TargetSlots.IndexOf(context.Slots, reference);
@@ -44,7 +47,8 @@ internal static class ObjectResolver
         return kindMatches && FilterMatches(game, context, filter, instance);
     }
 
-    /// <summary>Whether a card matches the filter's relation, type, token and other fields (the ones <see cref="EffectsSupport"/> lets through).</summary>
+    /// <summary>Whether a card matches the filter's relation, type, token, other, mighty, location and not fields (the ones
+    /// <see cref="EffectsSupport"/> lets through).</summary>
     public static bool FilterMatches(Game game, EffectContext context, Filter? filter, CardInstance instance)
     {
         if (filter is null) return true;
@@ -53,6 +57,23 @@ internal static class ObjectResolver
         if (filter.Type is { } wanted && game.CardOf(instance).Type != wanted) return false;
         if (filter.Token is { } token && instance.IsToken != token) return false;
         if (filter.Other == true && context.Source == instance.Id) return false;
+        if (filter.Mighty is { } mighty && IsMighty(game, instance) != mighty) return false;
+        if (filter.Location is { } location && !AtLocation(game, context, location, instance)) return false;
+        if (filter.Not is { } not && FilterMatches(game, context, not, instance)) return false;
         return true;
+    }
+
+    /// <summary>A unit on the board with 5 or more might (CR 706-711).</summary>
+    public static bool IsMighty(Game game, CardInstance instance) =>
+        instance.Place.IsLocation && game.IsUnit(instance) && game.MightOf(instance.Id) >= 5;
+
+    /// <summary>Here: the battlefield of the source (a battlefield card, or a permanent standing there). A battlefield selector:
+    /// any battlefield.</summary>
+    private static bool AtLocation(Game game, EffectContext context, ObjectRef location, CardInstance instance)
+    {
+        if (location.Select == SelectKind.Battlefield) return instance.Place.Kind == PlaceKind.Battlefield;
+        if (location.Ref != RefKind.Here || context.Source is not { } source || !game.State.Exists(source)) return false;
+        var at = game.State[source].Place;
+        return at.Index is { } index && at.Kind is PlaceKind.BattlefieldCard or PlaceKind.Battlefield && instance.Place == Place.Battlefield(index);
     }
 }

@@ -357,6 +357,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -459,6 +460,7 @@
                                         "Owner",
                                         "TriggerSubject",
                                         "TriggerSource",
+                                        "Host",
                                         null
                                       ]
                                     },
@@ -1027,6 +1029,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -1139,6 +1142,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -1303,6 +1307,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -1474,6 +1479,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -1653,6 +1659,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -1765,6 +1772,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -1911,6 +1919,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2045,6 +2054,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2192,6 +2202,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2251,6 +2262,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2364,6 +2376,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2476,6 +2489,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2588,6 +2602,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2700,6 +2715,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2812,6 +2828,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -2924,6 +2941,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3036,6 +3054,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3148,6 +3167,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3207,6 +3227,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3320,6 +3341,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3432,6 +3454,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3491,6 +3514,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3604,6 +3628,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3716,6 +3741,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3838,6 +3864,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -3970,6 +3997,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -4167,6 +4195,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -4293,6 +4322,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -5726,6 +5756,7 @@
                                               "Owner",
                                               "TriggerSubject",
                                               "TriggerSource",
+                                              "Host",
                                               null
                                             ]
                                           },
@@ -5849,6 +5880,7 @@
                                               "Owner",
                                               "TriggerSubject",
                                               "TriggerSource",
+                                              "Host",
                                               null
                                             ]
                                           },
@@ -6123,6 +6155,7 @@
                                 "Owner",
                                 "TriggerSubject",
                                 "TriggerSource",
+                                "Host",
                                 null
                               ]
                             },
@@ -6638,6 +6671,7 @@
                                             "Owner",
                                             "TriggerSubject",
                                             "TriggerSource",
+                                            "Host",
                                             null
                                           ]
                                         },
@@ -6715,6 +6749,7 @@
                                             "Owner",
                                             "TriggerSubject",
                                             "TriggerSource",
+                                            "Host",
                                             null
                                           ]
                                         },
@@ -7611,6 +7646,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -7731,6 +7767,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -7851,6 +7888,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -7968,6 +8006,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -8060,6 +8099,21 @@
                                               }
                                             ]
                                           },
+                                          "orPower": {
+                                            "type": "array",
+                                            "items": {
+                                              "enum": [
+                                                "Fury",
+                                                "Calm",
+                                                "Mind",
+                                                "Body",
+                                                "Chaos",
+                                                "Order",
+                                                "Any",
+                                                "Self"
+                                              ]
+                                            }
+                                          },
                                           "appliesTo": {
                                             "type": [
                                               "object",
@@ -8074,6 +8128,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -8152,6 +8207,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -8225,6 +8281,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -8300,6 +8357,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -8370,6 +8428,7 @@
                                                   "Owner",
                                                   "TriggerSubject",
                                                   "TriggerSource",
+                                                  "Host",
                                                   null
                                                 ]
                                               },
@@ -9097,6 +9156,9 @@
                         "type": "object"
                       }
                     ]
+                  },
+                  "orPower": {
+                    "$ref": "#/properties/additionalCosts/items/properties/cost/properties/actions/items/anyOf/46/properties/ability/anyOf/3/properties/modifiers/items/anyOf/4/properties/orPower"
                   },
                   "appliesTo": {
                     "$ref": "#/properties/additionalCosts/items/properties/cost/properties/actions/items/anyOf/46/properties/ability/anyOf/3/properties/modifiers/items/anyOf/4/properties/appliesTo"

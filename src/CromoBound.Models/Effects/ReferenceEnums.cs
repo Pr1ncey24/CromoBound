@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace CromoBound.Models.Effects;
 
-public enum RefKind { Self, Here, Controller, Owner, TriggerSubject, TriggerSource }
+public enum RefKind { Self, Here, Controller, Owner, TriggerSubject, TriggerSource, Host }
 
 public enum SelectKind { Unit, Gear, Permanent, Spell, Card, Rune, Battlefield, Legend, ChainItem, Player }
 
@@ -17,7 +17,7 @@ public enum DeckPosition { Top, Bottom }
 
 public enum PlayerKind { You, Opponent, EachPlayer, EachOpponent }
 
-public enum ValueProperty { Might, EnergyCost, PowerCost, Damage }
+public enum ValueProperty { Might, EnergyCost, PowerCost, Damage, EmpowerCount }
 
 public enum CompareOp { Eq, Lte, Gte, Lt, Gt }
 

@@ -39,10 +39,13 @@ public sealed record CostReductionModifier : CostChangeModifier;
 
 public sealed record CostIncreaseModifier : CostChangeModifier;
 
+/// <summary>Lowers a keyword's cost (Risen Altar: Empower). With both <see cref="Energy"/> and <see cref="OrPower"/>, the player
+/// picks one of the two reductions.</summary>
 public sealed record KeywordCostReductionModifier : Modifier
 {
     public required MechanicalKeyword Keyword { get; init; }
     public Value? Energy { get; init; }
+    public IReadOnlyList<PowerSymbol> OrPower { get; init; } = [];
 }
 
 public sealed record PermissionModifier : Modifier

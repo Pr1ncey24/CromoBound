@@ -117,4 +117,81 @@ public class ResolverTests
 
         Assert.Equal(4, ValueResolver.Resolve(engine, Context(P1), 4));
     }
+
+    [Fact]
+    public void Values_read_properties_variables_sums_and_products()
+    {
+        var game = new TestGame();
+        var unit = game.Put("unit-3", Place.Base(P1));
+        game.State[unit].Damage = 1;
+        var engine = game.Start();
+        var context = Context(P1);
+        context.Vars["picked"] = new EffectVar([unit], [], 2, true);
+        var picked = ObjectRef.Variable("picked");
+
+        Assert.Equal(3, ValueResolver.Resolve(engine, context, new Value { Prop = ValueProperty.Might, Of = picked }));
+        Assert.Equal(3, ValueResolver.Resolve(engine, context, new Value { Prop = ValueProperty.EnergyCost, Of = picked }));
+        Assert.Equal(1, ValueResolver.Resolve(engine, context, new Value { Prop = ValueProperty.Damage, Of = picked }));
+        Assert.Equal(2, ValueResolver.Resolve(engine, context, new Value { Var = "picked" }));
+        Assert.Equal(0, ValueResolver.Resolve(engine, context, new Value { Var = "missing" }));
+        Assert.Equal(0, ValueResolver.Resolve(engine, context, new Value { Prop = ValueProperty.Might, Of = ObjectRef.Variable("missing") }));
+        Assert.Equal(5, ValueResolver.Resolve(engine, context, new Value { Sum = [2, new Value { Var = "picked" }, 1] }));
+        Assert.Equal(6, ValueResolver.Resolve(engine, context, new Value { Mul = [3, new Value { Var = "picked" }] }));
+    }
+
+    [Fact]
+    public void Conditions_check_existence_comparisons_paid_costs_and_whose_turn_it_is()
+    {
+        var game = new TestGame();
+        var unit = game.Put("unit-3", Place.Base(P1));
+        var engine = game.Start();
+        var context = Context(P1, unit);
+        context.Vars["body"] = new EffectVar([], [], 1, true);
+        context.Vars["skipped"] = new EffectVar([], [], 0, false);
+        var self = new Value { Prop = ValueProperty.Might, Of = ObjectRef.Self };
+
+        Assert.True(ConditionResolver.Holds(engine, context, new Condition { Exists = Select(SelectKind.Unit, Relation.Friendly) }));
+        Assert.False(ConditionResolver.Holds(engine, context, new Condition { Exists = Select(SelectKind.Unit, Relation.Enemy) }));
+        Assert.True(ConditionResolver.Holds(engine, context, new Condition { Compare = new Comparison(self, CompareOp.Gte, 3) }));
+        Assert.False(ConditionResolver.Holds(engine, context, new Condition { Compare = new Comparison(self, CompareOp.Gt, 3) }));
+        Assert.True(ConditionResolver.Holds(engine, context, new Condition { Paid = "body" }));
+        Assert.False(ConditionResolver.Holds(engine, context, new Condition { Paid = "skipped" }));
+        Assert.False(ConditionResolver.Holds(engine, context, new Condition { Paid = "missing" }));
+        Assert.True(ConditionResolver.Holds(engine, context, new Condition { TurnOf = PlayerRef.You }));
+        Assert.False(ConditionResolver.Holds(engine, context, new Condition { TurnOf = new PlayerRef { Kind = PlayerKind.Opponent } }));
+    }
+
+    [Fact]
+    public void Filters_check_mighty_location_and_not()
+    {
+        var game = new TestGame();
+        var small = game.Put("unit-2", Place.Battlefield(0));
+        var big = game.Put("unit-3", Place.Battlefield(0));
+        var home = game.Put("unit-3", Place.Base(P1));
+        game.State[big].Modifiers.Add(new MightModifier(2, Duration.ThisTurn));
+        var engine = game.Start();
+        var here = Context(P1, game.State.Battlefields[0].Card);
+        static ObjectRef Units(Filter filter) => new() { Select = SelectKind.Unit, All = true, Filter = filter };
+
+        Assert.Equal(new[] { big }, ObjectResolver.Candidates(engine, here, Units(new Filter { Mighty = true })));
+        Assert.Equal(new[] { small, big }, ObjectResolver.Candidates(engine, here, Units(new Filter { Location = new ObjectRef { Ref = RefKind.Here } })));
+        Assert.Equal(new[] { small, big },
+            ObjectResolver.Candidates(engine, here, Units(new Filter { Location = new ObjectRef { Select = SelectKind.Battlefield } })));
+        Assert.Equal(new[] { small, home }, ObjectResolver.Candidates(engine, here, Units(new Filter { Not = new Filter { Mighty = true } })));
+    }
+
+    [Fact]
+    public void Host_is_the_unit_the_source_is_attached_to()
+    {
+        var game = new TestGame();
+        var unit = game.Put("unit-2", Place.Base(P1));
+        var gear = game.Put("gear-1", Place.Base(P1));
+        game.State[gear].AttachedTo = unit;
+        var loose = game.Put("gear-1", Place.Base(P1));
+        var engine = game.Start();
+        var host = new ObjectRef { Ref = RefKind.Host };
+
+        Assert.Equal(new[] { unit }, ObjectResolver.Resolve(engine, Context(P1, gear), host));
+        Assert.Empty(ObjectResolver.Resolve(engine, Context(P1, loose), host));
+    }
 }
