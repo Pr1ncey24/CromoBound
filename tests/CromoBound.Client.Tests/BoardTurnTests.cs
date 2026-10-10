@@ -55,6 +55,22 @@ public class BoardTurnTests
     }
 
     [Fact]
+    public void A_lone_ability_or_hide_still_opens_the_menu()
+    {
+        var board = new TestBoard();
+        board.AddLane("bf-a");
+        var unit = board.Add(board.MyBase, "unit-a", might: 2);
+        var card = board.Add(board.Hand, "spell-a");
+
+        var model = board.Model(TestBoard.Priority(activations: [new ActivateOption(unit.Id, 0)], hides: [new HideOption(card.Id, [0])]));
+
+        var ability = Assert.IsType<MenuStep>(model.Click(unit.Id));
+        Assert.Equal(new[] { "Use ability 1" }, ability.Items.Select(i => i.Label));
+        var hide = Assert.IsType<MenuStep>(model.Click(card.Id));
+        Assert.Equal(new[] { "Hide at Back-Alley Bar" }, hide.Items.Select(i => i.Label));
+    }
+
+    [Fact]
     public void A_rune_always_asks_how_to_use_it()
     {
         var board = new TestBoard();

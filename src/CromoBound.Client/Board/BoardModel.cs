@@ -1,4 +1,5 @@
 using CromoBound.Engine.Decisions;
+using CromoBound.Engine.Matches;
 using CromoBound.Engine.State;
 using CromoBound.Engine.Views;
 using CromoBound.Models.Cards;
@@ -67,6 +68,8 @@ public sealed partial class BoardModel
             i.Id, book.NameOf(i.Card?.CardId ?? i.SourceCardId ?? ""), i.Controller == view.Viewer ? me : opponent))];
         model.Button = new BoardButton("END TURN", view.Decision is null && view.Deciding.Count > 0 ? $"Waiting for {opponent}" : null, NoStep.Instance);
         model.Decide(view, build, interaction);
+        model.Log = ActivityLog.Lines(view, book, me, opponent);
+        model.CanRequestUndo = view.Stage == MatchStage.Playing && !model.UndoWaiting && view.Log.Count > 0;
         model.Me = build.Side(view.Viewer, me, model);
         model.Them = build.Side(new PlayerId(1 - view.Viewer.Index), opponent, model);
         model.Lanes = [.. view.Battlefields.Select(b => build.Lane(b, model))];

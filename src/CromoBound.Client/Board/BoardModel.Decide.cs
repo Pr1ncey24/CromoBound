@@ -29,8 +29,8 @@ public sealed partial class BoardModel
         }
     }
 
-    /// <summary>Each card's options: one option is a click, several open a menu. A rune always opens its menu, so a stray click never
-    /// spends it.</summary>
+    /// <summary>Each card's options: a lone Play or Move is a click, anything else opens a menu. A rune, an ability and a hide always open
+    /// their menu, so a stray click never spends a rune or starts an ability.</summary>
     private void Priority(PriorityDecision priority, Build build)
     {
         var items = new Dictionary<ObjectId, List<MenuItem>>();
@@ -58,7 +58,7 @@ public sealed partial class BoardModel
             Add(rune.Rune, "Recycle for 1 power", new SendStep(new UseRune(rune.Rune, RuneUse.Recycle)));
         }
         foreach (var (card, list) in items)
-            _cardSteps[card] = list.Count == 1 && !runes.Contains(card) ? list[0].Step : new MenuStep(card, list);
+            _cardSteps[card] = list.Count == 1 && !runes.Contains(card) && list[0].Label is "Play" or "Move" ? list[0].Step : new MenuStep(card, list);
 
         Button = priority.CanPass ? new BoardButton("PASS", null, new SendStep(new Pass()))
             : priority.CanEndTurn ? new BoardButton("END TURN", null, new SendStep(new EndTurn()))
