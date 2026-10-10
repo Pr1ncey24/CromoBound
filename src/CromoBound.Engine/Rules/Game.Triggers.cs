@@ -13,12 +13,19 @@ internal sealed class PutTriggersOnChainTask : GameTask
     public override bool Run(Game game) => game.PutTriggersOnChain();
 }
 
-/// <summary>Chooses a triggered ability's targets right after it went on the chain (CR 382-388). Started at once, so cleanups and
-/// other triggers wait for the choice.</summary>
-internal sealed class ChooseItemTargetsTask(ChainItem item, PlayerId player) : GameTask
+/// <summary>Chooses the targets of the triggered abilities that just went on the chain (CR 382-388), oldest item first: the turn
+/// player's triggers went on first, so they choose first. Started at once, so cleanups and other triggers wait for the choices.</summary>
+internal sealed class ChooseItemTargetsTask : GameTask
 {
-    public override bool Run(Game game) =>
-        !game.State.Chain.Contains(item) || !game.AskSlotTargets(player, item.Source!.Value, item.Effect!, item, onCancel: null);
+    public override bool Run(Game game)
+    {
+        while (game.State.Chain.FirstOrDefault(NeedsTargets) is { } item)
+            if (game.AskSlotTargets(item.Controller, item.Source!.Value, item.Effect!, item, onCancel: null)) return false;
+        return true;
+    }
+
+    private static bool NeedsTargets(ChainItem item) =>
+        item is { Kind: ChainItemKind.Ability, AbilityKind: AbilityKind.Triggered, Effect: { } effect } && effect.Targets.Count < effect.Slots.Count;
 }
 
 public sealed partial class Game
@@ -51,7 +58,7 @@ public sealed partial class Game
     }
 
     /// <summary>Each trigger becomes a finalized ability item; a chain they start doesn't pass focus when it closes (CR 346.1).
-    /// A trigger with targets chooses them right after (one task per item, in the order they went on); one whose required target
+    /// A trigger with targets chooses them right after (one task, oldest item first); one whose required target
     /// has no candidate is dropped.</summary>
     private void AddTriggers(List<PendingTrigger> triggers)
     {
@@ -73,6 +80,6 @@ public sealed partial class Game
             Emit(new TriggerAdded(item.Id, trigger.Source, trigger.Controller));
             if (context.Slots.Count > 0) targeting.Add(item);
         }
-        for (var i = targeting.Count - 1; i >= 0; i--) Push(new ChooseItemTargetsTask(targeting[i], targeting[i].Controller) { Started = true });
+        if (targeting.Count > 0 && !_tasks.OfType<ChooseItemTargetsTask>().Any()) Push(new ChooseItemTargetsTask { Started = true });
     }
 }

@@ -185,7 +185,7 @@ internal static class EffectsSupport
                     problems.Add($"{at}: play");
                 break;
         }
-        if (step is TargetStep target && !IsSupportedTarget(target.Target, targets)) problems.Add($"{at}: target");
+        if (step is TargetStep target && !IsSupportedTarget(target, targets)) problems.Add($"{at}: target");
     }
 
     /// <summary>The steps that act for a player; on any other step a "player" would be ignored.</summary>
@@ -219,13 +219,20 @@ internal static class EffectsSupport
         || condition.Paid is not null
         || condition.TurnOf is { Kind: PlayerKind.You or PlayerKind.Opponent };
 
-    /// <summary>Self, Host, a variable, a slot (top-level target steps of spells, triggers and activations) or, anywhere else, a
-    /// unit, gear or permanent selector chosen on resolution; selectors need a supported filter.</summary>
-    private static bool IsSupportedTarget(ObjectRef reference, bool targets) =>
-        reference.Ref is RefKind.Self or RefKind.Host
-        || reference.Var is not null
-        || (reference.Select is SelectKind.Unit or SelectKind.Gear or SelectKind.Permanent && IsSupportedFilter(reference.Filter)
-            && (targets ? TargetSlots.IsTarget(reference) || reference.All == true : true));
+    /// <summary>Self, Host, a variable, or a unit, gear or permanent selector with a supported filter that is an "all" selector, a
+    /// slot (a count or upTo selector in the top-level steps of a spell, trigger or activation, <paramref name="targets"/>) or, in
+    /// any other step, a count or upTo selector on a step type that chooses on resolution (<see cref="ChoosesOnResolution"/>).</summary>
+    private static bool IsSupportedTarget(TargetStep step, bool targets)
+    {
+        var reference = step.Target;
+        if (reference.Ref is RefKind.Self or RefKind.Host || reference.Var is not null) return true;
+        if (reference.Select is not (SelectKind.Unit or SelectKind.Gear or SelectKind.Permanent) || !IsSupportedFilter(reference.Filter))
+            return false;
+        return reference.All == true || (TargetSlots.IsTarget(reference) && (targets || ChoosesOnResolution(step)));
+    }
+
+    /// <summary>The steps whose handler asks for a non-slot selector through <see cref="ResolutionChoice"/>.</summary>
+    private static bool ChoosesOnResolution(Step step) => step is DealStep or KillStep;
 
     /// <summary>Card filters may use relation (Friendly or Enemy), type, token, other, mighty, location (Here, or any battlefield)
     /// and a supported not; nothing else yet.</summary>

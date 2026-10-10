@@ -1,6 +1,7 @@
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Decisions;
 using CromoBound.Engine.Effects;
+using CromoBound.Engine.Rules;
 using CromoBound.Engine.State;
 using CromoBound.Models.Effects;
 using static CromoBound.Engine.Tests.TestGame;
@@ -21,6 +22,25 @@ public class AbilityTargetTests
         { "cardId": "gear-1", "status": "Full", "abilities": [
           { "kind": "Activated", "cost": { "exhaustSelf": true },
             "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1 } } ] } ] }
+        """;
+
+    /// <summary>unit-3 with Deathknell: kill an enemy unit.</summary>
+    private const string DeathknellKiller = """
+        { "cardId": "unit-3", "status": "Full", "keywords": [ { "keyword": "Deathknell", "steps": [
+          { "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "relation": "Enemy" } } } ] } ] }
+        """;
+
+    /// <summary>A unit that, when it dies, kills an enemy gear.</summary>
+    private static string GearBreakerOnDeath(string id) => $$"""
+        { "cardId": "{{id}}", "status": "Full", "abilities": [
+          { "kind": "Triggered", "trigger": { "event": "Dies", "subject": { "ref": "Self" } },
+            "steps": [ { "action": "Kill", "target": { "select": "Gear", "count": 1, "filter": { "relation": "Enemy" } } } ] } ] }
+        """;
+
+    /// <summary>A spell that kills every unit.</summary>
+    private const string Purge = """
+        { "cardId": "spell", "status": "Full", "abilities": [ { "kind": "Spell", "steps": [
+          { "action": "Kill", "target": { "select": "Unit", "all": true } } ] } ] }
         """;
 
     private static (TestGame Game, Rules.Game Engine) Setup(string json, Action<TestGame> arrange)
@@ -69,6 +89,9 @@ public class AbilityTargetTests
 
         Assert.IsType<PriorityDecision>(engine.Pending);
         Assert.Single(game.State.Chain);
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+        Assert.Contains(game.State.At(Place.Trash(P2)), id => game.State[id].CardId == "unit-2");
     }
 
     [Fact]
@@ -142,5 +165,67 @@ public class AbilityTargetTests
 
         Assert.Equal(new[] { b }, context.Vars["aimed"].Objects);
         Assert.False(context.Vars["aimed"].Happened);
+    }
+
+    [Fact]
+    public void A_deathknell_with_a_target_chooses_it_when_it_goes_on_the_chain_and_then_resolves()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("unit-3", DeathknellKiller)));
+        var dying = game.Put("unit-3", Place.Base(P1));
+        var a = game.Put("unit-2", Place.Base(P2));
+        var b = game.Put("unit-2", Place.Base(P2));
+        var engine = game.Start();
+
+        engine.RunNow(new StepTask(g => g.Kill(dying)));
+        var choose = engine.Decision<ChooseTargetsDecision>();
+        Assert.Equal(new[] { a, b }, choose.Options);
+        engine.Accept(P1, new ChooseTargets { Targets = [b] });
+        Assert.Single(game.State.Chain);
+        var first = engine.Decision<PriorityDecision>().Player;
+        engine.Accept(first, new Pass());
+        engine.Accept(new PlayerId(1 - first.Index), new Pass());
+
+        Assert.Equal("unit-2", game.State[Assert.Single(game.State.At(Place.Trash(P2)))].CardId);
+        Assert.Equal(new[] { a }, game.State.At(Place.Base(P2)));
+    }
+
+    [Fact]
+    public void A_deathknell_with_no_legal_target_is_not_put_on_the_chain()
+    {
+        var game = new TestGame(db: EngineTestDb.Create(("unit-3", DeathknellKiller)));
+        var dying = game.Put("unit-3", Place.Base(P1));
+        var engine = game.Start();
+
+        engine.RunNow(new StepTask(g => g.Kill(dying)));
+
+        Assert.Empty(game.State.Chain);
+        Assert.IsType<PriorityDecision>(engine.Pending);
+    }
+
+    [Fact]
+    public void Triggers_from_one_event_choose_their_targets_in_chain_order()
+    {
+        var db = EngineTestDb.Create(("spell", Purge), ("unit-2", GearBreakerOnDeath("unit-2")), ("unit-3", GearBreakerOnDeath("unit-3")));
+        var game = new TestGame(db: db);
+        game.Put("spell", Place.Hand(P1));
+        game.Runes(P1, "fury-rune", 1);
+        game.Put("unit-2", Place.Base(P1));
+        game.Put("unit-3", Place.Base(P2));
+        var mine = new[] { game.Put("gear-1", Place.Base(P1)), game.Put("gear-1", Place.Base(P1)) };
+        var theirs = new[] { game.Put("gear-1", Place.Base(P2)), game.Put("gear-1", Place.Base(P2)) };
+        var engine = game.Start();
+
+        engine.Accept(P1, new PlayCard(game.First(Place.Hand(P1), "spell")));
+        engine.PayWithSuggestion(P1);
+        engine.Accept(P1, new Pass());
+        engine.Accept(P2, new Pass());
+
+        var firstChoice = engine.Decision<ChooseTargetsDecision>();
+        Assert.Equal(P1, firstChoice.Player);
+        Assert.Equal(theirs, firstChoice.Options);
+        engine.Accept(P1, new ChooseTargets { Targets = [theirs[1]] });
+        var secondChoice = engine.Decision<ChooseTargetsDecision>();
+        Assert.Equal(P2, secondChoice.Player);
+        Assert.Equal(mine, secondChoice.Options);
     }
 }

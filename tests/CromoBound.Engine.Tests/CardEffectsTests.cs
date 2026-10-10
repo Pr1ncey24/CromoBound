@@ -76,6 +76,8 @@ public class CardEffectsTests
     [InlineData("""{ "action": "Deal", "amount": 2, "split": true, "target": { "select": "Unit", "count": 1 } }""", "abilities[0].steps[0]: split, bonus or source")]
     [InlineData("""{ "action": "Optional", "steps": [ { "action": "Draw" } ] }""", "abilities[0].steps[0]: optional")]
     [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit", "count": 1, "filter": { "tags": ["Mech"] } } } ] }""", "abilities[0].steps[0].steps[0]: target")]
+    [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Empower", "target": { "select": "Unit", "count": 1 } } ] }""", "abilities[0].steps[0].steps[0]: target")]
+    [InlineData("""{ "action": "Optional", "reflexive": true, "steps": [ { "action": "Kill", "target": { "select": "Unit" } } ] }""", "abilities[0].steps[0].steps[0]: target")]
     [InlineData("""{ "action": "ChooseCard", "from": { "zone": "Hand" } }""", "abilities[0].steps[0]: from")]
     [InlineData("""{ "action": "ChoosePlayer", "filter": { "relation": "Friendly" } }""", "abilities[0].steps[0]: filter")]
     [InlineData("""{ "action": "Predict", "amount": 2 }""", "abilities[0].steps[0]: value")]
