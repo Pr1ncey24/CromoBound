@@ -20,4 +20,26 @@ public class EffectsDataTests
             Assert.Equal(effects.Value.File.Status, info.Status);
         });
     }
+
+    [Theory]
+    [InlineData("harnessed-dragon")]
+    [InlineData("punch-first")]
+    [InlineData("divining-shells")]
+    [InlineData("dorans-blade")]
+    [InlineData("shepherds-heirloom")]
+    [InlineData("rampage")]
+    [InlineData("sacrifice")]
+    [InlineData("kayle-justified")]
+    [InlineData("fiora-victorious")]
+    [InlineData("risen-altar")]
+    [InlineData("sunken-temple")]
+    [InlineData("amateur-recital")]
+    [InlineData("rengar-trophy-hunter")]
+    public void The_fiora_decks_plan_o_cards_run_in_full(string cardId)
+    {
+        var info = Real.For(cardId);
+
+        Assert.True(info.Unsupported.Count == 0, string.Join(", ", info.Unsupported));
+        Assert.Equal(Models.Effects.MappingStatus.Full, info.Status);
+    }
 }

@@ -1,6 +1,6 @@
 # CromoBound: The Fiora Deck Runs Itself (Phase 2c)
 
-- **Status:** Approved (2026-10-10), with the owner's rules readings in §4.
+- **Status:** Approved (2026-10-10), with the owner's rules readings in §4. Plan O done: 12 of the 19 cards run automatically.
 - **Builds on:** `effects-engine.md` (Phase 2b). Same rules: the engine runs what mapped cards need and nothing more, and a file that uses anything the engine can't run plays by hand (`EffectsSupport`).
 
 ## 1. Goal and scope

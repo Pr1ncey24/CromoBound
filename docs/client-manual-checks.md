@@ -57,6 +57,9 @@ You need two accounts (an admin and a player) and two browsers, or one normal an
 - [ ] Concede from the board asks first; Keep playing does nothing; Concede ends the game for both players and the result dialog shows.
 - [ ] Hovering a card shows the card zoom with its damage and might; the XP switch in the board settings hides the legend XP and stays off after a reload.
 - [ ] Stopping the server mid-turn locks the board under the reconnecting banner; the board comes back as it was.
+- Fiora deck (Plan O cards): Punch First on a unit shows +5 on the board this turn and is gone next turn; Doran's Blade
+  equipped shows +2 on its unit; Kayle Empowered twice shows "Empowered x2" and 7 might. Cards that ask a target, a card or
+  a yes/no show the "comes in the next update" panel until plan M.
 
 ## Release build
 - [ ] `dotnet publish src/CromoBound.Server -c Release` has 0 warnings, and the published app passes "Signing in" and "Lobby" above.
