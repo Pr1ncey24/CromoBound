@@ -1,6 +1,9 @@
 using Bunit;
 using CromoBound.Client.Layout;
+using CromoBound.Client.Services;
 using CromoBound.Contracts;
+using CromoBound.Engine.Matches;
+using CromoBound.Engine.State;
 
 namespace CromoBound.Client.Tests;
 
@@ -52,5 +55,48 @@ public class LayoutTests
 
         Assert.Contains("logout", ui.Api.Calls);
         Assert.Equal("http://localhost/login", ui.Nav.Uri);
+    }
+
+    [Fact]
+    public async Task The_layout_starts_the_hub_and_shows_the_banners()
+    {
+        await using var ui = new Ui();
+        var cut = ui.Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, "<p id='page'>page</p>"));
+        cut.WaitForAssertion(() => Assert.Equal(1, ui.Hub.Starts));
+
+        await cut.InvokeAsync(() => ui.Hub.SetStateAsync(HubState.Reconnecting));
+        cut.WaitForAssertion(() => Assert.Contains("Reconnecting...", cut.Find(".cb-banner.warn").TextContent));
+
+        await cut.InvokeAsync(() => ui.Hub.SetStateAsync(HubState.Connected));
+        await cut.InvokeAsync(() => ui.Hub.Push(c => c.MaintenanceChanged(new MaintenanceNotice(true))));
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".cb-banner.warn")));
+        Assert.Contains("The server is in maintenance.", cut.Find(".cb-banner.info").TextContent);
+    }
+
+    [Fact]
+    public async Task A_notice_pops_up_as_a_notification()
+    {
+        await using var ui = new Ui();
+        var cut = ui.Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, "<p id='page'>page</p>"));
+        cut.WaitForAssertion(() => Assert.Equal(1, ui.Hub.Starts));
+        await cut.InvokeAsync(() => ui.Hub.SetStateAsync(HubState.Connected));
+
+        await cut.InvokeAsync(() => ui.Hub.Push(c => c.ChallengeReceived(new ChallengeNotice(Guid.NewGuid(), "giulia", MatchFormat.Bo3))));
+
+        cut.WaitForAssertion(() => Assert.Contains("giulia challenges you to a best of three.", ui.Notices));
+    }
+
+    [Fact]
+    public async Task A_started_match_opens_its_page_from_anywhere()
+    {
+        await using var ui = new Ui();
+        var cut = ui.Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, "<p id='page'>page</p>"));
+        cut.WaitForAssertion(() => Assert.Equal(1, ui.Hub.Starts));
+        await cut.InvokeAsync(() => ui.Hub.SetStateAsync(HubState.Connected));
+        var match = Guid.NewGuid();
+
+        await cut.InvokeAsync(() => ui.Hub.Push(c => c.MatchStarted(new MatchStartedNotice(match, "giulia", new PlayerId(0)))));
+
+        cut.WaitForAssertion(() => Assert.EndsWith($"/match/{match}", ui.Nav.Uri));
     }
 }

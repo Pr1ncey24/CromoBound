@@ -4,6 +4,7 @@ using CromoBound.Client.Tests.Fakes;
 using CromoBound.Contracts;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
 using MudBlazor.Services;
 
 namespace CromoBound.Client.Tests;
@@ -23,12 +24,21 @@ internal sealed class Ui : IAsyncDisposable
         Ctx.Services.AddSingleton<IServerApi>(Api);
         Ctx.Services.AddSingleton(TimeProvider.System);
         Ctx.Services.AddSingleton<SessionKeeper>();
+        Lobby = new LobbyState(Session);
+        Ctx.Services.AddSingleton<IGameHub>(Hub);
+        Ctx.Services.AddSingleton(Lobby);
+        Ctx.Services.AddSingleton<LobbySync>();
     }
 
     public BunitContext Ctx { get; } = new();
     public SessionState Session { get; } = new();
     public FakeServerApi Api { get; }
+    public FakeGameHub Hub { get; } = new();
+    public LobbyState Lobby { get; }
     public NavigationManager Nav => Ctx.Services.GetRequiredService<NavigationManager>();
+
+    public IReadOnlyList<string> Notices =>
+        [.. Ctx.Services.GetRequiredService<ISnackbar>().ShownSnackbars.Select(s => s.Message ?? "")];
 
     public ValueTask DisposeAsync() => Ctx.DisposeAsync();
 }

@@ -14,5 +14,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<SessionState>();
 builder.Services.AddScoped<IServerApi, ServerApi>();
 builder.Services.AddScoped<SessionKeeper>();
+builder.Services.AddScoped<IGameHub, GameConnection>();
+builder.Services.AddScoped<LobbyState>();
+builder.Services.AddScoped<LobbySync>();
 
 await builder.Build().RunAsync();
