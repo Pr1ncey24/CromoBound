@@ -13,3 +13,4 @@ data/import-report.md
 *.db
 *.db-shm
 *.db-wal
+card-images/

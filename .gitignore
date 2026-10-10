@@ -63,3 +63,6 @@ nunit-*.xml
 *.db
 *.db-shm
 *.db-wal
+
+# Downloaded card images (deploy data, not source)
+card-images/
