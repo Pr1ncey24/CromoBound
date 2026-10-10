@@ -45,6 +45,11 @@ public class CardEndpointsTests
         var cards = ServerFactory.TestCards.Cards.Values;
         Assert.Equal(cards.Select(c => c.Id).Order(StringComparer.Ordinal), catalog.Cards.Select(c => c.Id));
         Assert.Equal(ServerFactory.TestCards.Printings.Keys.Order(StringComparer.Ordinal), catalog.Printings.Select(p => p.Id));
+        foreach (var printing in ServerFactory.TestCards.Printings.Values)
+        {
+            var entry = catalog.Printings.Single(p => p.Id == printing.Id);
+            Assert.Equal((printing.CardId, printing.Orientation), (entry.CardId, entry.Orientation));
+        }
         foreach (var card in cards)
         {
             var entry = catalog.Cards.Single(c => c.Id == card.Id);
