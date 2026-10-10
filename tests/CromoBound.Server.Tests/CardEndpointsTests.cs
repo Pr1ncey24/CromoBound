@@ -75,6 +75,13 @@ public class CardEndpointsTests
         Assert.True(response.Headers.CacheControl?.Private);
         Assert.Equal(TimeSpan.FromDays(7), response.Headers.CacheControl?.MaxAge);
         Assert.Equal(bytes, await response.Content.ReadAsByteArrayAsync());
+        var lastModified = response.Content.Headers.LastModified;
+        Assert.NotNull(lastModified);
+
+        using var revalidation = new HttpRequestMessage(HttpMethod.Get, $"/cards/img/{printing}");
+        revalidation.Headers.IfModifiedSince = lastModified;
+        var again = await player.SendAsync(revalidation);
+        Assert.Equal(HttpStatusCode.NotModified, again.StatusCode);
         Directory.Delete(folder, recursive: true);
     }
 

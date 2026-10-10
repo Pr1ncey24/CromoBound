@@ -32,6 +32,6 @@ internal static class CardEndpoints
         var path = Path.Combine(Path.GetFullPath(options.Value.CardImagesPath), printingId + ".png");
         if (!File.Exists(path)) return Results.NotFound();
         http.Response.Headers.CacheControl = ImageCache;
-        return Results.File(path, "image/png");
+        return Results.File(path, "image/png", lastModified: File.GetLastWriteTimeUtc(path));
     }
 }
