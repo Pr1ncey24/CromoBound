@@ -105,7 +105,11 @@ else if (ready)
 
     private void OnNotice(string text) => _ = InvokeAsync(() => Snackbar.Add(text, Severity.Info));
 
-    private void OnMatchBegun(Guid matchId) => _ = InvokeAsync(() => Nav.NavigateTo($"match/{matchId}"));
+    private void OnMatchBegun(Guid matchId) => _ = InvokeAsync(() =>
+    {
+        var page = Nav.ToAbsoluteUri($"match/{matchId}").ToString();
+        if (Nav.Uri != page) Nav.NavigateTo($"match/{matchId}");
+    });
 
     private void GoToLogin() => Nav.NavigateTo("/login", forceLoad: true);
 

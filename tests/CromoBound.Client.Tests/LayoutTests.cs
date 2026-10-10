@@ -101,6 +101,21 @@ public class LayoutTests
     }
 
     [Fact]
+    public async Task A_started_match_whose_page_is_open_adds_no_history_entry()
+    {
+        await using var ui = new Ui();
+        var match = Guid.NewGuid();
+        ui.Nav.NavigateTo($"match/{match}");
+        var cut = ui.Ctx.Render<MainLayout>(ps => ps.Add(p => p.Body, "<p id='page'>page</p>"));
+        cut.WaitForAssertion(() => Assert.Equal(1, ui.Hub.Starts));
+        var before = ui.Nav.History.Count;
+
+        await cut.InvokeAsync(() => ui.Hub.Push(c => c.MatchStarted(new MatchStartedNotice(match, "giulia", new PlayerId(0)))));
+
+        Assert.Equal(before, ui.Nav.History.Count);
+    }
+
+    [Fact]
     public async Task A_match_abandoned_at_startup_is_explained_once()
     {
         await using var ui = new Ui();

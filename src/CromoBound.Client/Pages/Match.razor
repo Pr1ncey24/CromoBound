@@ -56,7 +56,7 @@
     [Parameter] public Guid Id { get; set; }
 
     private bool busy;
-    private bool resultShown;
+    private Guid? shownFor;
     private bool disposed;
 
     private string Me => Session.Me?.UserName ?? "";
@@ -80,19 +80,19 @@
         StateHasChanged();
     });
 
-    /// <summary>The end of this match shows its result, once; a match id that isn't the player's running match goes back to the
+    /// <summary>The end of this match shows its result, once for each match id the page has had; a match id that isn't the player's running match goes back to the
     /// lobby (spec §8). Before the lobby has loaded there is nothing to compare with, so the page waits.</summary>
     private void Check()
     {
         if (!Lobby.Loaded) return;
         if (Lobby.Ended is { } ended && ended.MatchId == Id)
         {
-            if (resultShown) return;
-            resultShown = true;
+            if (shownFor == Id) return;
+            shownFor = Id;
             _ = ShowEndThenLeaveAsync(ended);
             return;
         }
-        if (Lobby.MatchId != Id) Nav.NavigateTo("");
+        if (Lobby.MatchId != Id) Nav.NavigateTo("", replace: true);
     }
 
     /// <summary>Not awaited by <see cref="Check"/>: the dialog stays open until the player closes it, and the page keeps rendering
@@ -100,7 +100,7 @@
     private async Task ShowEndThenLeaveAsync(MatchEndedNotice ended)
     {
         await ShowEndAsync(ended);
-        if (!disposed) Nav.NavigateTo("");
+        if (!disposed) Nav.NavigateTo("", replace: true);
     }
 
     private async Task ShowEndAsync(MatchEndedNotice ended)

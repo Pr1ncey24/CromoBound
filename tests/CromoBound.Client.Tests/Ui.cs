@@ -1,4 +1,5 @@
 using Bunit;
+using Bunit.TestDoubles;
 using CromoBound.Client.Layout;
 using CromoBound.Client.Services;
 using CromoBound.Client.Tests.Fakes;
@@ -41,7 +42,7 @@ internal sealed class Ui : IAsyncDisposable
     public LobbyState Lobby { get; }
     public MemoryStorage Storage { get; } = new();
     public DeckStore Decks { get; }
-    public NavigationManager Nav => Ctx.Services.GetRequiredService<NavigationManager>();
+    public BunitNavigationManager Nav => (BunitNavigationManager)Ctx.Services.GetRequiredService<NavigationManager>();
 
     public IReadOnlyList<string> Notices =>
         [.. Ctx.Services.GetRequiredService<ISnackbar>().ShownSnackbars.Select(s => s.Message ?? "")];

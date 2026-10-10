@@ -198,5 +198,6 @@ public class LobbyPageTests
         ui.Ctx.Render<Lobby>();
 
         Assert.EndsWith($"/match/{match}", ui.Nav.Uri);
+        Assert.True(ui.Nav.History.First().Options.ReplaceHistoryEntry);
     }
 }

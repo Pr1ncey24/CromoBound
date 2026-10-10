@@ -5,6 +5,7 @@ using CromoBound.Contracts;
 using CromoBound.Engine;
 using CromoBound.Engine.Actions;
 using CromoBound.Engine.Matches;
+using CromoBound.Engine.State;
 using Match = CromoBound.Client.Pages.Match;
 
 namespace CromoBound.Client.Tests;
@@ -50,6 +51,20 @@ public class MatchPageTests
         Render(ui, other);
 
         Assert.Equal("http://localhost/", ui.Nav.Uri);
+    }
+
+    [Fact]
+    public async Task The_redirects_replace_the_history_entry()
+    {
+        await using var ui = Playing();
+        var other = Guid.NewGuid();
+        ui.Nav.NavigateTo($"match/{other}");
+        var before = ui.Nav.History.Count;
+
+        Render(ui, other);
+
+        Assert.Equal(before, ui.Nav.History.Count);
+        Assert.True(ui.Nav.History.First().Options.ReplaceHistoryEntry);
     }
 
     [Fact]
@@ -167,6 +182,26 @@ public class MatchPageTests
         Assert.Equal($"http://localhost/match/{M}", ui.Nav.Uri);
         await dialogs.ClickAsync("#back-to-lobby");
         cut.WaitForAssertion(() => Assert.Equal("http://localhost/", ui.Nav.Uri));
+        Assert.True(ui.Nav.History.First().Options.ReplaceHistoryEntry);
+    }
+
+    [Fact]
+    public async Task The_page_moved_to_another_match_shows_that_matchs_result_too()
+    {
+        await using var ui = Playing(seat: 0);
+        var second = Guid.NewGuid();
+        ui.Nav.NavigateTo($"match/{M}");
+        var dialogs = ui.RenderDialogs();
+        var cut = Render(ui);
+        await cut.InvokeAsync(() => ui.Lobby.MatchEnded(new MatchEndedNotice(M, MatchEndReason.Finished, [1, 2], "giulia")));
+        await dialogs.ClickAsync("#back-to-lobby");
+        cut.WaitForAssertion(() => Assert.Equal("http://localhost/", ui.Nav.Uri));
+        await cut.InvokeAsync(() => ui.Lobby.MatchStarted(new MatchStartedNotice(second, "luca", new PlayerId(0))));
+
+        cut.Render(ps => ps.Add(p => p.Id, second));
+        await cut.InvokeAsync(() => ui.Lobby.MatchEnded(new MatchEndedNotice(second, MatchEndReason.Finished, [2, 0], "marco")));
+
+        dialogs.WaitForAssertion(() => Assert.Equal("You win the match", dialogs.Find(".mud-dialog-title").TextContent.Trim()));
     }
 
     [Fact]
