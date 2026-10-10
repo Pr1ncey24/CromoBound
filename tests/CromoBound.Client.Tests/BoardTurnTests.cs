@@ -224,7 +224,7 @@ public class BoardTurnTests
     }
 
     [Fact]
-    public void A_rune_cycles_exhaust_recycle_unused()
+    public void A_rune_cycles_exhaust_both_recycle_unused()
     {
         var board = new TestBoard();
         var ready = board.Add(board.MyBase, "fury-rune");
@@ -236,14 +236,35 @@ public class BoardTurnTests
         Assert.Equal(new[] { PayMark.None, PayMark.None }, start.Me.Runes.Select(r => r.Mark));
 
         var exhaust = Next(start, ready);
-        Assert.Equal(RuneUse.Exhaust, exhaust.Uses[ready.Id]);
-        var recycle = Next(board.Model(pay, exhaust), ready);
-        Assert.Equal(RuneUse.Recycle, recycle.Uses[ready.Id]);
+        Assert.Equal(RunePay.Exhaust, exhaust.Uses[ready.Id]);
+        var both = Next(board.Model(pay, exhaust), ready);
+        Assert.Equal(RunePay.Both, both.Uses[ready.Id]);
+        Assert.Equal(PayMark.Both, board.Model(pay, both).Me.Runes[0].Mark);
+        var recycle = Next(board.Model(pay, both), ready);
+        Assert.Equal(RunePay.Recycle, recycle.Uses[ready.Id]);
         var unused = Next(board.Model(pay, recycle), ready);
         Assert.False(unused.Uses.ContainsKey(ready.Id));
 
-        Assert.Equal(RuneUse.Recycle, Next(start, spent).Uses[spent.Id]);
+        var spentRecycle = Next(start, spent);
+        Assert.Equal(RunePay.Recycle, spentRecycle.Uses[spent.Id]);
+        Assert.False(Next(board.Model(pay, spentRecycle), spent).Uses.ContainsKey(spent.Id));
         Assert.Equal(new[] { "Cancel" }, start.Extras.Select(e => e.Label));
+    }
+
+    [Fact]
+    public void Five_runes_pay_five_energy_and_one_power_by_exhausting_and_recycling_one_rune()
+    {
+        var board = new TestBoard();
+        var runes = Enumerable.Range(0, 5).Select(_ => board.Add(board.MyBase, "fury-rune")).ToList();
+        var ids = runes.Select(r => r.Id).ToList();
+        var pay = new PayCostDecision(TestBoard.Me, new TotalCost(5, [PowerSymbol.Fury]), [], new PaymentSuggestion(ids, [ids[0]]));
+
+        var model = board.Model(pay);
+
+        Assert.Equal(new[] { PayMark.Both, PayMark.Exhaust, PayMark.Exhaust, PayMark.Exhaust, PayMark.Exhaust }, model.Me.Runes.Select(r => r.Mark));
+        var paid = Assert.IsType<PayCost>(Assert.IsType<SendStep>(model.Button.Step).Action);
+        Assert.Equal(ids, paid.Exhaust);
+        Assert.Equal(new[] { ids[0] }, paid.Recycle);
     }
 
     [Fact]
@@ -253,11 +274,11 @@ public class BoardTurnTests
         var a = board.Add(board.MyBase, "fury-rune");
         var pay = new PayCostDecision(TestBoard.Me, new TotalCost(1, []), [], new PaymentSuggestion([a.Id], []));
 
-        var model = board.Model(pay, new Paying(new Dictionary<ObjectId, RuneUse>()));
+        var model = board.Model(pay, new Paying(new Dictionary<ObjectId, RunePay>()));
 
         Assert.Equal(PayMark.None, model.Me.Runes.Single().Mark);
         var back = Assert.IsType<Paying>(Assert.IsType<NextStep>(model.Extras[1].Step).Next);
-        Assert.Equal(RuneUse.Exhaust, back.Uses[a.Id]);
+        Assert.Equal(RunePay.Exhaust, back.Uses[a.Id]);
     }
 
     [Theory]

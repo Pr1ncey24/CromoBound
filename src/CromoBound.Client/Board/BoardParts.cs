@@ -9,7 +9,10 @@ namespace CromoBound.Client.Board;
 public enum Ring { None, Legal, Suggested, Selected }
 
 /// <summary>What a rune does in the payment being made.</summary>
-public enum PayMark { None, Exhaust, Recycle }
+public enum PayMark { None, Exhaust, Recycle, Both }
+
+/// <summary>How a rune pays: exhausted for energy, recycled for power, or both (exhausted, then recycled).</summary>
+public enum RunePay { Exhaust, Recycle, Both }
 
 /// <summary>A card as the board draws it: the view's state, the catalog's name, cost and printed might, and the board's marks.</summary>
 public sealed record BoardCard(
@@ -68,7 +71,7 @@ public sealed record Idle : Interaction
 public sealed record Moving(IReadOnlyList<ObjectId> Units) : Interaction;
 
 /// <summary>Paying, with the use the player chose for each rune (runes not listed are unused).</summary>
-public sealed record Paying(IReadOnlyDictionary<ObjectId, RuneUse> Uses) : Interaction;
+public sealed record Paying(IReadOnlyDictionary<ObjectId, RunePay> Uses) : Interaction;
 
 /// <summary>A panel over the board: a pre-game step, a prompt, or the undo answer. Tasks 2 and 3 add the kinds.</summary>
 public abstract record BoardPanel;

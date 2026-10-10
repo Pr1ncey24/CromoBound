@@ -108,8 +108,8 @@ public sealed partial class BoardModel
         return true;
     }
 
-    /// <summary>Paying: each of the player's runes cycles exhaust, recycle, unused (an exhausted rune skips exhaust); the engine's
-    /// suggestion is the starting point and what Suggest puts back.</summary>
+    /// <summary>Paying: each of the player's runes cycles exhaust, exhaust and recycle, recycle, unused (an exhausted rune only
+    /// recycles); the engine's suggestion is the starting point and what Suggest puts back.</summary>
     private void Pay(PayCostDecision pay, Build build, Paying? paying)
     {
         var suggested = Suggestion(pay);
@@ -117,14 +117,21 @@ public sealed partial class BoardModel
         var runes = build.View.Players[build.View.Viewer.Index].Base.Where(c => build.Book.Card(c.CardId)?.Type == CardType.Rune).ToList();
         foreach (var rune in runes)
         {
-            RuneUse? use = uses.TryGetValue(rune.Id, out var chosen) ? chosen : null;
-            _marks[rune.Id] = use switch { RuneUse.Exhaust => PayMark.Exhaust, RuneUse.Recycle => PayMark.Recycle, _ => PayMark.None };
+            RunePay? use = uses.TryGetValue(rune.Id, out var chosen) ? chosen : null;
+            _marks[rune.Id] = use switch
+            {
+                RunePay.Exhaust => PayMark.Exhaust,
+                RunePay.Recycle => PayMark.Recycle,
+                RunePay.Both => PayMark.Both,
+                _ => PayMark.None,
+            };
             if (suggested.ContainsKey(rune.Id)) _rings[rune.Id] = Ring.Suggested;
             _cardSteps[rune.Id] = new NextStep(new Paying(Cycle(uses, rune.Id, use, rune.Exhausted)));
         }
-        List<ObjectId> With(RuneUse wanted) => [.. runes.Where(r => uses.TryGetValue(r.Id, out var u) && u == wanted).Select(r => r.Id)];
+        List<ObjectId> With(RunePay wanted) =>
+            [.. runes.Where(r => uses.TryGetValue(r.Id, out var u) && (u == wanted || u == RunePay.Both)).Select(r => r.Id)];
 
-        Button = new BoardButton("PAY", CostText(pay.Cost), new SendStep(new PayCost { Exhaust = With(RuneUse.Exhaust), Recycle = With(RuneUse.Recycle) }));
+        Button = new BoardButton("PAY", CostText(pay.Cost), new SendStep(new PayCost { Exhaust = With(RunePay.Exhaust), Recycle = With(RunePay.Recycle) }));
         var cancel = new BoardButton("Cancel", null, new SendStep(new CancelPlay()));
         Extras = pay.Suggested is null ? [cancel] : [cancel, new BoardButton("Suggest", null, new NextStep(new Paying(suggested)))];
     }
@@ -148,22 +155,24 @@ public sealed partial class BoardModel
         };
     }
 
-    private static Dictionary<ObjectId, RuneUse> Suggestion(PayCostDecision pay)
+    private static Dictionary<ObjectId, RunePay> Suggestion(PayCostDecision pay)
     {
-        var uses = new Dictionary<ObjectId, RuneUse>();
+        var uses = new Dictionary<ObjectId, RunePay>();
         if (pay.Suggested is not { } suggested) return uses;
-        foreach (var rune in suggested.Exhaust) uses[rune] = RuneUse.Exhaust;
-        foreach (var rune in suggested.Recycle) uses[rune] = RuneUse.Recycle;
+        foreach (var rune in suggested.Exhaust) uses[rune] = RunePay.Exhaust;
+        foreach (var rune in suggested.Recycle) uses[rune] = uses.ContainsKey(rune) ? RunePay.Both : RunePay.Recycle;
         return uses;
     }
 
-    private static Dictionary<ObjectId, RuneUse> Cycle(IReadOnlyDictionary<ObjectId, RuneUse> uses, ObjectId rune, RuneUse? current, bool exhausted)
+    private static Dictionary<ObjectId, RunePay> Cycle(IReadOnlyDictionary<ObjectId, RunePay> uses, ObjectId rune, RunePay? current, bool exhausted)
     {
-        var next = new Dictionary<ObjectId, RuneUse>(uses);
-        RuneUse? after = current switch
+        var next = new Dictionary<ObjectId, RunePay>(uses);
+        RunePay? after = (current, exhausted) switch
         {
-            null => exhausted ? RuneUse.Recycle : RuneUse.Exhaust,
-            RuneUse.Exhaust => RuneUse.Recycle,
+            (null, true) => RunePay.Recycle,
+            (null, false) => RunePay.Exhaust,
+            (RunePay.Exhaust, _) => RunePay.Both,
+            (RunePay.Both, _) => RunePay.Recycle,
             _ => null,
         };
         if (after is { } use) next[rune] = use;

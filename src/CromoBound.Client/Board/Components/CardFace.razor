@@ -56,6 +56,7 @@ else
             if (Card.Gear > 0) parts.Add($"{Card.Gear} gear attached");
             if (Card.Mark == PayMark.Exhaust) parts.Add("exhaust to pay");
             if (Card.Mark == PayMark.Recycle) parts.Add("recycle to pay");
+            if (Card.Mark == PayMark.Both) parts.Add("exhaust and recycle to pay");
             return string.Join(", ", parts);
         }
     }
@@ -92,7 +93,7 @@ else
         }
         @if (Card.Mark != PayMark.None)
         {
-            <span class="mark @(Card.Mark == PayMark.Exhaust ? "exhaust" : "recycle")" aria-hidden="true">@(Card.Mark == PayMark.Exhaust ? "E" : "R")</span>
+            <span class="mark @(Card.Mark switch { PayMark.Exhaust => "exhaust", PayMark.Both => "both", _ => "recycle" })" aria-hidden="true">@(Card.Mark switch { PayMark.Exhaust => "E", PayMark.Both => "E+R", _ => "R" })</span>
         }
     </text>;
 }

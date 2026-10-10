@@ -40,6 +40,7 @@ button.cb-card { cursor: pointer; font: inherit; }
 .cb-card .mark { position: absolute; right: -2px; top: -2px; min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; border: 1px solid; color: #ffffff; font-family: Nunito, sans-serif; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .cb-card .mark.exhaust { background: #d8392a; border-color: #ff7a6b; }
 .cb-card .mark.recycle { background: #6a4a8e; border-color: #a56bd6; }
+.cb-card .mark.both { background: linear-gradient(90deg, #d8392a 50%, #6a4a8e 50%); border-color: #ff9a8e; }
 .cb-back { position: absolute; width: 70px; height: 98px; border-radius: 6px; background: #1a1213; border: 1px solid #5a2420; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,.45); }
 
 /* Sides */
